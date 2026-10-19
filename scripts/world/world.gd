@@ -69,6 +69,7 @@ func _ready() -> void:
 	add_child(crafter)
 	crafter.setup(self)
 	player.world = self
+	BlobShadow.attach(player, 0.6, self, 0.45)
 	_place_player()
 	map_texture = ImageTexture.create_from_image(gen.build_map_image(192))
 	_restore_backpack()
@@ -193,6 +194,7 @@ func _apply_quality() -> void:
 	RenderingServer.directional_shadow_atlas_set_size(int(q.shadow_size), true)
 	var vd := float(q.view_distance)
 	resources.set_visibility_range(vd)
+	resources.set_blob_shadows(int(q.get("blob_shadows", 2)) >= 2)
 	decor.apply_quality(float(q.vegetation), vd)
 	effects.budget = 0.6 if Settings.get_value("quality") == "baja" else 1.0
 	var env := env_node.environment
@@ -300,6 +302,7 @@ func spawn_drop(item_id: String, qty: int, pos: Vector3, launch: bool = true, pl
 	p.setup(item_id, qty)
 	p.bind_world(self)
 	p.player_drop = player_drop
+	BlobShadow.attach(p, 0.32, self, 0.3)
 	var ground := height_at(pos.x, pos.z)
 	p.global_position = Vector3(pos.x, maxf(ground, 0.0) + 0.05, pos.z)
 	if launch:

@@ -194,7 +194,9 @@ func _xf(t: Transform3D) -> Array:
 func _walk(n: Node) -> void:
 	if n is Node3D and not (n as Node3D).is_visible_in_tree():
 		return
-	if n is MeshInstance3D and (n as MeshInstance3D).mesh:
+	if n is MeshInstance3D and str(n.name) == "Sombra":
+		pass
+	elif n is MeshInstance3D and (n as MeshInstance3D).mesh:
 		var mi := n as MeshInstance3D
 		var gt := mi.global_transform
 		var far := Vector2(gt.origin.x - focus.x, gt.origin.z - focus.z).length() > radius + 40.0
@@ -208,6 +210,8 @@ func _walk(n: Node) -> void:
 					item["override"] = info
 				items.append(item)
 	elif n is MeshInstance3D and n.has_meta("parts") and false:
+		pass
+	elif n is MultiMeshInstance3D and str(n.name).begins_with("Sombras"):
 		pass
 	elif n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh:
 		var mmi := n as MultiMeshInstance3D

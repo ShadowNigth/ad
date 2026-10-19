@@ -3,9 +3,12 @@ extends Node
 
 const PATH := "user://settings.cfg"
 const QUALITY_PRESETS := {
-	"baja": {"shadows": false, "shadow_size": 1024, "view_distance": 75.0, "vegetation": 0.45, "render_scale": 0.75, "msaa": 0, "fog": true},
-	"media": {"shadows": true, "shadow_size": 1024, "view_distance": 105.0, "vegetation": 0.75, "render_scale": 1.0, "msaa": 0, "fog": true},
-	"alta": {"shadows": true, "shadow_size": 2048, "view_distance": 150.0, "vegetation": 1.0, "render_scale": 1.0, "msaa": 2, "fog": true},
+	# Sin sombras en tiempo real: en el renderizador de Compatibilidad la luz con sombras se suma en
+	# espacio sRGB (escena lavada al mediodía) y duplica las llamadas de dibujo. Se usan sombras
+	# suaves bajo personajes, árboles y edificios («blob_shadows»: 1 = solo personajes, 2 = todo).
+	"baja": {"shadows": false, "shadow_size": 1024, "view_distance": 75.0, "vegetation": 0.45, "render_scale": 0.75, "msaa": 0, "fog": true, "blob_shadows": 1},
+	"media": {"shadows": false, "shadow_size": 1024, "view_distance": 105.0, "vegetation": 0.75, "render_scale": 1.0, "msaa": 0, "fog": true, "blob_shadows": 2},
+	"alta": {"shadows": false, "shadow_size": 2048, "view_distance": 150.0, "vegetation": 1.0, "render_scale": 1.0, "msaa": 2, "fog": true, "blob_shadows": 2},
 }
 const DEFAULTS := {
 	"sensitivity": 1.0,

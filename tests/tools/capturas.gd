@@ -73,13 +73,12 @@ func _calibrate() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	var saved_dir := out_dir
 	out_dir = dir
+	# [nombre, sol, ambiente, tonemapper, blanco, exposición, sombras reales]
 	var variants := [
-		["A_actual", 1.0, 1.0, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05],
-		["B_luz70", 0.7, 0.7, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05],
-		["C_luz75_blanco2", 0.75, 0.75, Environment.TONE_MAPPER_FILMIC, 2.0, 1.2],
-		["D_luz80_aces", 0.8, 0.8, Environment.TONE_MAPPER_ACES, 2.0, 1.1],
-		["E_luz80_agx", 0.8, 0.8, Environment.TONE_MAPPER_AGX, 2.0, 1.05],
-		["F_luz60", 0.6, 0.6, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05],
+		["G_sin_sombras", 1.0, 1.0, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05, false],
+		["H_sin_sombras_suave", 0.9, 0.85, Environment.TONE_MAPPER_FILMIC, 1.4, 1.12, false],
+		["I_sin_sombras_agx", 1.0, 0.9, Environment.TONE_MAPPER_AGX, 1.0, 1.25, false],
+		["J_sombras_compensadas", 0.4, 0.85, Environment.TONE_MAPPER_FILMIC, 1.0, 1.0, true],
 	]
 	var beach := _beach_point()
 	for v in variants:
@@ -88,6 +87,7 @@ func _calibrate() -> void:
 		env.tonemap_mode = v[3]
 		env.tonemap_white = v[4]
 		env.tonemap_exposure = v[5]
+		world.sun.shadow_enabled = v[6]
 		_clear_ui()
 		_set_time(10.0)
 		_place(beach, _sea_yaw(beach), -0.22, 7.0)
@@ -105,6 +105,7 @@ func _calibrate() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_white = 1.0
 	env.tonemap_exposure = 1.05
+	world.sun.shadow_enabled = bool(Settings.quality().shadows)
 	out_dir = saved_dir
 
 

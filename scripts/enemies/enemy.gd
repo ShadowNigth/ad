@@ -75,6 +75,7 @@ func setup(w: World, t: String, pos: Vector3, poi_id: String = "") -> void:
 	add_child(_hp_bar)
 	rig.walk_rate = 1.8
 	rig.spawn_in()
+	BlobShadow.attach(self, maxf(float(data.get("radius", 0.45)) * 1.5, 0.35) * (1.6 if is_boss() else 1.0), w, 0.42)
 	if str(data.get("time", "")) == "night" and w.effects:
 		w.effects.poof(pos + Vector3.UP * 0.6, Color(0.45, 0.3, 0.65), 12, 1.2, 1.1, 0.8)
 	_pick_wander()

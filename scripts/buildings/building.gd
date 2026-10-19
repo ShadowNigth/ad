@@ -105,6 +105,9 @@ func rebuild() -> void:
 		_make_collision(bd)
 	if bd.get("walkable", false):
 		_mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	elif int(Settings.quality().get("blob_shadows", 2)) >= 2:
+		var fp := float(bd.get("footprint", 1.5))
+		BlobShadow.place_static(self, global_position + Vector3(aabb.get_center().x, 0.0, aabb.get_center().z).rotated(Vector3.UP, rotation.y), maxf(fp * 1.25, 0.6), world, 0.34)
 	if bd.get("fountain", false):
 		_build_fountain()
 	if lvl.has("spinner"):
@@ -307,6 +310,7 @@ func _build_animals(lvl: Dictionary) -> void:
 		var rig := ProceduralRig.new()
 		add_child(rig)
 		rig.build("animals/" + str(a), "quad", float(scales.get(a, 0.3)))
+		BlobShadow.attach(rig, 0.45, world, 0.38)
 		var ang := TAU * k / maxf(float(lvl.animals.size()), 1.0)
 		rig.position = Vector3(cos(ang) * 1.2, 0.0, sin(ang) * 1.2)
 		_animals.append({"rig": rig, "target": rig.position, "wait": randf() * 2.0})
@@ -327,6 +331,7 @@ func _sync_workers() -> void:
 		var rig := ProceduralRig.new()
 		add_child(rig)
 		rig.build(str(wdata.get("model", "characters/character-male-b")), "biped", 2.4)
+		BlobShadow.attach(rig, 0.5, world, 0.4)
 		var tool_model: String = wdata.get("tool", "")
 		if tool_model != "" and rig.hand_socket:
 			var tm := MeshInstance3D.new()

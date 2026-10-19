@@ -16,6 +16,8 @@ var _fruit_key := ""
 var _shaking: Array = []
 var _stumps: Dictionary = {}
 var _respawn_timer := 0.0
+var _blob_mm: Dictionary = {}   # trozo -> MultiMeshInstance3D con sombras suaves
+var _blob_mat: StandardMaterial3D
 var _rng := RandomNumberGenerator.new()
 var _exclusions: Array = []       # [{pos: Vector2, radius: float}]
 var _visibility_range := 105.0
@@ -199,6 +201,79 @@ func set_visibility_range(dist: float) -> void:
 	_visibility_range = dist
 	for key in _mm:
 		(_mm[key] as MultiMeshInstance3D).visibility_range_end = dist
+	for key in _blob_mm:
+		(_blob_mm[key] as MultiMeshInstance3D).visibility_range_end = dist * 0.7
+
+
+func set_blob_shadows(on: bool) -> void:
+	if on and _blob_mm.is_empty():
+		_build_blobs()
+	for key in _blob_mm:
+		(_blob_mm[key] as MultiMeshInstance3D).visible = on
+
+
+## Tamaño de la sombra suave de un nodo (0 = sin sombra).
+func _blob_size(rec: Dictionary) -> float:
+	var nd: Dictionary = GameData.nodes[rec.type]
+	var r := float(nd.get("radius", 0.0))
+	var base_scale := maxf(float(nd.get("scale", [1.0, 1.0])[0]), 0.01)
+	var k := clampf(float(rec.scale) / base_scale, 0.8, 1.4)
+	if nd.get("falls", false):
+		return r * 3.4 * k
+	if r > 0.0:
+		return r * 1.35 * k
+	if float(nd.get("height", 0.0)) >= 1.0:
+		return 0.75 * k
+	return 0.0
+
+
+func _blob_xf(rec: Dictionary, size: float) -> Transform3D:
+	var p: Vector3 = rec.pos
+	var b := BlobShadow.ground_basis(gen, p.x, p.z)
+	return Transform3D(Basis(b.x * size, b.y, b.z * size), Vector3(p.x, gen.height_at(p.x, p.z) + 0.05, p.z))
+
+
+## Sombras suaves de árboles, rocas y arbustos: un MultiMesh por trozo.
+func _build_blobs() -> void:
+	var groups := {}
+	for rec in nodes:
+		if _blob_size(rec) <= 0.0:
+			continue
+		var key := str(_chunk_of(rec.pos))
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(rec)
+	_blob_mat = BlobShadow.shared_material().duplicate()
+	_blob_mat.albedo_color.a = 0.3
+	for key in groups:
+		var list: Array = groups[key]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = BlobShadow.shared_mesh()
+		mm.instance_count = list.size()
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Sombras_" + key
+		mmi.multimesh = mm
+		mmi.material_override = _blob_mat
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = _visibility_range * 0.7
+		add_child(mmi)
+		_blob_mm[key] = mmi
+		for k in list.size():
+			var rec: Dictionary = list[k]
+			rec["blob_key"] = key
+			rec["blob_index"] = k
+			_set_blob(rec, not rec.depleted)
+
+
+func _set_blob(rec: Dictionary, visible_now: bool) -> void:
+	if not rec.has("blob_key"):
+		return
+	var mmi: MultiMeshInstance3D = _blob_mm.get(rec.blob_key)
+	if mmi == null:
+		return
+	var size := _blob_size(rec) if visible_now else 0.0001
+	mmi.multimesh.set_instance_transform(int(rec.blob_index), _blob_xf(rec, size))
 
 
 func _make_body(rec: Dictionary) -> void:
@@ -231,6 +306,7 @@ func _set_visible(rec: Dictionary, visible_now: bool) -> void:
 		else:
 			mmi.multimesh.set_instance_transform(rec.mm_index, Transform3D(Basis().scaled(Vector3(0.0001, 0.0001, 0.0001)), rec.pos + Vector3(0, -50, 0)))
 	_set_fruit(rec, visible_now)
+	_set_blob(rec, visible_now)
 	if rec.body:
 		(rec.body as StaticBody3D).process_mode = Node.PROCESS_MODE_INHERIT if visible_now else Node.PROCESS_MODE_DISABLED
 		(rec.body as StaticBody3D).collision_layer = (1 << 4) if visible_now else 0
