@@ -684,8 +684,20 @@ func _notification(what: int) -> void:
 func toast(text: String, kind: String = "info") -> void:
 	if toast_box == null:
 		return
-	if toast_box.get_child_count() >= 4:
-		toast_box.get_child(0).queue_free()
+	# El mismo aviso repetido seguido se agrupa («×2», «×3»...).
+	for c in toast_box.get_children():
+		if c.get_meta("text", "") == text and not c.is_queued_for_deletion():
+			var n := int(c.get_meta("count", 1)) + 1
+			c.set_meta("count", n)
+			var lbl: Label = c.get_child(0)
+			lbl.text = "%s  ×%d" % [text, n]
+			_pulse(c, 1.06)
+			return
+	# Como mucho 3 avisos a la vez: los más antiguos se quitan al momento.
+	while toast_box.get_child_count() >= 3:
+		var old := toast_box.get_child(0)
+		toast_box.remove_child(old)
+		old.queue_free()
 	var pc := PanelContainer.new()
 	var col: Color = {"good": Color(0.16, 0.38, 0.14, 0.88), "warn": Color(0.5, 0.32, 0.06, 0.9), "bad": Color(0.5, 0.1, 0.08, 0.9)}.get(kind, Color(0.12, 0.09, 0.05, 0.85))
 	pc.add_theme_stylebox_override("panel", UITheme.flat(col, 12, Color(1, 0.9, 0.7, 0.5), 2))
@@ -694,6 +706,7 @@ func toast(text: String, kind: String = "info") -> void:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pc.add_child(l)
+	pc.set_meta("text", text)
 	toast_box.add_child(pc)
 	pc.modulate = Color(1, 1, 1, 0)
 	pc.scale = Vector2(0.85, 0.6)
@@ -828,8 +841,10 @@ func banner(title_text: String, subtitle: String = "", kind: String = "info") ->
 func _next_banner() -> void:
 	if _banner_queue.is_empty():
 		_banner_busy = false
+		_shift_toasts(false)
 		return
 	_banner_busy = true
+	_shift_toasts(true)
 	var e: Array = _banner_queue.pop_front()
 	var kind: String = e[2]
 	var accent: Color = {"level": Color(1.0, 0.82, 0.3), "quest": Color(0.6, 1.0, 0.5), "age": Color(1.0, 0.65, 0.3),
@@ -857,9 +872,10 @@ func _next_banner() -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.anchor_left = 0.0
 	holder.anchor_right = 1.0
-	holder.anchor_top = 0.22
-	holder.anchor_bottom = 0.22
-	holder.offset_bottom = 150.0
+	holder.anchor_top = 0.0
+	holder.anchor_bottom = 0.0
+	holder.offset_top = 150.0
+	holder.offset_bottom = 300.0
 	_banner_layer.add_child(holder)
 	holder.add_child(box)
 	box.resized.connect(func(): box.pivot_offset = box.size * 0.5)
@@ -872,11 +888,22 @@ func _next_banner() -> void:
 	tw.tween_property(box, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.chain().tween_interval(hold)
 	tw.chain().tween_property(holder, "modulate:a", 0.0, 0.4)
-	tw.parallel().tween_property(holder, "offset_top", -24.0, 0.4)
-	tw.parallel().tween_property(holder, "offset_bottom", 126.0, 0.4)
+	tw.parallel().tween_property(holder, "offset_top", 126.0, 0.4)
+	tw.parallel().tween_property(holder, "offset_bottom", 276.0, 0.4)
 	tw.chain().tween_callback(func():
 		holder.queue_free()
 		_next_banner())
+
+
+## Mientras hay un rótulo grande, los avisos bajan para no taparse.
+func _shift_toasts(down: bool) -> void:
+	if toast_box == null:
+		return
+	var target := 300.0 if down else 176.0
+	if absf(toast_box.offset_top - target) < 1.0:
+		return
+	var tw := toast_box.create_tween()
+	tw.tween_property(toast_box, "offset_top", target, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 ## Icono del objeto que vuela desde el mundo hasta su contador (o la mochila).

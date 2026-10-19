@@ -567,7 +567,7 @@ func _find_target() -> Dictionary:
 		node_label = "%s %s" % [world.resources.node_data(rec).get("label", "Recoger"), world.resources.node_data(rec).get("name", "").to_lower()]
 	# Edificios.
 	var uid: int = world.building_near(probe, reach + 0.6)
-	if uid >= 0 and node_id < 0:
+	if uid >= 0 and node_id < 0 and not bool(GameData.building(Economy.get_building(uid).get("type", "")).get("walkable", false)):
 		var rec2 := Economy.get_building(uid)
 		return {"kind": "building", "uid": uid, "label": GameData.building(rec2.type).name, "icon": "icon_wrench", "pos": Vector3(rec2.pos[0], rec2.pos[1], rec2.pos[2])}
 	if node_id >= 0:
@@ -579,9 +579,12 @@ func _find_target() -> Dictionary:
 		elif tool == "pickaxe":
 			icon = "icon_burst"
 		return {"kind": "node", "id": node_id, "label": node_label, "icon": icon, "pos": rec3.pos}
+	var walkable_uid := -1
 	if uid >= 0:
 		var rec4 := Economy.get_building(uid)
-		return {"kind": "building", "uid": uid, "label": GameData.building(rec4.type).name, "icon": "icon_wrench", "pos": Vector3(rec4.pos[0], rec4.pos[1], rec4.pos[2])}
+		if not bool(GameData.building(rec4.type).get("walkable", false)):
+			return {"kind": "building", "uid": uid, "label": GameData.building(rec4.type).name, "icon": "icon_wrench", "pos": Vector3(rec4.pos[0], rec4.pos[1], rec4.pos[2])}
+		walkable_uid = uid
 	# Agua dulce delante.
 	for d: float in [1.2, 2.0, 2.8]:
 		var wp := pos + fwd * d
@@ -592,6 +595,10 @@ func _find_target() -> Dictionary:
 					has_container = true
 					break
 			return {"kind": "water", "label": "Recoger agua" if has_container else "Beber agua", "icon": "icon_hand", "pos": wp}
+	# Los caminos solo se seleccionan si no hay nada más a mano.
+	if walkable_uid >= 0:
+		var rec5 := Economy.get_building(walkable_uid)
+		return {"kind": "building", "uid": walkable_uid, "label": GameData.building(rec5.type).name, "icon": "icon_wrench", "pos": Vector3(rec5.pos[0], rec5.pos[1], rec5.pos[2])}
 	return {}
 
 

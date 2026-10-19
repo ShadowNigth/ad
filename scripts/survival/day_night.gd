@@ -8,6 +8,8 @@ var sun: DirectionalLight3D
 var env: Environment
 var sky_mat: Material          # ShaderMaterial (cielo propio) o ProceduralSkyMaterial
 var base_fog := 0.0035          # densidad de niebla según la calidad (la ajusta World)
+var sun_scale := 1.0            # multiplicadores globales de luz (calibración)
+var ambient_scale := 1.0
 var _was_night := false
 var _last_hour := -1
 var paused := false
@@ -139,7 +141,7 @@ func _apply_visuals() -> void:
 		top = top.lerp(Color(0.85, 0.88, 1.0), flash * 0.7)
 		horizon = horizon.lerp(Color(0.9, 0.92, 1.0), flash * 0.7)
 	sun.light_color = (s[2] as Color).lerp(Color(0.8, 0.85, 1.0), flash)
-	sun.light_energy = float(s[3]) * (1.0 - 0.55 * overcast) + flash * 1.6
+	sun.light_energy = float(s[3]) * sun_scale * (1.0 - 0.55 * overcast) + flash * 1.6
 	if sky_mat is ShaderMaterial:
 		var sm := sky_mat as ShaderMaterial
 		sm.set_shader_parameter("sky_top", top)
@@ -167,6 +169,6 @@ func _apply_visuals() -> void:
 		pm.sky_horizon_color = horizon
 		pm.ground_horizon_color = horizon.darkened(0.1)
 		pm.ground_bottom_color = top.darkened(0.5)
-	env.ambient_light_energy = float(s[4]) * (1.0 - 0.2 * overcast) + flash * 0.8
+	env.ambient_light_energy = float(s[4]) * ambient_scale * (1.0 - 0.2 * overcast) + flash * 0.8
 	env.fog_light_color = horizon.lerp(top, 0.4)
 	env.fog_density = base_fog * (1.0 + overcast * 0.5 + rain * 1.4)

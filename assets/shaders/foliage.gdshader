@@ -17,8 +17,11 @@ void vertex() {
 	vec2 offset = normalize(wind_dir) * sway * 0.22 * wind_strength * w;
 	offset += vec2(sin(t * 6.1 + VERTEX.x * 2.3), cos(t * 5.3 + VERTEX.z * 2.1)) * 0.02 * wind_strength * w;
 	VERTEX.xz += offset;
-	// Color de vértice en sRGB -> lineal (igual que vertex_color_is_srgb).
-	COLOR.rgb = mix(pow((COLOR.rgb + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)), COLOR.rgb * (1.0 / 12.92), lessThan(COLOR.rgb, vec3(0.04045)));
+	// Color de vértice en sRGB -> lineal solo si el renderizador trabaja en lineal
+	// (igual que vertex_color_is_srgb; en Compatibilidad el motor ya lo convierte).
+	if (!OUTPUT_IS_SRGB) {
+		COLOR.rgb = mix(pow((COLOR.rgb + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)), COLOR.rgb * (1.0 / 12.92), lessThan(COLOR.rgb, vec3(0.04045)));
+	}
 }
 
 void fragment() {

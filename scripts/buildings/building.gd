@@ -39,6 +39,8 @@ var _badge_t := 0.0
 var _dmg_fire: CPUParticles3D
 var _dmg_smoke: CPUParticles3D
 var _burnt := false
+var _halo: MeshInstance3D
+var _halo_mat: StandardMaterial3D
 
 
 func setup(w: World, rec: Dictionary, animate: bool) -> void:
@@ -84,6 +86,7 @@ func rebuild() -> void:
 	_dmg_fire = null
 	_dmg_smoke = null
 	_burnt = false
+	_halo = null
 	_light = null
 	_fire = null
 	_smoke = null
@@ -125,6 +128,22 @@ func rebuild() -> void:
 		_light.shadow_enabled = false
 		_light.position = Vector3(0, 1.6 if type_id != "antorcha" else aabb.end.y * 0.92, 0)
 		add_child(_light)
+		# Halo luminoso alrededor de la llama o el farol (se nota de noche).
+		_halo = MeshInstance3D.new()
+		var hq := QuadMesh.new()
+		hq.size = Vector2(1.6, 1.6) if type_id != "fogata" else Vector2(3.2, 3.2)
+		_halo.mesh = hq
+		_halo_mat = StandardMaterial3D.new()
+		_halo_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_halo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_halo_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_halo_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		_halo_mat.albedo_texture = WorldEffects.glow_texture()
+		_halo_mat.albedo_color = Color(_light.light_color, 0.0)
+		_halo.material_override = _halo_mat
+		_halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_halo.position = _light.position + (Vector3(0, -0.9, 0) if type_id == "fogata" else Vector3.ZERO)
+		add_child(_halo)
 	if type_id == "fogata":
 		_fire = world.effects.make_fire(self, Vector3(0, 0.35, 0), 1.0)
 		_fire_audio = _loop_audio("res://assets/sounds/ambient/fire_loop.ogg", -6.0, 14.0)
@@ -427,6 +446,10 @@ func _process(delta: float) -> void:
 		_smoke.emitting = working or hp_ratio < 0.5
 	if _light and _fire:
 		_light.light_energy = 1.5 + sin(_time * 13.0) * 0.12 + sin(_time * 7.3) * 0.1
+	if _halo and near:
+		var dark: float = world.day_night.darkness()
+		var flick := 1.0 + (sin(_time * 11.0) * 0.08 if _fire else 0.0)
+		_halo_mat.albedo_color.a = clampf((dark - 0.25) * 1.2, 0.0, 0.75) * flick
 	if _machine_audio:
 		_machine_audio.stream_paused = not working
 	if data().get("defense", false) and float(rec.hp) > 0.0:

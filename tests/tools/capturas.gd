@@ -32,6 +32,7 @@ func _ready() -> void:
 	world.day_night.paused = true
 	_prepare_base()
 	await _wait(1.0)
+	await _calibrate()
 	await _scene_beach()
 	await _scene_base_sunset()
 	await _scene_night()
@@ -51,6 +52,70 @@ func _ready() -> void:
 
 func _wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds).timeout
+
+
+## Quita rótulos y avisos pendientes para que no tapen la captura.
+func _clear_ui() -> void:
+	var hud: Node = world.hud
+	hud._banner_queue.clear()
+	for c in hud._banner_layer.get_children():
+		c.queue_free()
+	hud._banner_busy = false
+	for c in hud.toast_box.get_children():
+		c.queue_free()
+	hud.toast_box.offset_top = 176.0
+
+
+## Variantes de luz y tono para elegir la exposición con el renderizador real.
+func _calibrate() -> void:
+	var env: Environment = world.env_node.environment
+	var dir := out_dir.path_join("calibracion")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var saved_dir := out_dir
+	out_dir = dir
+	var variants := [
+		["A_actual", 1.0, 1.0, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05],
+		["B_luz70", 0.7, 0.7, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05],
+		["C_luz75_blanco2", 0.75, 0.75, Environment.TONE_MAPPER_FILMIC, 2.0, 1.2],
+		["D_luz80_aces", 0.8, 0.8, Environment.TONE_MAPPER_ACES, 2.0, 1.1],
+		["E_luz80_agx", 0.8, 0.8, Environment.TONE_MAPPER_AGX, 2.0, 1.05],
+		["F_luz60", 0.6, 0.6, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05],
+	]
+	var beach := _beach_point()
+	for v in variants:
+		world.day_night.sun_scale = v[1]
+		world.day_night.ambient_scale = v[2]
+		env.tonemap_mode = v[3]
+		env.tonemap_white = v[4]
+		env.tonemap_exposure = v[5]
+		_clear_ui()
+		_set_time(10.0)
+		_place(beach, _sea_yaw(beach), -0.22, 7.0)
+		await _wait(1.2)
+		await _shot("%s_playa" % v[0])
+		_set_time(12.5)
+		_place(_camp() + Vector3(0, 0, -16), PI, -0.32, 10.0)
+		await _wait(1.2)
+		await _shot("%s_base" % v[0])
+		_set_time(18.9)
+		await _wait(1.0)
+		await _shot("%s_atardecer" % v[0])
+	world.day_night.sun_scale = 1.0
+	world.day_night.ambient_scale = 1.0
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_white = 1.0
+	env.tonemap_exposure = 1.05
+	out_dir = saved_dir
+
+
+func _sea_yaw(b: Vector3) -> float:
+	var dir := Vector3.ZERO
+	for k in 16:
+		var a := TAU * k / 16.0
+		var d := Vector3(cos(a), 0, sin(a))
+		if world.gen.height_at(b.x + d.x * 12.0, b.z + d.z * 12.0) < world.gen.height_at(b.x + dir.x * 12.0, b.z + dir.z * 12.0):
+			dir = d
+	return atan2(dir.x, dir.z) + PI
 
 
 func _shot(name: String) -> void:
@@ -83,7 +148,7 @@ func _place(pos: Vector3, yaw: float, pitch: float, dist: float) -> void:
 	p.pitch = pitch
 	p.cam_distance = dist
 	p.spring.spring_length = dist
-	p.rig.rotation.y = yaw + PI
+	p.rig.rotation.y = yaw + PI * 0.8
 
 
 func _set_time(hour: float) -> void:
@@ -133,29 +198,25 @@ func _beach_point() -> Vector3:
 
 func _scene_beach() -> void:
 	world.weather.force("despejado", true)
+	_clear_ui()
 	_set_time(10.0)
 	var b := _beach_point()
 	# Mira hacia el mar (hacia donde baja el terreno).
-	var dir := Vector3.ZERO
-	for k in 16:
-		var a := TAU * k / 16.0
-		var d := Vector3(cos(a), 0, sin(a))
-		if world.gen.height_at(b.x + d.x * 12.0, b.z + d.z * 12.0) < world.gen.height_at(b.x + dir.x * 12.0, b.z + dir.z * 12.0):
-			dir = d
-	var yaw := atan2(dir.x, dir.z) + PI
-	_place(b, yaw, -0.22, 7.0)
+	_place(b, _sea_yaw(b), -0.22, 7.0)
 	await _wait(2.5)
 	await _shot("01_playa_dia")
 
 
 func _scene_base_sunset() -> void:
+	_clear_ui()
 	_set_time(18.9)
-	_place(_camp() + Vector3(0, 0, -17), 0.0, -0.32, 9.5)
+	_place(_camp() + Vector3(0, 0, -16), PI, -0.32, 10.0)
 	await _wait(2.5)
 	await _shot("02_base_atardecer")
 
 
 func _scene_night() -> void:
+	_clear_ui()
 	_set_time(22.5)
 	_place(_camp() + Vector3(1.5, 0, -2.0), PI * 0.85, -0.3, 8.0)
 	await _wait(3.0)
@@ -163,8 +224,9 @@ func _scene_night() -> void:
 
 
 func _scene_rain() -> void:
-	_set_time(13.0)
 	world.weather.force("lluvia", true)
+	_clear_ui()
+	_set_time(13.0)
 	_place(_camp() + Vector3(-6, 0, 8), PI * 0.25, -0.25, 7.5)
 	await _wait(3.0)
 	await _shot("04_lluvia")
@@ -172,16 +234,19 @@ func _scene_rain() -> void:
 
 func _scene_storm() -> void:
 	world.weather.force("tormenta", true)
+	_clear_ui()
 	_set_time(16.0)
 	_place(_camp() + Vector3(4, 0, -8), PI * 1.2, -0.18, 8.0)
 	await _wait(2.0)
 	world.weather._lightning()
-	await _wait(0.08)
+	await _wait(0.06)
+	world.day_night._apply_visuals()
 	await _shot("05_tormenta_relampago")
 	world.weather.force("despejado", true)
 
 
 func _scene_combat() -> void:
+	_clear_ui()
 	_set_time(11.0)
 	var p := world.player
 	var pos := _camp() + Vector3(18, 0, 10)
@@ -207,6 +272,7 @@ func _scene_combat() -> void:
 
 
 func _scene_ui() -> void:
+	_clear_ui()
 	var hud: Node = world.hud
 	hud.banner("¡Nivel 5!", "+2 puntos de tecnología", "level")
 	await _wait(0.7)
