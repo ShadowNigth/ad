@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://00i5srf3ew5t"
+path="res://.godot/imported/animal-parrot.obj-5f5c1afd6f004eec0189c9cba279d0bc.mesh"
+
+[deps]
+
+files=["res://.godot/imported/animal-parrot.obj-5f5c1afd6f004eec0189c9cba279d0bc.mesh"]
+
+source_file="res://assets/models/animals/animal-parrot.obj"
+dest_files=["res://.godot/imported/animal-parrot.obj-5f5c1afd6f004eec0189c9cba279d0bc.mesh", "res://.godot/imported/animal-parrot.obj-5f5c1afd6f004eec0189c9cba279d0bc.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -1,0 +1,17 @@
+{
+  "_comment": "Trabajadores contratables. boost: aumento de velocidad por trabajador asignado (nivel 1). Cada nivel de habilidad suma skill_bonus. hire_growth: el coste crece con cada contratación del mismo tipo.",
+  "settings": {"hire_growth": 1.35, "train_growth": 1.7, "max_skill": 5, "skill_bonus": 0.25},
+  "types": [
+    {"id": "lenador", "name": "Leñador", "desc": "Acelera puestos de leñador, aserraderos y carboneras.", "model": "characters/character-male-c", "tool": "survival/tool-axe", "unlock": "aut_organizacion", "boost": 0.5,
+     "hire_cost": {"bayas": 8, "madera": 25}, "train_cost": {"madera": 40, "cuerda": 4}},
+    {"id": "recolector", "name": "Recolector", "desc": "Trabaja en las chozas de recolección.", "model": "characters/character-female-b", "tool": "survival/bucket", "unlock": "aut_organizacion", "boost": 0.5,
+     "hire_cost": {"bayas": 10, "fibra": 15}, "train_cost": {"fibra": 40, "cuerda": 4}},
+    {"id": "minero", "name": "Minero", "desc": "Acelera canteras, minas y fundiciones.", "model": "characters/character-male-e", "tool": "survival/tool-pickaxe", "unlock": "aut_capataz", "boost": 0.5,
+     "hire_cost": {"carne_cocida": 3, "piedra": 30}, "train_cost": {"piedra": 50, "lingote_hierro": 2}},
+    {"id": "granjero", "name": "Granjero", "desc": "Cuida huertos, granjas y purificadores.", "model": "characters/character-female-d", "tool": "survival/tool-hoe", "unlock": "aut_capataz", "boost": 0.5,
+     "hire_cost": {"zanahoria": 6, "madera": 20}, "train_cost": {"maiz": 15, "cuerda": 6}},
+    {"id": "artesano", "name": "Artesano", "desc": "Trabaja en talleres, laboratorios, generadores y fábricas.", "model": "characters/character-male-f", "tool": "survival/tool-hammer", "unlock": "aut_capataz", "boost": 0.5,
+     "hire_cost": {"tablas": 15, "cuerda": 6}, "train_cost": {"piezas": 4, "tablas": 20}}
+  ],
+  "names": ["Lucía", "Mateo", "Valentina", "Santiago", "Camila", "Tomás", "Martina", "Joaquín", "Sofía", "Benjamín", "Julieta", "Facundo", "Catalina", "Lautaro", "Agustina", "Thiago", "Renata", "Bautista", "Emilia", "Felipe", "Abril", "Nicolás", "Josefina", "Gael"]
+}

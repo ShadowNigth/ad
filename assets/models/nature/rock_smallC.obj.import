@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b6g7frrstxmpr"
+path="res://.godot/imported/rock_smallC.obj-5f58dbaeddf433a33205a1da8cae101a.mesh"
+
+[deps]
+
+files=["res://.godot/imported/rock_smallC.obj-5f58dbaeddf433a33205a1da8cae101a.mesh"]
+
+source_file="res://assets/models/nature/rock_smallC.obj"
+dest_files=["res://.godot/imported/rock_smallC.obj-5f58dbaeddf433a33205a1da8cae101a.mesh", "res://.godot/imported/rock_smallC.obj-5f58dbaeddf433a33205a1da8cae101a.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

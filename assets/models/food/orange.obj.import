@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dbx3p0idx02r4"
+path="res://.godot/imported/orange.obj-866f8ed0f0edc87b024df8874e3f0f89.mesh"
+
+[deps]
+
+files=["res://.godot/imported/orange.obj-866f8ed0f0edc87b024df8874e3f0f89.mesh"]
+
+source_file="res://assets/models/food/orange.obj"
+dest_files=["res://.godot/imported/orange.obj-866f8ed0f0edc87b024df8874e3f0f89.mesh", "res://.godot/imported/orange.obj-866f8ed0f0edc87b024df8874e3f0f89.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

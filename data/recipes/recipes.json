@@ -1,0 +1,337 @@
+{
+  "_comment": "Recetas de fabricación manual. station: null (a mano) | fogata | taller | fundicion. unlock: id de tecnología o null (disponible desde el inicio). time en segundos.",
+  "recipes": [
+    {
+      "id": "r_cuerda",
+      "result": "cuerda",
+      "qty": 1,
+      "ingredients": {
+        "fibra": 3
+      },
+      "station": null,
+      "time": 1.5,
+      "unlock": null
+    },
+    {
+      "id": "r_hacha_piedra",
+      "result": "hacha_piedra",
+      "qty": 1,
+      "ingredients": {
+        "madera": 3,
+        "piedra": 2,
+        "fibra": 2
+      },
+      "station": null,
+      "time": 2.5,
+      "unlock": null
+    },
+    {
+      "id": "r_pico_piedra",
+      "result": "pico_piedra",
+      "qty": 1,
+      "ingredients": {
+        "madera": 3,
+        "piedra": 3,
+        "fibra": 2
+      },
+      "station": null,
+      "time": 2.5,
+      "unlock": null
+    },
+    {
+      "id": "r_martillo",
+      "result": "martillo",
+      "qty": 1,
+      "ingredients": {
+        "madera": 2,
+        "piedra": 2,
+        "fibra": 1
+      },
+      "station": null,
+      "time": 2.0,
+      "unlock": null
+    },
+    {
+      "id": "r_lanza",
+      "result": "lanza",
+      "qty": 1,
+      "ingredients": {
+        "madera": 4,
+        "piedra": 1,
+        "fibra": 2
+      },
+      "station": null,
+      "time": 2.5,
+      "unlock": null
+    },
+    {
+      "id": "r_cuenco_coco",
+      "result": "cuenco_coco",
+      "qty": 1,
+      "ingredients": {
+        "coco": 1,
+        "piedra": 1
+      },
+      "station": null,
+      "time": 1.5,
+      "unlock": null
+    },
+    {
+      "id": "r_azada",
+      "result": "azada",
+      "qty": 1,
+      "ingredients": {
+        "madera": 3,
+        "piedra": 2,
+        "cuerda": 1
+      },
+      "station": null,
+      "time": 2.0,
+      "unlock": "agr_cultivo"
+    },
+    {
+      "id": "r_venda",
+      "result": "venda",
+      "qty": 1,
+      "ingredients": {
+        "fibra": 3,
+        "hierbas": 2
+      },
+      "station": null,
+      "time": 2.0,
+      "unlock": "sup_medicina"
+    },
+    {
+      "id": "r_carbon",
+      "result": "carbon",
+      "qty": 1,
+      "ingredients": {
+        "madera": 3
+      },
+      "station": "fogata",
+      "time": 4.0,
+      "unlock": null
+    },
+    {
+      "id": "r_hervir_agua",
+      "result": "agua",
+      "qty": 1,
+      "ingredients": {
+        "agua_sucia": 1
+      },
+      "station": "fogata",
+      "time": 2.5,
+      "unlock": null
+    },
+    {
+      "id": "r_carne_asada",
+      "result": "carne_cocida",
+      "qty": 1,
+      "ingredients": {
+        "carne_cruda": 1
+      },
+      "station": "fogata",
+      "time": 3.0,
+      "unlock": null
+    },
+    {
+      "id": "r_pescado_asado",
+      "result": "pescado_asado",
+      "qty": 1,
+      "ingredients": {
+        "pescado": 1
+      },
+      "station": "fogata",
+      "time": 3.0,
+      "unlock": null
+    },
+    {
+      "id": "r_guiso",
+      "result": "guiso",
+      "qty": 1,
+      "ingredients": {
+        "zanahoria": 1,
+        "maiz": 1,
+        "agua": 1
+      },
+      "station": "fogata",
+      "time": 4.0,
+      "unlock": "sup_cocina"
+    },
+    {
+      "id": "r_tablas",
+      "result": "tablas",
+      "qty": 1,
+      "ingredients": {
+        "madera": 2
+      },
+      "station": null,
+      "time": 3.0,
+      "unlock": "con_carpinteria"
+    },
+    {
+      "id": "r_medicina",
+      "result": "medicina",
+      "qty": 1,
+      "ingredients": {
+        "hierbas": 3,
+        "agua": 1,
+        "hongo": 1
+      },
+      "station": "taller",
+      "time": 3.5,
+      "unlock": "sup_botica"
+    },
+    {
+      "id": "r_lingote",
+      "result": "lingote_hierro",
+      "qty": 1,
+      "ingredients": {
+        "mineral_hierro": 2,
+        "carbon": 1
+      },
+      "station": "fundicion",
+      "time": 4.0,
+      "unlock": "min_metalurgia"
+    },
+    {
+      "id": "r_acero",
+      "result": "acero",
+      "qty": 1,
+      "ingredients": {
+        "lingote_hierro": 2,
+        "carbon": 2
+      },
+      "station": "fundicion",
+      "time": 6.0,
+      "unlock": "min_acero"
+    },
+    {
+      "id": "r_piezas",
+      "result": "piezas",
+      "qty": 2,
+      "ingredients": {
+        "lingote_hierro": 1,
+        "tablas": 1
+      },
+      "station": "taller",
+      "time": 3.0,
+      "unlock": "fab_taller"
+    },
+    {
+      "id": "r_hacha_hierro",
+      "result": "hacha_hierro",
+      "qty": 1,
+      "ingredients": {
+        "lingote_hierro": 2,
+        "tablas": 2,
+        "cuerda": 1
+      },
+      "station": "taller",
+      "time": 4.0,
+      "unlock": "fab_herramientas_metal"
+    },
+    {
+      "id": "r_pico_hierro",
+      "result": "pico_hierro",
+      "qty": 1,
+      "ingredients": {
+        "lingote_hierro": 2,
+        "tablas": 2,
+        "cuerda": 1
+      },
+      "station": "taller",
+      "time": 4.0,
+      "unlock": "fab_herramientas_metal"
+    },
+    {
+      "id": "r_lanza_hierro",
+      "result": "lanza_hierro",
+      "qty": 1,
+      "ingredients": {
+        "lingote_hierro": 1,
+        "madera": 3,
+        "cuerda": 1
+      },
+      "station": "taller",
+      "time": 3.5,
+      "unlock": "fab_herramientas_metal"
+    },
+    {
+      "id": "r_machete",
+      "result": "machete",
+      "qty": 1,
+      "ingredients": {
+        "lingote_hierro": 2,
+        "cuero": 1,
+        "madera": 1
+      },
+      "station": "taller",
+      "time": 4.0,
+      "unlock": "fab_herramientas_metal"
+    },
+    {
+      "id": "r_cubo",
+      "result": "cubo",
+      "qty": 1,
+      "ingredients": {
+        "lingote_hierro": 1,
+        "tablas": 2,
+        "cuerda": 1
+      },
+      "station": "taller",
+      "time": 3.0,
+      "unlock": "fab_herramientas_metal"
+    },
+    {
+      "id": "r_hacha_acero",
+      "result": "hacha_acero",
+      "qty": 1,
+      "ingredients": {
+        "acero": 2,
+        "piezas": 1,
+        "tablas": 2
+      },
+      "station": "taller",
+      "time": 5.0,
+      "unlock": "fab_herramientas_avanzadas"
+    },
+    {
+      "id": "r_pico_acero",
+      "result": "pico_acero",
+      "qty": 1,
+      "ingredients": {
+        "acero": 2,
+        "piezas": 1,
+        "tablas": 2
+      },
+      "station": "taller",
+      "time": 5.0,
+      "unlock": "fab_herramientas_avanzadas"
+    },
+    {
+      "id": "r_combustible",
+      "result": "combustible",
+      "qty": 1,
+      "ingredients": {
+        "carbon": 2,
+        "agua": 1
+      },
+      "station": "taller",
+      "time": 4.0,
+      "unlock": "fab_combustibles"
+    },
+    {
+      "id": "r_electronica",
+      "result": "electronica",
+      "qty": 1,
+      "ingredients": {
+        "piezas": 2,
+        "cristal": 1
+      },
+      "station": "taller",
+      "time": 6.0,
+      "unlock": "fab_electronica"
+    }
+  ]
+}

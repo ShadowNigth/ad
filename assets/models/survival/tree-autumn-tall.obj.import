@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b8wyhbn37dqra"
+path="res://.godot/imported/tree-autumn-tall.obj-d24bbf5f4505cad47111d7a01fe81371.mesh"
+
+[deps]
+
+files=["res://.godot/imported/tree-autumn-tall.obj-d24bbf5f4505cad47111d7a01fe81371.mesh"]
+
+source_file="res://assets/models/survival/tree-autumn-tall.obj"
+dest_files=["res://.godot/imported/tree-autumn-tall.obj-d24bbf5f4505cad47111d7a01fe81371.mesh", "res://.godot/imported/tree-autumn-tall.obj-d24bbf5f4505cad47111d7a01fe81371.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

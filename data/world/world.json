@@ -1,0 +1,839 @@
+{
+  "_comment": "Diseño de la isla. Coordenadas en metros (x este, z sur). Las regiones, el río, los caminos y los puntos de interés están colocados a mano; la vegetación se distribuye con semilla fija dentro de cada región.",
+  "island": {
+    "radius": 101.0,
+    "coast_noise": 12.0,
+    "base_height": 2.6
+  },
+  "zones": {
+    "mar": {
+      "name": "Mar",
+      "color": [
+        0.16,
+        0.45,
+        0.62
+      ],
+      "surface": "water"
+    },
+    "playa": {
+      "name": "Playa",
+      "color": [
+        0.94,
+        0.84,
+        0.58
+      ],
+      "surface": "sand"
+    },
+    "pradera": {
+      "name": "Pradera central",
+      "color": [
+        0.47,
+        0.72,
+        0.33
+      ],
+      "surface": "grass"
+    },
+    "bosque": {
+      "name": "Bosque viejo",
+      "color": [
+        0.32,
+        0.56,
+        0.27
+      ],
+      "surface": "grass"
+    },
+    "rocosa": {
+      "name": "Tierras altas",
+      "color": [
+        0.55,
+        0.52,
+        0.48
+      ],
+      "surface": "stone"
+    },
+    "jungla": {
+      "name": "Jungla de las ruinas",
+      "color": [
+        0.22,
+        0.42,
+        0.24
+      ],
+      "surface": "grass",
+      "locked_by": "jungla"
+    },
+    "cueva": {
+      "name": "Cueva de cristal",
+      "color": [
+        0.42,
+        0.4,
+        0.5
+      ],
+      "surface": "stone",
+      "locked_by": "cueva"
+    },
+    "rio": {
+      "name": "Río",
+      "color": [
+        0.25,
+        0.55,
+        0.65
+      ],
+      "surface": "water",
+      "fresh_water": true
+    },
+    "lago": {
+      "name": "Laguna",
+      "color": [
+        0.25,
+        0.58,
+        0.66
+      ],
+      "surface": "water",
+      "fresh_water": true
+    },
+    "camino": {
+      "name": "Camino",
+      "color": [
+        0.66,
+        0.53,
+        0.36
+      ],
+      "surface": "dirt"
+    }
+  },
+  "relief": [
+    {
+      "id": "tierras_altas",
+      "center": [
+        62.0,
+        -50.0
+      ],
+      "radius": 50.0,
+      "height": 10.5,
+      "ridged": 2.6,
+      "zone": "rocosa",
+      "zone_radius": 46.0
+    },
+    {
+      "id": "bosque",
+      "center": [
+        -6.0,
+        -58.0
+      ],
+      "radius": 48.0,
+      "height": 3.0,
+      "zone": "bosque",
+      "zone_radius": 44.0
+    },
+    {
+      "id": "pradera",
+      "center": [
+        10.0,
+        18.0
+      ],
+      "radius": 55.0,
+      "height": 1.6
+    },
+    {
+      "id": "jungla",
+      "center": [
+        -80.0,
+        16.0
+      ],
+      "radius": 40.0,
+      "height": 2.4
+    }
+  ],
+  "crater": {
+    "center": [
+      79.0,
+      -80.0
+    ],
+    "inner_radius": 13.0,
+    "outer_radius": 22.0,
+    "floor": 8.0,
+    "rim": 19.0,
+    "canyon": [
+      [
+        52.0,
+        -70.0
+      ],
+      [
+        60.0,
+        -74.0
+      ],
+      [
+        70.0,
+        -78.0
+      ]
+    ],
+    "canyon_width": 3.4,
+    "canyon_floor": 8.5
+  },
+  "river": {
+    "points": [
+      [
+        -62.0,
+        -122.0
+      ],
+      [
+        -55.0,
+        -88.0
+      ],
+      [
+        -47.0,
+        -60.0
+      ],
+      [
+        -39.0,
+        -32.0
+      ],
+      [
+        -31.0,
+        -12.0
+      ],
+      [
+        -33.0,
+        12.0
+      ],
+      [
+        -41.0,
+        40.0
+      ],
+      [
+        -52.0,
+        70.0
+      ],
+      [
+        -60.0,
+        96.0
+      ],
+      [
+        -66.0,
+        124.0
+      ]
+    ],
+    "half_width": 3.8,
+    "depth": 2.3
+  },
+  "lake": {
+    "center": [
+      -30.0,
+      -12.0
+    ],
+    "radius": 13.5,
+    "depth": 3.2
+  },
+  "paths": [
+    {
+      "id": "playa_campamento",
+      "points": [
+        [
+          16.0,
+          86.0
+        ],
+        [
+          13.0,
+          62.0
+        ],
+        [
+          8.0,
+          36.0
+        ]
+      ],
+      "width": 2.4
+    },
+    {
+      "id": "campamento_tierras_altas",
+      "points": [
+        [
+          8.0,
+          32.0
+        ],
+        [
+          20.0,
+          6.0
+        ],
+        [
+          38.0,
+          -18.0
+        ],
+        [
+          50.0,
+          -40.0
+        ],
+        [
+          51.0,
+          -66.0
+        ]
+      ],
+      "width": 2.2
+    },
+    {
+      "id": "campamento_puente",
+      "points": [
+        [
+          6.0,
+          32.0
+        ],
+        [
+          -16.0,
+          40.0
+        ],
+        [
+          -36.0,
+          45.0
+        ]
+      ],
+      "width": 2.2
+    },
+    {
+      "id": "puente_ruinas",
+      "points": [
+        [
+          -50.0,
+          46.0
+        ],
+        [
+          -66.0,
+          38.0
+        ],
+        [
+          -84.0,
+          30.0
+        ]
+      ],
+      "width": 2.0
+    },
+    {
+      "id": "campamento_lago_bosque",
+      "points": [
+        [
+          6.0,
+          30.0
+        ],
+        [
+          -6.0,
+          8.0
+        ],
+        [
+          -14.0,
+          -12.0
+        ],
+        [
+          -8.0,
+          -36.0
+        ],
+        [
+          -4.0,
+          -56.0
+        ]
+      ],
+      "width": 2.0
+    }
+  ],
+  "spawn": [
+    18.0,
+    92.0
+  ],
+  "pois": [
+    {
+      "id": "naufragio",
+      "name": "Naufragio",
+      "type": "shipwreck",
+      "pos": [
+        30.0,
+        100.0
+      ],
+      "rot": 35.0
+    },
+    {
+      "id": "cofre_naufragio",
+      "name": "Cofre del naufragio",
+      "type": "chest",
+      "pos": [
+        22.0,
+        90.0
+      ],
+      "rot": -20.0,
+      "loot": {
+        "madera": 4,
+        "fibra": 4,
+        "bayas": 4,
+        "coco": 2
+      }
+    },
+    {
+      "id": "campamento",
+      "name": "Claro del campamento",
+      "type": "camp",
+      "pos": [
+        6.0,
+        28.0
+      ],
+      "radius": 17.0
+    },
+    {
+      "id": "laguna",
+      "name": "Laguna",
+      "type": "lake",
+      "pos": [
+        -30.0,
+        -12.0
+      ]
+    },
+    {
+      "id": "puente",
+      "name": "Puente roto",
+      "type": "bridge",
+      "pos": [
+        -43.2,
+        46.0
+      ],
+      "rot": 90.0,
+      "length": 12.0,
+      "region": "jungla",
+      "tech": "con_puentes",
+      "cost": {
+        "tablas": 20,
+        "cuerda": 10,
+        "madera": 20
+      }
+    },
+    {
+      "id": "ruinas",
+      "name": "Ruinas antiguas",
+      "type": "ruins",
+      "pos": [
+        -86.0,
+        28.0
+      ],
+      "guardian": "guardian_ruinas",
+      "radius": 14.0
+    },
+    {
+      "id": "cementerio",
+      "name": "Cementerio pirata",
+      "type": "graveyard",
+      "pos": [
+        -78.0,
+        -32.0
+      ],
+      "radius": 12.0
+    },
+    {
+      "id": "cueva_entrada",
+      "name": "Derrumbe de la cueva",
+      "type": "cave_gate",
+      "pos": [
+        53.0,
+        -70.5
+      ],
+      "rot": -62.0,
+      "region": "cueva",
+      "tech": "min_explosivos",
+      "cost": {
+        "carbon": 12,
+        "fibra": 12,
+        "cuerda": 4
+      }
+    },
+    {
+      "id": "cueva",
+      "name": "Cueva de cristal",
+      "type": "cave",
+      "pos": [
+        79.0,
+        -80.0
+      ],
+      "guardian": "guardian_cristal",
+      "radius": 12.0
+    },
+    {
+      "id": "mirador",
+      "name": "Mirador",
+      "type": "lookout",
+      "pos": [
+        70.0,
+        -40.0
+      ],
+      "loot": {
+        "cuerda": 4,
+        "piedra": 10,
+        "carne_cocida": 2
+      }
+    },
+    {
+      "id": "bosque_viejo",
+      "name": "Bosque viejo",
+      "type": "label",
+      "pos": [
+        -4.0,
+        -62.0
+      ]
+    }
+  ],
+  "spawns": [
+    {
+      "enemy": "cangrejo",
+      "zones": [
+        "playa"
+      ],
+      "max": 5,
+      "time": "any"
+    },
+    {
+      "enemy": "jabali",
+      "zones": [
+        "bosque"
+      ],
+      "max": 3,
+      "time": "day"
+    },
+    {
+      "enemy": "jabali",
+      "zones": [
+        "pradera"
+      ],
+      "max": 1,
+      "time": "day"
+    },
+    {
+      "enemy": "tigre",
+      "zones": [
+        "jungla"
+      ],
+      "max": 2,
+      "time": "any"
+    },
+    {
+      "enemy": "ciervo",
+      "zones": [
+        "pradera",
+        "bosque"
+      ],
+      "max": 3,
+      "time": "day"
+    },
+    {
+      "enemy": "conejo",
+      "zones": [
+        "pradera"
+      ],
+      "max": 3,
+      "time": "day"
+    },
+    {
+      "enemy": "esqueleto",
+      "zones": [
+        "pradera",
+        "bosque",
+        "playa",
+        "rocosa"
+      ],
+      "max": 3,
+      "time": "night"
+    },
+    {
+      "enemy": "zombi",
+      "zones": [
+        "playa",
+        "pradera",
+        "jungla"
+      ],
+      "max": 3,
+      "time": "night"
+    },
+    {
+      "enemy": "fantasma",
+      "zones": [
+        "jungla",
+        "bosque",
+        "rocosa"
+      ],
+      "max": 2,
+      "time": "night"
+    }
+  ],
+  "resources": [
+    {
+      "node": "palmera",
+      "zones": [
+        "playa"
+      ],
+      "density": 0.012,
+      "min_height": 0.5
+    },
+    {
+      "node": "coco_suelo",
+      "zones": [
+        "playa"
+      ],
+      "density": 0.003
+    },
+    {
+      "node": "piedras_suelo",
+      "zones": [
+        "playa",
+        "pradera",
+        "rocosa"
+      ],
+      "density": 0.003
+    },
+    {
+      "node": "ramas",
+      "zones": [
+        "playa",
+        "pradera",
+        "bosque",
+        "jungla"
+      ],
+      "density": 0.003
+    },
+    {
+      "node": "arbol",
+      "zones": [
+        "pradera"
+      ],
+      "density": 0.0042
+    },
+    {
+      "node": "arbol",
+      "zones": [
+        "bosque"
+      ],
+      "density": 0.03
+    },
+    {
+      "node": "arbusto_bayas",
+      "zones": [
+        "pradera",
+        "bosque",
+        "jungla"
+      ],
+      "density": 0.003
+    },
+    {
+      "node": "hierba_alta",
+      "zones": [
+        "pradera",
+        "bosque",
+        "jungla"
+      ],
+      "density": 0.006
+    },
+    {
+      "node": "planta_medicinal",
+      "zones": [
+        "pradera",
+        "jungla"
+      ],
+      "density": 0.0022
+    },
+    {
+      "node": "hongos",
+      "zones": [
+        "bosque",
+        "jungla"
+      ],
+      "density": 0.003
+    },
+    {
+      "node": "roca",
+      "zones": [
+        "pradera",
+        "bosque"
+      ],
+      "density": 0.0018
+    },
+    {
+      "node": "roca",
+      "zones": [
+        "rocosa"
+      ],
+      "density": 0.014
+    },
+    {
+      "node": "roca_hierro",
+      "zones": [
+        "rocosa"
+      ],
+      "density": 0.012
+    },
+    {
+      "node": "roca_carbon",
+      "zones": [
+        "rocosa"
+      ],
+      "density": 0.009
+    },
+    {
+      "node": "pino",
+      "zones": [
+        "rocosa"
+      ],
+      "density": 0.006
+    },
+    {
+      "node": "arbol_oscuro",
+      "zones": [
+        "jungla"
+      ],
+      "density": 0.017
+    },
+    {
+      "node": "cristal",
+      "zones": [
+        "cueva"
+      ],
+      "density": 0.02
+    },
+    {
+      "node": "roca_hierro",
+      "zones": [
+        "cueva"
+      ],
+      "density": 0.008
+    }
+  ],
+  "decor": [
+    {
+      "zones": [
+        "pradera"
+      ],
+      "models": [
+        "nature/grass",
+        "nature/grass_large"
+      ],
+      "density": 0.12,
+      "scale": [
+        2.4,
+        3.4
+      ]
+    },
+    {
+      "zones": [
+        "pradera"
+      ],
+      "models": [
+        "nature/flower_redA",
+        "nature/flower_yellowA",
+        "nature/flower_redB",
+        "nature/flower_yellowB"
+      ],
+      "density": 0.0288,
+      "scale": [
+        2.2,
+        3.0
+      ]
+    },
+    {
+      "zones": [
+        "bosque"
+      ],
+      "models": [
+        "nature/grass_leafs",
+        "nature/grass"
+      ],
+      "density": 0.0805,
+      "scale": [
+        2.4,
+        3.2
+      ]
+    },
+    {
+      "zones": [
+        "bosque"
+      ],
+      "models": [
+        "nature/mushroom_red",
+        "nature/mushroom_tan",
+        "nature/log",
+        "nature/stump_old"
+      ],
+      "density": 0.0092,
+      "scale": [
+        2.4,
+        3.2
+      ]
+    },
+    {
+      "zones": [
+        "jungla"
+      ],
+      "models": [
+        "nature/grass_leafsLarge",
+        "nature/plant_bushSmall",
+        "nature/plant_flatShort"
+      ],
+      "density": 0.088,
+      "scale": [
+        2.6,
+        3.6
+      ]
+    },
+    {
+      "zones": [
+        "jungla"
+      ],
+      "models": [
+        "nature/hanging_moss",
+        "nature/mushroom_redTall"
+      ],
+      "density": 0.0088,
+      "scale": [
+        2.6,
+        3.4
+      ]
+    },
+    {
+      "zones": [
+        "playa"
+      ],
+      "models": [
+        "pirate/grass-plant",
+        "survival/rock-sand-a",
+        "survival/rock-sand-b"
+      ],
+      "density": 0.01,
+      "scale": [
+        0.8,
+        1.3
+      ],
+      "scale_by_model": {
+        "survival/rock-sand-a": 4.0,
+        "survival/rock-sand-b": 4.0
+      }
+    },
+    {
+      "zones": [
+        "rocosa"
+      ],
+      "models": [
+        "nature/rock_smallB",
+        "nature/rock_smallC",
+        "nature/rock_smallFlatA",
+        "nature/grass"
+      ],
+      "density": 0.03,
+      "scale": [
+        2.4,
+        3.6
+      ]
+    },
+    {
+      "zones": [
+        "cueva"
+      ],
+      "models": [
+        "crystals/detail-crystal",
+        "crystals/detail-rocks"
+      ],
+      "density": 0.03,
+      "scale": [
+        2.6,
+        3.6
+      ]
+    }
+  ]
+}

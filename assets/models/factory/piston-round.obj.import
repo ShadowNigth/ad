@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bdny6fl3ftapk"
+path="res://.godot/imported/piston-round.obj-a58d11f8b4d74944e043c1e0012f0e85.mesh"
+
+[deps]
+
+files=["res://.godot/imported/piston-round.obj-a58d11f8b4d74944e043c1e0012f0e85.mesh"]
+
+source_file="res://assets/models/factory/piston-round.obj"
+dest_files=["res://.godot/imported/piston-round.obj-a58d11f8b4d74944e043c1e0012f0e85.mesh", "res://.godot/imported/piston-round.obj-a58d11f8b4d74944e043c1e0012f0e85.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

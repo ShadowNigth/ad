@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cvibvm3aksike"
+path="res://.godot/imported/tree-trunk.obj-af31c4e257685644f5f10835a3f79a3f.mesh"
+
+[deps]
+
+files=["res://.godot/imported/tree-trunk.obj-af31c4e257685644f5f10835a3f79a3f.mesh"]
+
+source_file="res://assets/models/survival/tree-trunk.obj"
+dest_files=["res://.godot/imported/tree-trunk.obj-af31c4e257685644f5f10835a3f79a3f.mesh", "res://.godot/imported/tree-trunk.obj-af31c4e257685644f5f10835a3f79a3f.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

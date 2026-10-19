@@ -1,0 +1,396 @@
+# Prueba y exporta «Isla Salvaje» con el Godot OFICIAL y sus plantillas.
+#
+# - En cada push: importa el proyecto, ejecuta las pruebas automáticas (editor y
+#   build exportada) y genera APK de Android + Linux + Windows como artefactos.
+# - Al publicar una release en GitHub: hace lo mismo y adjunta los archivos a
+#   esa release para que se puedan descargar.
+# - Manual (workflow_dispatch): igual que un push; si se indica una etiqueta de
+#   release existente, sube los archivos a ella.
+#
+# Firma del APK: si existen los secretos ANDROID_KEYSTORE_BASE64,
+# ANDROID_KEYSTORE_PASSWORD y ANDROID_KEY_ALIAS se usa esa clave privada; si no,
+# la clave pública de tools/android (ver tools/android/LEEME.md).
+name: Exportar juego
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Etiqueta de una release existente donde subir los archivos (vacío = sólo artefactos)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exportar-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_STATUS: "stable"
+  GAME: "IslaSalvaje"
+
+jobs:
+  exportar:
+    name: Pruebas y exportación (Android, Linux, Windows)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v7
+
+      - name: Calcular la versión
+        id: ver
+        env:
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          BASE="$(sed -n 's/^config\/version="\(.*\)"$/\1/p' project.godot)"
+          TAG=""
+          if [ "$EVENT" = "release" ]; then TAG="$RELEASE_TAG"; elif [ -n "${INPUT_TAG:-}" ]; then TAG="$INPUT_TAG"; fi
+          if [ -n "$TAG" ]; then VERSION="${TAG#v}"; else VERSION="${BASE}-dev.${GITHUB_RUN_NUMBER}"; fi
+          CORE="${VERSION%%-*}"
+          if ! [[ "$CORE" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]]; then echo "::error::Versión no válida: $VERSION"; exit 1; fi
+          IFS=. read -r MA MI PA _ <<< "${CORE}.0.0"
+          CODE=$(( 10#$MA * 10000 + 10#$MI * 100 + 10#$PA ))
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "core=$CORE"
+            echo "code=$CODE"
+          } >> "$GITHUB_OUTPUT"
+          echo "Versión $VERSION · núcleo $CORE · código Android $CODE · release '${TAG}'"
+
+      - name: Aplicar la versión al proyecto (sólo en esta compilación)
+        env:
+          CORE: ${{ steps.ver.outputs.core }}
+          CODE: ${{ steps.ver.outputs.code }}
+        run: |
+          sed -i "s/^config\/version=.*/config\/version=\"${CORE}\"/" project.godot
+          sed -i "s/^version\/code=.*/version\/code=${CODE}/" export_presets.cfg
+          grep -n '^config/version' project.godot
+          grep -n '^version/code' export_presets.cfg
+
+      - name: Java 17 (para apksigner)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Caché de Godot y plantillas
+        id: cache-godot
+        uses: actions/cache@v6
+        with:
+          path: ~/godot-dl
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}-linux-android-windows-v1
+
+      - name: Descargar Godot y plantillas de exportación oficiales
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot-dl/templates && cd ~/godot-dl
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}"
+          curl -fsSL --retry 4 -o godot.zip "$URL/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          curl -fsSL --retry 4 -o templates.tpz "$URL/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
+          chmod +x godot
+          unzip -l templates.tpz | awk '{print $4}' | grep '^templates/' | sort
+          unzip -q -j templates.tpz templates/version.txt templates/linux_release.x86_64 \
+            templates/windows_release_x86_64.exe templates/android_release.apk -d templates
+          unzip -q -j templates.tpz 'templates/*x86_64*.dll' -d templates || echo "(sin DLL adicionales para Windows)"
+          rm -f godot.zip templates.tpz
+          ls -la templates
+
+      - name: Instalar Godot
+        run: |
+          TPL="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          mkdir -p "$TPL"
+          cp -a ~/godot-dl/templates/. "$TPL/"
+          sudo ln -sf ~/godot-dl/godot /usr/local/bin/godot
+          godot --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          ls "$ANDROID_HOME/build-tools"
+
+      - name: Importar el proyecto
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log | tail -n 30
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" import.log; then
+            echo "::warning::Mensajes de error de script durante la importación (las pruebas siguientes deciden)"
+          fi
+
+      - name: Pruebas automáticas en el editor oficial
+        run: |
+          godot --headless --path . tests/test_runner.tscn 2>&1 | tee pruebas_editor.log | grep -E "✘|RESULTADO|SCRIPT ERROR" || true
+          godot --headless --path . tests/main_flow.tscn 2>&1 | tee flujo_editor.log | tail -n 16 || true
+          R1="$(grep -m1 'RESULTADO:' pruebas_editor.log || echo 'sin resultado')"
+          R2="$(grep -m1 'RESULTADO FLUJO:' flujo_editor.log || echo 'sin resultado')"
+          echo "::notice title=Pruebas en el editor oficial ${GODOT_VERSION}::${R1} · ${R2}"
+          {
+            echo "### Pruebas automáticas"
+            echo "| Dónde | test_runner | main_flow |"
+            echo "|---|---|---|"
+            echo "| Editor oficial ${GODOT_VERSION} | ${R1} | ${R2} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E "^  ✘" pruebas_editor.log | head -n 10 | while read -r l; do echo "::error title=Prueba fallida (editor)::$l"; done || true
+          grep -q "RESULTADO: .* 0 fallidas" pruebas_editor.log
+          grep -q "RESULTADO FLUJO: OK" flujo_editor.log
+
+      - name: Exportar la build de pruebas y ejecutar las pruebas sobre ella
+        run: |
+          mkdir -p build/ci
+          godot --headless --path . --export-release "Linux (pruebas CI)" build/ci/${GAME}-pruebas.x86_64 2>&1 | tail -n 20
+          test -s build/ci/${GAME}-pruebas.x86_64
+          chmod +x build/ci/${GAME}-pruebas.x86_64
+          build/ci/${GAME}-pruebas.x86_64 --headless -- unitarias 2>&1 | tee pruebas_exportada.log | grep -E "✘|RESULTADO|SCRIPT ERROR|Build exportada" || true
+          build/ci/${GAME}-pruebas.x86_64 --headless -- flujo 2>&1 | tee flujo_exportada.log | tail -n 16 || true
+          R1="$(grep -m1 'RESULTADO:' pruebas_exportada.log || echo 'sin resultado')"
+          R2="$(grep -m1 'RESULTADO FLUJO:' flujo_exportada.log || echo 'sin resultado')"
+          echo "::notice title=Pruebas sobre la build exportada (Linux)::${R1} · ${R2}"
+          echo "| Build exportada (Linux, PCK real) | ${R1} | ${R2} |" >> "$GITHUB_STEP_SUMMARY"
+          grep -E "^  ✘" pruebas_exportada.log | head -n 10 | while read -r l; do echo "::error title=Prueba fallida (exportada)::$l"; done || true
+          grep -q "RESULTADO: .* 0 fallidas" pruebas_exportada.log
+          grep -q "RESULTADO FLUJO: OK" flujo_exportada.log
+
+      - name: Preparar la firma de Android
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "${KS_B64}" ] && [ -n "${KS_PASS}" ] && [ -n "${KS_ALIAS}" ]; then
+            echo "${KS_B64}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$RUNNER_TEMP/release.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${KS_ALIAS}"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${KS_PASS}"
+            } >> "$GITHUB_ENV"
+            echo "Firma: clave privada de los secretos del repositorio."
+          else
+            {
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$GITHUB_WORKSPACE/tools/android/isla_salvaje_publica.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=islasalvaje"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=islasalvaje-publica"
+            } >> "$GITHUB_ENV"
+            echo "::notice::APK firmado con la clave pública de tools/android (ver tools/android/LEEME.md)."
+          fi
+
+      - name: Exportar Android, Linux y Windows
+        run: |
+          mkdir -p build/android build/linux build/windows
+          godot --headless --path . --export-release "Android" build/android/${GAME}.apk 2>&1 | tee export_android.log | tail -n 25
+          godot --headless --path . --export-release "Linux" build/linux/${GAME}.x86_64 2>&1 | tee export_linux.log | tail -n 10
+          godot --headless --path . --export-release "Windows" build/windows/${GAME}.exe 2>&1 | tee export_windows.log | tail -n 10
+          for l in export_android.log export_linux.log export_windows.log; do
+            grep -E "^(ERROR|WARNING)" "$l" | grep -v "fontconfig" | sort -u | head -n 5 | while read -r m; do echo "::warning title=${l%.log}::$m"; done || true
+          done
+          test -s build/android/${GAME}.apk
+          test -s build/linux/${GAME}.x86_64
+          test -s build/windows/${GAME}.exe
+          ls -la build/*
+
+      - name: Arrancar la build de Linux publicada (humo)
+        run: |
+          chmod +x build/linux/${GAME}.x86_64
+          timeout 120 build/linux/${GAME}.x86_64 --headless --quit-after 600 2>&1 | tee humo_linux.log | tail -n 15
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load|Cannot open file" humo_linux.log; then
+            echo "::error title=Build de Linux::Errores al arrancar el juego exportado"; exit 1
+          fi
+          echo "::notice title=Build de Linux::Arranca y muestra el menú principal sin errores (600 fotogramas)"
+
+      - name: Verificar el APK (firma, manifiesto y contenido)
+        run: |
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n 1)"
+          AAPT2="$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -n 1)"
+          echo "apksigner: ${APKSIGNER:-no encontrado} · aapt2: ${AAPT2:-no encontrado}"
+          # La firma es obligatoria: si apksigner no la verifica, el paso falla.
+          "$APKSIGNER" verify --verbose --print-certs build/android/${GAME}.apk > apksigner.log
+          grep -E "Verifies|Verified using|certificate (DN|SHA-256)" apksigner.log
+          # El manifiesto es informativo: un aviso de aapt2 no debe tumbar la publicación.
+          RC=0
+          if [ -n "$AAPT2" ]; then
+            "$AAPT2" dump badging build/android/${GAME}.apk > badging.log 2> badging.err || RC=$?
+          else
+            RC=127; : > badging.log; echo "aapt2 no encontrado" > badging.err
+          fi
+          if [ "$RC" -ne 0 ]; then
+            echo "::warning title=aapt2 (código ${RC})::$(tr '\n' ' ' < badging.err | head -c 400)"
+          fi
+          grep -E "^package:|application-label:|sdkVersion|native-code|launchable-activity" badging.log || true
+          unzip -l build/android/${GAME}.apk | grep -E "lib/.*\.so" || true
+          PKG="$(grep -m1 '^package:' badging.log || true)"
+          SDK="$(grep -m1 -E '^(min)?[sS]dkVersion' badging.log || true) $(grep -m1 '^targetSdkVersion' badging.log || true)"
+          ABI="$(grep -m1 '^native-code' badging.log || true)"
+          PERMS="$(grep -E '^uses-permission' badging.log | sed -E "s/.*name='([^']+)'.*/\1/" | tr '\n' ' ' || true)"
+          LIBS="$(unzip -l build/android/${GAME}.apk | grep -oE 'lib/[^/]+/libgodot_android\.so' | cut -d/ -f2 | tr '\n' ' ' || true)"
+          CERT="$(grep -m1 'SHA-256 digest' apksigner.log | sed 's/.*: //' || true)"
+          SCHEMES="$(grep -E 'Verified using v[0-9.]+ scheme.*: true' apksigner.log | sed -E 's/Verified using (v[0-9.]+) scheme.*/\1/' | tr '\n' ' ' || true)"
+          echo "::notice title=APK de Android::${PKG} ${SDK} ${ABI} · librerías: ${LIBS} · permisos: ${PERMS:-ninguno}"
+          echo "::notice title=Firma del APK::esquemas ${SCHEMES}· certificado SHA-256 ${CERT}"
+          {
+            echo "### APK de Android"
+            echo '```'
+            echo "${PKG}"
+            echo "${SDK}"
+            echo "${ABI}"
+            echo "Librerías nativas: ${LIBS}"
+            echo "Permisos: ${PERMS:-ninguno}"
+            echo "Firma: ${SCHEMES}"
+            echo "Certificado SHA-256: ${CERT}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Empaquetar los archivos de descarga
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p dist
+          cp build/android/${GAME}.apk "dist/${GAME}-v${VERSION}-android.apk"
+          chmod +x build/linux/${GAME}.x86_64
+          # Cada zip contiene una carpeta «IslaSalvaje/» con el juego y sus licencias.
+          for d in linux windows; do
+            rm -rf "build/pkg/$d" && mkdir -p "build/pkg/$d"
+            cp -a "build/$d" "build/pkg/$d/${GAME}"
+            mkdir -p "build/pkg/$d/${GAME}/licencias"
+            cp ASSET_CREDITS.md assets/fonts/*-OFL.txt "build/pkg/$d/${GAME}/licencias/"
+          done
+          (cd build/pkg/linux && zip -9 -q -r "../../../dist/${GAME}-v${VERSION}-linux-x86_64.zip" "${GAME}")
+          (cd build/pkg/windows && zip -9 -q -r "../../../dist/${GAME}-v${VERSION}-windows-x86_64.zip" "${GAME}")
+          (cd dist && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          ls -la dist
+          LIST="$(cd dist && for f in *; do printf '%s (%s) ' "$f" "$(du -h "$f" | cut -f1)"; done)"
+          echo "::notice title=Archivos generados::${LIST}"
+          {
+            echo "### Archivos"
+            echo '```'
+            (cd dist && ls -l --block-size=K | tail -n +2)
+            echo
+            cat dist/SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar artefactos
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.GAME }}-v${{ steps.ver.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Adjuntar a la release
+        if: steps.ver.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Registros (si algo falla)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: registros-${{ github.run_number }}
+          path: |
+            *.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Capturas de pantalla con el renderizador REAL (OpenGL de Mesa/llvmpipe bajo
+  # Xvfb). Solo se ejecuta si el mensaje del commit contiene «[capturas]». Las
+  # imágenes se guardan como artefacto y en docs/capturas/ de la misma rama
+  # (los commits hechos con GITHUB_TOKEN no vuelven a lanzar el flujo).
+  capturas:
+    name: Capturas con el renderizador real (Mesa)
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[capturas]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v7
+
+      - name: Caché de Godot
+        id: cache-godot-cap
+        uses: actions/cache@v6
+        with:
+          path: ~/godot-dl
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}-linux-android-windows-v1
+
+      - name: Descargar Godot (si no está en caché)
+        if: steps.cache-godot-cap.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot-dl && cd ~/godot-dl
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}"
+          curl -fsSL --retry 4 -o godot.zip "$URL/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
+          chmod +x godot
+          rm -f godot.zip
+
+      - name: Instalar Xvfb y Mesa
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb mesa-utils libgl1-mesa-dri libglx-mesa0 libegl1 > /dev/null
+          xvfb-run -a -s "-screen 0 1280x720x24" glxinfo -B 2>/dev/null | head -n 12 || true
+
+      - name: Importar el proyecto
+        run: ~/godot-dl/godot --headless --path . --import 2>&1 | tail -n 5
+
+      - name: Hacer las capturas
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          mkdir -p docs/capturas
+          xvfb-run -a -s "-screen 0 1280x720x24" ~/godot-dl/godot --path . --audio-driver Dummy \
+            --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 \
+            tests/tools/capturas.tscn -- "$GITHUB_WORKSPACE/docs/capturas" 2>&1 | tee capturas.log | grep -v fontconfig | tail -n 60 || true
+          R="$(grep -m1 'CAPTURAS:' capturas.log || echo 'sin resultado')"
+          G="$(grep -m1 'Renderizador:' capturas.log || echo '')"
+          echo "::notice title=Capturas con render real::${R} · ${G}"
+          grep -E "SHADER ERROR|Shader compilation failed|SCRIPT ERROR|Parse Error" capturas.log | sort -u | head -n 20 | while read -r l; do echo "::error title=Error al renderizar::$l"; done || true
+          grep -B2 -A4 "SHADER ERROR" capturas.log | head -n 60 || true
+          grep -E "^(ERROR|WARNING)" capturas.log | grep -v -E "fontconfig|resources still in use|ObjectDB" | sort | uniq -c | sort -rn | head -n 12 | while read -r l; do echo "::warning title=Aviso del motor::$l"; done || true
+          ls -la docs/capturas
+          {
+            echo "### Capturas (render real, Mesa)"
+            echo "${R}"
+            echo "${G}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar capturas como artefacto
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas-${{ github.run_number }}
+          path: |
+            docs/capturas
+            capturas.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Guardar las capturas en la rama
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/capturas
+          if git diff --cached --quiet; then echo "Sin capturas nuevas"; exit 0; fi
+          git commit -q -m "Capturas automáticas con el renderizador real (run ${GITHUB_RUN_NUMBER})"
+          for i in 1 2 3; do
+            if git pull -q --rebase origin "$GITHUB_REF_NAME" && git push -q origin "HEAD:$GITHUB_REF_NAME"; then
+              echo "Capturas guardadas en docs/capturas/ de ${GITHUB_REF_NAME}"; break
+            fi
+            sleep 5
+          done

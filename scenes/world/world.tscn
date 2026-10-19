@@ -1,0 +1,65 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/world.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/resources/resource_node_manager.gd" id="2_res"]
+[ext_resource type="Script" path="res://scripts/world/decor_scatter.gd" id="3_decor"]
+[ext_resource type="Script" path="res://scripts/world/poi_manager.gd" id="4_poi"]
+[ext_resource type="Script" path="res://scripts/buildings/building_manager.gd" id="5_bman"]
+[ext_resource type="Script" path="res://scripts/enemies/enemy_spawner.gd" id="6_enem"]
+[ext_resource type="Script" path="res://scripts/world/effects.gd" id="7_fx"]
+[ext_resource type="Script" path="res://scripts/survival/day_night.gd" id="8_dn"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="9_player"]
+[ext_resource type="Script" path="res://scripts/buildings/build_mode.gd" id="10_build"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="11_hud"]
+
+[sub_resource type="Environment" id="Environment_base"]
+background_mode = 1
+background_color = Color(0.47, 0.71, 0.86, 1)
+
+[node name="World" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_base")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 30, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 1.1
+shadow_enabled = true
+shadow_bias = 0.06
+shadow_normal_bias = 1.5
+directional_shadow_mode = 0
+directional_shadow_max_distance = 55.0
+
+[node name="Terrain" type="Node3D" parent="."]
+
+[node name="Resources" type="Node3D" parent="."]
+script = ExtResource("2_res")
+
+[node name="Decor" type="Node3D" parent="."]
+script = ExtResource("3_decor")
+
+[node name="POIs" type="Node3D" parent="."]
+script = ExtResource("4_poi")
+
+[node name="Buildings" type="Node3D" parent="."]
+script = ExtResource("5_bman")
+
+[node name="Enemies" type="Node3D" parent="."]
+script = ExtResource("6_enem")
+
+[node name="Pickups" type="Node3D" parent="."]
+
+[node name="Effects" type="Node3D" parent="."]
+script = ExtResource("7_fx")
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("8_dn")
+
+[node name="Player" parent="." instance=ExtResource("9_player")]
+
+[node name="BuildMode" type="Node3D" parent="."]
+script = ExtResource("10_build")
+
+[node name="HUD" parent="." instance=ExtResource("11_hud")]

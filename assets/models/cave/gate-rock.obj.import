@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ddyweay3ahhc7"
+path="res://.godot/imported/gate-rock.obj-4c1ab7ce60136921fe71a3ed4c15aeba.mesh"
+
+[deps]
+
+files=["res://.godot/imported/gate-rock.obj-4c1ab7ce60136921fe71a3ed4c15aeba.mesh"]
+
+source_file="res://assets/models/cave/gate-rock.obj"
+dest_files=["res://.godot/imported/gate-rock.obj-4c1ab7ce60136921fe71a3ed4c15aeba.mesh", "res://.godot/imported/gate-rock.obj-4c1ab7ce60136921fe71a3ed4c15aeba.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

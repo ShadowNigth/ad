@@ -1,0 +1,64 @@
+{
+  "_comment": "Árbol tecnológico. cost: puntos de tecnología; items: recursos adicionales. age: edad mínima necesaria (0 primitiva .. 5 automatización). bonuses: modificadores acumulativos. unlocks: workers / regions informativos (los edificios y recetas declaran su propia tecnología).",
+  "branches": [
+    {"id": "supervivencia", "name": "Supervivencia", "color": "#e07a5f"},
+    {"id": "recoleccion", "name": "Recolección", "color": "#81b29a"},
+    {"id": "construccion", "name": "Construcción", "color": "#c9a66b"},
+    {"id": "agricultura", "name": "Agricultura", "color": "#a7c957"},
+    {"id": "mineria", "name": "Minería", "color": "#9c89b8"},
+    {"id": "fabricacion", "name": "Fabricación", "color": "#f2cc8f"},
+    {"id": "automatizacion", "name": "Automatización", "color": "#4ea8de"},
+    {"id": "exploracion", "name": "Exploración", "color": "#f4a261"}
+  ],
+  "technologies": [
+    {"id": "con_almacen", "name": "Almacenaje", "branch": "construccion", "age": 0, "cost": 1, "requires": [], "desc": "Permite construir almacenes para ampliar el almacén compartido."},
+    {"id": "exp_cartografia", "name": "Cartografía", "branch": "exploracion", "age": 0, "cost": 1, "requires": [], "desc": "Marca en el mapa los lugares de interés y activa el minimapa.", "bonuses": {"map_markers": 1}},
+    {"id": "min_canteria", "name": "Cantería", "branch": "mineria", "age": 0, "cost": 1, "requires": [], "desc": "Permite construir canteras que extraen piedra automáticamente."},
+
+    {"id": "sup_medicina", "name": "Medicina natural", "branch": "supervivencia", "age": 1, "cost": 2, "requires": [], "desc": "Receta de vendas y búsqueda de hierbas en las chozas."},
+    {"id": "sup_filtrado", "name": "Filtrado de agua", "branch": "supervivencia", "age": 1, "cost": 2, "requires": [], "desc": "Permite construir purificadores de agua."},
+    {"id": "rec_eficiencia", "name": "Recolección eficiente", "branch": "recoleccion", "age": 1, "cost": 2, "requires": [], "desc": "+25% de recursos al recolectar a mano.", "bonuses": {"gather_mult": 0.25}},
+    {"id": "rec_mochila", "name": "Mochila de fibra", "branch": "recoleccion", "age": 1, "cost": 2, "requires": [], "desc": "+8 huecos de inventario.", "bonuses": {"inventory_slots": 8}},
+    {"id": "rec_choza", "name": "Chozas de recolección", "branch": "recoleccion", "age": 1, "cost": 2, "requires": [], "desc": "Edificio que reúne fibra, bayas y hierbas."},
+    {"id": "aut_organizacion", "name": "Organización", "branch": "automatizacion", "age": 1, "cost": 2, "requires": [], "desc": "Contrata leñadores y recolectores. Permite construir cabañas de trabajadores.", "unlocks": {"workers": ["lenador", "recolector"]}},
+    {"id": "exp_antorchas", "name": "Antorchas", "branch": "exploracion", "age": 1, "cost": 2, "requires": [], "desc": "Faroles que mantienen la base iluminada durante la noche."},
+    {"id": "exp_calzado", "name": "Calzado de cuero", "branch": "exploracion", "age": 1, "cost": 2, "requires": [], "desc": "+10% velocidad de movimiento y -20% de gasto de estamina al correr.", "bonuses": {"move_speed_mult": 0.1, "sprint_stamina_mult": -0.2}},
+    {"id": "con_carpinteria", "name": "Carpintería", "branch": "construccion", "age": 1, "cost": 2, "requires": ["con_almacen"], "desc": "Aserraderos y tablas fabricadas a mano."},
+    {"id": "min_carboneras", "name": "Carboneras", "branch": "mineria", "age": 1, "cost": 2, "requires": ["min_canteria"], "desc": "Hornos que convierten madera en carbón automáticamente."},
+
+    {"id": "agr_cultivo", "name": "Agricultura", "branch": "agricultura", "age": 2, "cost": 3, "requires": [], "desc": "Huertos y azadas. Las verduras crecen solas."},
+    {"id": "agr_ganaderia", "name": "Ganadería", "branch": "agricultura", "age": 2, "cost": 3, "requires": ["agr_cultivo"], "desc": "Granjas de animales que producen huevos, carne y cuero."},
+    {"id": "agr_riego", "name": "Riego", "branch": "agricultura", "age": 2, "cost": 3, "requires": ["agr_cultivo"], "desc": "Cultivo de calabazas con agua y +25% de producción en huertos.", "bonuses": {"production_mult:huerto": 0.25}},
+    {"id": "sup_cocina", "name": "Cocina", "branch": "supervivencia", "age": 2, "cost": 3, "requires": ["agr_cultivo"], "desc": "Receta de guiso y fogatas un 25% más rápidas.", "bonuses": {"station_speed:fogata": 0.25}},
+    {"id": "sup_resistencia", "name": "Resistencia", "branch": "supervivencia", "age": 2, "cost": 3, "requires": ["sup_medicina"], "desc": "+25 de estamina máxima y -15% de desgaste de hambre y sed.", "bonuses": {"max_stamina": 25, "hunger_drain_mult": -0.15, "thirst_drain_mult": -0.15}},
+    {"id": "min_mineria", "name": "Minería", "branch": "mineria", "age": 2, "cost": 3, "requires": ["min_canteria"], "desc": "Minas en la zona rocosa: hierro y carbón automáticos."},
+    {"id": "fab_taller", "name": "Taller", "branch": "fabricacion", "age": 2, "cost": 3, "requires": ["con_carpinteria"], "desc": "Estación de fabricación avanzada con producción de cuerda y piezas."},
+    {"id": "con_puentes", "name": "Puentes", "branch": "construccion", "age": 2, "cost": 3, "requires": ["con_carpinteria"], "desc": "Permite reparar el puente roto que lleva a la jungla de las ruinas.", "unlocks": {"regions": ["jungla"]}},
+    {"id": "aut_capataz", "name": "Capataces", "branch": "automatizacion", "age": 2, "cost": 3, "requires": ["aut_organizacion"], "desc": "Contrata mineros, granjeros y artesanos, y entrena sus habilidades.", "unlocks": {"workers": ["minero", "granjero", "artesano"]}, "bonuses": {"worker_training": 1}},
+
+    {"id": "min_metalurgia", "name": "Metalurgia", "branch": "mineria", "age": 3, "cost": 4, "requires": ["min_mineria"], "desc": "Fundiciones y lingotes de hierro."},
+    {"id": "fab_herramientas_metal", "name": "Herramientas de metal", "branch": "fabricacion", "age": 3, "cost": 4, "requires": ["min_metalurgia", "fab_taller"], "desc": "Hachas, picos, lanzas, machetes y cubos de hierro."},
+    {"id": "sup_botica", "name": "Botica", "branch": "supervivencia", "age": 3, "cost": 4, "requires": ["sup_medicina"], "desc": "Tónicos medicinales y +20% de curación.", "bonuses": {"heal_mult": 0.2}},
+    {"id": "con_defensas", "name": "Defensas", "branch": "construccion", "age": 3, "cost": 4, "requires": ["fab_taller", "min_metalurgia"], "desc": "Torres que disparan a las criaturas que se acercan."},
+    {"id": "min_explosivos", "name": "Explosivos", "branch": "mineria", "age": 3, "cost": 4, "requires": ["min_mineria"], "desc": "Permite volar el derrumbe que bloquea la Cueva de cristal.", "unlocks": {"regions": ["cueva"]}},
+    {"id": "rec_mochila2", "name": "Mochila de cuero", "branch": "recoleccion", "age": 3, "cost": 4, "items": {"cuero": 4}, "requires": ["rec_mochila"], "desc": "+8 huecos de inventario.", "bonuses": {"inventory_slots": 8}},
+    {"id": "aut_ciencia", "name": "Método científico", "branch": "automatizacion", "age": 3, "cost": 4, "requires": ["fab_taller"], "desc": "Laboratorios que generan puntos de tecnología."},
+    {"id": "agr_abonos", "name": "Abonos", "branch": "agricultura", "age": 3, "cost": 4, "requires": ["agr_riego"], "desc": "+30% de producción en huertos y granjas.", "bonuses": {"production_mult:huerto": 0.3, "production_mult:granja": 0.3}},
+    {"id": "rec_herreria", "name": "Afilado", "branch": "recoleccion", "age": 3, "cost": 4, "requires": ["rec_eficiencia"], "desc": "+50% de durabilidad de herramientas y +15% de daño.", "bonuses": {"durability_mult": 0.5, "damage_mult": 0.15}},
+
+    {"id": "min_acero", "name": "Acero", "branch": "mineria", "age": 4, "cost": 5, "requires": ["min_metalurgia"], "desc": "La fundición puede producir acero."},
+    {"id": "fab_herramientas_avanzadas", "name": "Herramientas avanzadas", "branch": "fabricacion", "age": 4, "cost": 5, "requires": ["min_acero", "fab_herramientas_metal"], "desc": "Hacha y pico de acero (8 por golpe)."},
+    {"id": "aut_energia", "name": "Energía", "branch": "automatizacion", "age": 4, "cost": 5, "requires": ["min_metalurgia", "fab_taller"], "desc": "Generadores de energía para las máquinas."},
+    {"id": "fab_combustibles", "name": "Combustibles", "branch": "fabricacion", "age": 4, "cost": 5, "requires": ["aut_energia"], "desc": "Refinerías y combustible de alto rendimiento."},
+    {"id": "exp_resonancia", "name": "Resonancia de cristal", "branch": "exploracion", "age": 4, "cost": 5, "items": {"cristal": 2}, "requires": ["min_explosivos"], "desc": "Las minas encuentran vetas de cristal y los generadores pueden usarlo como fuente de energía."},
+    {"id": "fab_electronica", "name": "Electrónica", "branch": "fabricacion", "age": 4, "cost": 5, "items": {"cristal": 2}, "requires": ["exp_resonancia", "aut_energia"], "desc": "Componentes electrónicos e investigación avanzada."},
+    {"id": "con_ingenieria", "name": "Ingeniería", "branch": "construccion", "age": 4, "cost": 5, "requires": ["con_defensas"], "desc": "-20% en costes de construcción y mejora, +25% de almacén.", "bonuses": {"build_cost_mult": -0.2, "storage_mult": 0.25}},
+    {"id": "exp_arqueologia", "name": "Arqueología", "branch": "exploracion", "age": 4, "cost": 5, "items": {"reliquia": 1}, "requires": ["con_puentes"], "desc": "Descifra las reliquias: +1 trabajador por edificio y +10% de producción global.", "bonuses": {"worker_slots": 1, "production_mult": 0.1}},
+    {"id": "sup_experto", "name": "Superviviente experto", "branch": "supervivencia", "age": 4, "cost": 5, "items": {"esencia": 6}, "requires": ["sup_resistencia"], "desc": "+30 de salud máxima y +20% de daño.", "bonuses": {"max_health": 30, "damage_mult": 0.2}},
+
+    {"id": "aut_fabrica", "name": "Automatización", "branch": "automatizacion", "age": 5, "cost": 6, "requires": ["fab_electronica"], "desc": "Fábricas avanzadas y +20% de producción global.", "bonuses": {"production_mult": 0.2}},
+    {"id": "aut_logistica", "name": "Logística", "branch": "automatizacion", "age": 5, "cost": 6, "requires": ["aut_fabrica"], "desc": "+4 h de progreso sin conexión y +50% de almacén.", "bonuses": {"offline_cap_hours": 4.0, "storage_mult": 0.5}},
+    {"id": "rec_maestria", "name": "Maestría recolectora", "branch": "recoleccion", "age": 5, "cost": 6, "requires": ["rec_herreria"], "desc": "+50% de recursos al recolectar a mano.", "bonuses": {"gather_mult": 0.5}},
+    {"id": "aut_optimizacion", "name": "Optimización total", "branch": "automatizacion", "age": 5, "cost": 8, "items": {"reliquia": 3, "electronica": 4}, "requires": ["aut_fabrica", "exp_arqueologia"], "desc": "+25% de producción y +25% de eficiencia de trabajadores.", "bonuses": {"production_mult": 0.25, "worker_efficiency": 0.25}}
+  ]
+}
