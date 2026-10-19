@@ -54,6 +54,8 @@ func refresh() -> void:
 	_options("Límite de FPS", "fps_limit", [[30, "30"], [60, "60"], [0, "Sin límite"]])
 	_options("Escala de interfaz", "ui_scale", [[0.85, "85%"], [1.0, "100%"], [1.15, "115%"], [1.3, "130%"]])
 	_toggle("Invertir eje vertical", "invert_y")
+	_toggle("Clima dinámico (lluvia y tormentas)", "weather")
+	_toggle("Sacudidas de cámara", "camera_shake")
 	_toggle("Mostrar FPS", "show_fps")
 
 

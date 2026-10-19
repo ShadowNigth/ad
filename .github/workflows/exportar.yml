@@ -306,3 +306,91 @@ jobs:
             *.log
           if-no-files-found: ignore
           retention-days: 14
+
+  # Capturas de pantalla con el renderizador REAL (OpenGL de Mesa/llvmpipe bajo
+  # Xvfb). Solo se ejecuta si el mensaje del commit contiene «[capturas]». Las
+  # imágenes se guardan como artefacto y en docs/capturas/ de la misma rama
+  # (los commits hechos con GITHUB_TOKEN no vuelven a lanzar el flujo).
+  capturas:
+    name: Capturas con el renderizador real (Mesa)
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[capturas]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v7
+
+      - name: Caché de Godot
+        id: cache-godot-cap
+        uses: actions/cache@v6
+        with:
+          path: ~/godot-dl
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}-linux-android-windows-v1
+
+      - name: Descargar Godot (si no está en caché)
+        if: steps.cache-godot-cap.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot-dl && cd ~/godot-dl
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}"
+          curl -fsSL --retry 4 -o godot.zip "$URL/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
+          chmod +x godot
+          rm -f godot.zip
+
+      - name: Instalar Xvfb y Mesa
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb mesa-utils libgl1-mesa-dri libglx-mesa0 libegl1 > /dev/null
+          xvfb-run -a -s "-screen 0 1280x720x24" glxinfo -B 2>/dev/null | head -n 12 || true
+
+      - name: Importar el proyecto
+        run: ~/godot-dl/godot --headless --path . --import 2>&1 | tail -n 5
+
+      - name: Hacer las capturas
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          mkdir -p docs/capturas
+          xvfb-run -a -s "-screen 0 1280x720x24" ~/godot-dl/godot --path . --audio-driver Dummy \
+            --rendering-method gl_compatibility --rendering-driver opengl3 --resolution 1280x720 \
+            tests/tools/capturas.tscn -- "$GITHUB_WORKSPACE/docs/capturas" 2>&1 | tee capturas.log | grep -v fontconfig | tail -n 60 || true
+          R="$(grep -m1 'CAPTURAS:' capturas.log || echo 'sin resultado')"
+          G="$(grep -m1 'Renderizador:' capturas.log || echo '')"
+          echo "::notice title=Capturas con render real::${R} · ${G}"
+          grep -E "SHADER ERROR|Shader compilation failed|SCRIPT ERROR|Parse Error" capturas.log | sort -u | head -n 20 | while read -r l; do echo "::error title=Error al renderizar::$l"; done || true
+          grep -B2 -A4 "SHADER ERROR" capturas.log | head -n 60 || true
+          grep -E "^(ERROR|WARNING)" capturas.log | grep -v -E "fontconfig|resources still in use|ObjectDB" | sort | uniq -c | sort -rn | head -n 12 | while read -r l; do echo "::warning title=Aviso del motor::$l"; done || true
+          ls -la docs/capturas
+          {
+            echo "### Capturas (render real, Mesa)"
+            echo "${R}"
+            echo "${G}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar capturas como artefacto
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas-${{ github.run_number }}
+          path: |
+            docs/capturas
+            capturas.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Guardar las capturas en la rama
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/capturas
+          if git diff --cached --quiet; then echo "Sin capturas nuevas"; exit 0; fi
+          git commit -q -m "Capturas automáticas con el renderizador real (run ${GITHUB_RUN_NUMBER})"
+          for i in 1 2 3; do
+            if git pull -q --rebase origin "$GITHUB_REF_NAME" && git push -q origin "HEAD:$GITHUB_REF_NAME"; then
+              echo "Capturas guardadas en docs/capturas/ de ${GITHUB_REF_NAME}"; break
+            fi
+            sleep 5
+          done

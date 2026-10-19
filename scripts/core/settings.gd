@@ -20,6 +20,8 @@ const DEFAULTS := {
 	"ui_scale": 1.0,
 	"auto_deposit": true,
 	"camera_distance": 6.5,
+	"weather": true,
+	"camera_shake": true,
 }
 
 var values: Dictionary = DEFAULTS.duplicate(true)

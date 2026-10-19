@@ -113,7 +113,11 @@ func _announce(prev: String, st: String) -> void:
 func _process(delta: float) -> void:
 	if world == null:
 		return
-	if bool(GameData.balance.get("weather", {}).get("enabled", true)):
+	if not bool(Settings.get_value("weather")):
+		# Clima desactivado en los ajustes: siempre despejado.
+		if state() != "despejado":
+			force("despejado")
+	elif bool(GameData.balance.get("weather", {}).get("enabled", true)):
 		GameState.weather.left = float(GameState.weather.get("left", 300.0)) - delta
 		if float(GameState.weather.left) <= 0.0:
 			force(_next_state(state()))

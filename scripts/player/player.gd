@@ -230,6 +230,8 @@ func _process(delta: float) -> void:
 	_fov_kick = move_toward(_fov_kick, 0.0, delta * 30.0)
 	var fov_target := _base_fov + (5.0 if survival.sprinting else 0.0) + _fov_kick
 	camera.fov = lerpf(camera.fov, fov_target, clampf(delta * 6.0, 0.0, 1.0))
+	if not bool(Settings.get_value("camera_shake")):
+		_shake = 0.0
 	if _shake > 0.0:
 		_shake = maxf(_shake - delta * 2.5, 0.0)
 		camera.h_offset = randf_range(-1.0, 1.0) * _shake * 0.25
