@@ -45,6 +45,8 @@ func _ready() -> void:
 	_reset_game()
 	await _load_world()
 	await _test_world()
+	await _test_core_loop()
+	await _cleanup_after_loop()
 	await _test_touch_movement()
 	await _test_gathering()
 	_test_crafting_rules()
@@ -191,6 +193,143 @@ func _test_world() -> void:
 	check(world.is_fresh_water(Vector3(lake[0], 0, lake[1])), "La laguna es agua dulce")
 	check(not world.is_fresh_water(Vector3(0, 0, 120)), "El mar no es agua dulce")
 	check(not world.is_walkable(Vector3(0, 0, 124)), "El mar profundo no es transitable")
+
+
+# ------------------------------------------------------------------ 3b. Bucle principal (fase 1)
+func _gather_until(types: Array, item: String, target: int) -> void:
+	var p := world.player
+	var guard := 0
+	while GameState.inventory.count(item) < target and guard < 400:
+		guard += 1
+		var id := -1
+		for t in types:
+			id = _nearest_node(t)
+			if id >= 0:
+				break
+		if id < 0:
+			return
+		var rec := world.resources.get_node_rec(id)
+		var r := float(world.resources.node_data(rec).get("radius", 0.0))
+		p.global_position = rec.pos + Vector3(r + 0.9, 0.4, 0)
+		p.rig.rotation.y = atan2(1.0, 0.0)  # mira hacia -X (hacia el nodo)
+		await physics_frames(2)
+		p._gather_cd = 0.0
+		p._update_target()
+		if p.target.get("kind", "") != "node":
+			continue
+		p.interact_pressed()
+
+
+func _wait_crafter() -> void:
+	for i in 600:
+		await get_tree().process_frame
+		if not world.crafter.is_busy():
+			return
+
+
+func _build_in_front(type_id: String, offset: Vector3) -> int:
+	var p := world.player
+	var camp := _camp_pos()
+	p.global_position = camp + offset + Vector3(0, 0.5, 0)
+	p.rig.rotation.y = 0.0  # mira al norte (-Z)
+	await physics_frames(3)
+	var bm := world.build_mode
+	bm.start(type_id)
+	await frames(3)
+	var before := Economy.count_of(type_id)
+	bm.confirm()
+	bm.cancel()
+	await frames(2)
+	return Economy.count_of(type_id) - before
+
+
+func _test_core_loop() -> void:
+	section("Bucle principal: recoger, fabricar, construir, sobrevivir y producir")
+	Quests.active = true
+	var p := world.player
+	var inv := GameState.inventory
+	# Cofre del naufragio.
+	var chest := world.pois.poi_by_id("cofre_naufragio")
+	p.global_position = chest.world_pos + Vector3(1.5, 0.5, 0)
+	await physics_frames(2)
+	p._update_target()
+	check(p.target.get("kind", "") == "poi", "El cofre del naufragio es interactuable")
+	p.interact_pressed()
+	check(inv.count("madera") >= 4 and inv.count("coco") >= 2, "El cofre da materiales iniciales")
+	await _gather_until(["arbol", "palmera"], "madera", 30)
+	check(inv.count("madera") >= 30, "Se recolectan 30 de madera talando (%d)" % inv.count("madera"))
+	await _gather_until(["roca", "piedras_suelo"], "piedra", 22)
+	check(inv.count("piedra") >= 22, "Se recolecta piedra (%d)" % inv.count("piedra"))
+	await _gather_until(["hierba_alta"], "fibra", 22)
+	check(inv.count("fibra") >= 22, "Se recolecta fibra (%d)" % inv.count("fibra"))
+	await frames(3)
+	check(Quests.index >= 3, "Los tres primeros objetivos se completan recolectando (objetivo %d)" % Quests.index)
+	for r in ["r_hacha_piedra", "r_pico_piedra", "r_martillo", "r_cuenco_coco"]:
+		world.crafter.enqueue(r, 1)
+		await _wait_crafter()
+	for it in ["hacha_piedra", "pico_piedra", "martillo", "cuenco_coco"]:
+		check(inv.count(it) == 1, "Fabricado: " + GameData.item_name(it))
+	# Con hacha se tala el triple de rápido.
+	var w0 := inv.count("madera")
+	await _gather_until(["arbol", "palmera"], "madera", w0 + 3)
+	check(inv.count("madera") >= w0 + 3, "Con el hacha se consigue madera más rápido")
+	p.eat_slot(_slot_of("bayas"))
+	await frames(2)
+	check(_built(await _build_in_front("fogata", Vector3(0, 0, 4))), "Se construye una fogata con el modo construcción")
+	check(_built(await _build_in_front("refugio", Vector3(-7, 0, 6))), "Se construye el refugio")
+	await _gather_until(["arbol", "palmera"], "madera", 40)
+	await _gather_until(["roca", "piedras_suelo"], "piedra", 15)
+	check(_built(await _build_in_front("lenador", Vector3(7, 0, 6))), "Se construye el puesto de leñador (primera automatización)")
+	# Agua: recoger con el cuenco en la laguna y hervirla en la fogata.
+	var lk: Array = GameData.world.lake.center
+	var lake_r := float(GameData.world.lake.radius)
+	var shore := Vector3(lk[0] + lake_r + 1.2, 0, lk[1])
+	shore.y = world.height_at(shore.x, shore.z)
+	p.global_position = shore + Vector3(0, 0.5, 0)
+	p.rig.rotation.y = PI * 0.5  # mira hacia -X (hacia el agua)
+	await physics_frames(3)
+	p._update_target()
+	check(p.target.get("kind", "") == "water", "Junto a la laguna se puede recoger agua")
+	p.interact_pressed()
+	check(inv.count("agua_sucia") >= 1, "El cuenco de coco recoge agua sin tratar")
+	var fog := Economy.buildings_of("fogata")
+	if not fog.is_empty():
+		p.global_position = Vector3(fog[0].pos[0] + 2.0, fog[0].pos[1] + 0.5, fog[0].pos[2])
+		await physics_frames(2)
+		world.crafter.enqueue("r_hervir_agua", 1)
+		await _wait_crafter()
+		check(inv.count("agua") >= 1, "Hervir el agua en la fogata produce agua potable")
+	await frames(3)
+	check(Quests.index >= 9, "La cadena de objetivos avanza con el bucle (objetivo %d: %s)" % [Quests.index, Quests.current().get("title", "")])
+	var len := Economy.buildings_of("lenador")
+	check(not len.is_empty(), "Hay un leñador produciendo")
+	var m0 := Economy.stored("madera")
+	Economy.tick(61.0)
+	check(Economy.stored("madera") >= m0 + 4, "El leñador produce madera automáticamente (+%d en 1 min)" % (Economy.stored("madera") - m0))
+
+
+func _cleanup_after_loop() -> void:
+	for rec in Economy.buildings.duplicate():
+		Economy.demolish(int(rec.uid))
+	await frames(2)
+	Economy.storage.clear()
+	GameState.inventory.clear()
+	Workers.reset()
+	TechTree.reset()
+	Quests.reset()
+	GameState.stats = {"gathered": {}, "crafted": {}, "kills": {}, "built": 0, "nights": 0, "deaths": 0, "eaten": 0, "water": 0}
+	Quests.active = false
+
+
+func _slot_of(id: String) -> int:
+	for i in GameState.inventory.slots.size():
+		if GameState.inventory.slots[i] != null and GameState.inventory.slots[i].id == id:
+			return i
+	return -1
+
+
+func _built(n: int) -> bool:
+	return n == 1
 
 
 # ------------------------------------------------------------------ 4. Movimiento táctil

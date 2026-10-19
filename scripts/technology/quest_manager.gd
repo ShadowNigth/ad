@@ -17,6 +17,7 @@ func reset() -> void:
 func _ready() -> void:
 	EventBus.item_gathered.connect(func(id, n): _on_event("gather", id, n))
 	EventBus.item_crafted.connect(func(id, n): _on_event("craft", id, n))
+	EventBus.item_crafted.connect(func(_id, _n): _queue_check())
 	EventBus.player_ate.connect(func(id): _on_event("eat", id, 1))
 	EventBus.enemy_killed.connect(func(t, _p): _on_event("kill", t, 1))
 	EventBus.day_started.connect(func(_d): _on_event("survive_nights", "", 1))
@@ -45,7 +46,19 @@ func current_value() -> int:
 	var q := current()
 	if q.is_empty():
 		return 0
+	var target: String = q.get("target", "")
 	match str(q.type):
+		"gather":
+			return maxi(progress, int(GameState.stats.get("gathered", {}).get(target, 0)) if target != "" else progress)
+		"craft":
+			var crafted := int(GameState.stats.get("crafted", {}).get(target, 0)) if target != "" else 0
+			return maxi(progress, crafted)
+		"kill":
+			return maxi(progress, int(GameState.stats.get("kills", {}).get(target, 0)) if target != "" else progress)
+		"eat":
+			return maxi(progress, int(GameState.stats.get("eaten", 0)))
+		"collect_water":
+			return maxi(progress, int(GameState.stats.get("water", 0)))
 		"have":
 			return Economy.total_available(q.target)
 		"build":
