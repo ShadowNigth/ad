@@ -19,8 +19,8 @@ Los archivos están en **[Releases](https://github.com/ShadowNigth/ad/releases/l
 | Plataforma | Archivo | Instalación |
 |---|---|---|
 | **Android 7.0 o superior** (ARM 64 y 32 bits) | `IslaSalvaje-vX.Y.Z-android.apk` | Ver abajo |
-| **Linux** x86_64 | `IslaSalvaje-vX.Y.Z-linux-x86_64.zip` | Descomprimir y ejecutar `./IslaSalvaje.x86_64` |
-| **Windows** 10/11 de 64 bits | `IslaSalvaje-vX.Y.Z-windows-x86_64.zip` | Descomprimir y ejecutar `IslaSalvaje.exe` |
+| **Linux** x86_64 | `IslaSalvaje-vX.Y.Z-linux-x86_64.zip` | Descomprimir y ejecutar `IslaSalvaje/IslaSalvaje.x86_64` |
+| **Windows** 10/11 de 64 bits | `IslaSalvaje-vX.Y.Z-windows-x86_64.zip` | Descomprimir y ejecutar `IslaSalvaje\IslaSalvaje.exe` |
 
 `SHA256SUMS.txt` sirve para comprobar las descargas (`sha256sum -c SHA256SUMS.txt`).
 
@@ -42,8 +42,8 @@ Desde un ordenador, con depuración USB activada: `adb install -r IslaSalvaje-vX
 ### Linux
 
 ```bash
-unzip IslaSalvaje-vX.Y.Z-linux-x86_64.zip -d IslaSalvaje
-cd IslaSalvaje && chmod +x IslaSalvaje.x86_64 && ./IslaSalvaje.x86_64
+unzip IslaSalvaje-vX.Y.Z-linux-x86_64.zip      # crea la carpeta IslaSalvaje/
+cd IslaSalvaje && ./IslaSalvaje.x86_64        # si hace falta: chmod +x IslaSalvaje.x86_64
 ```
 
 Requisitos:
@@ -54,7 +54,7 @@ Las partidas se guardan en `~/.local/share/IslaSalvaje/`.
 
 ### Windows
 
-1. Descomprime el `.zip` y ejecuta `IslaSalvaje.exe`.
+1. Descomprime el `.zip` y ejecuta `IslaSalvaje\IslaSalvaje.exe`.
 2. El ejecutable no está firmado. Si SmartScreen avisa, pulsa *Más información →
    Ejecutar de todas formas*.
 

@@ -213,18 +213,31 @@ jobs:
 
       - name: Verificar el APK (firma, manifiesto y contenido)
         run: |
-          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
-          "$BT/apksigner" verify --verbose --print-certs build/android/${GAME}.apk > apksigner.log
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n 1)"
+          AAPT2="$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -n 1)"
+          echo "apksigner: ${APKSIGNER:-no encontrado} · aapt2: ${AAPT2:-no encontrado}"
+          # La firma es obligatoria: si apksigner no la verifica, el paso falla.
+          "$APKSIGNER" verify --verbose --print-certs build/android/${GAME}.apk > apksigner.log
           grep -E "Verifies|Verified using|Signer #1 certificate (DN|SHA-256)" apksigner.log
-          "$BT/aapt2" dump badging build/android/${GAME}.apk > badging.log
+          # El manifiesto es informativo: un aviso de aapt2 no debe tumbar la publicación.
+          RC=0
+          if [ -n "$AAPT2" ]; then
+            "$AAPT2" dump badging build/android/${GAME}.apk > badging.log 2> badging.err || RC=$?
+          else
+            RC=127; : > badging.log; echo "aapt2 no encontrado" > badging.err
+          fi
+          if [ "$RC" -ne 0 ]; then
+            echo "::warning title=aapt2 (código ${RC})::$(tr '\n' ' ' < badging.err | head -c 400)"
+          fi
           grep -E "^package:|application-label:|sdkVersion|native-code|launchable-activity" badging.log || true
           unzip -l build/android/${GAME}.apk | grep -E "lib/.*\.so" || true
-          PKG="$(grep -m1 '^package:' badging.log)"
-          SDK="$(grep -m1 '^sdkVersion' badging.log) $(grep -m1 '^targetSdkVersion' badging.log)"
-          ABI="$(grep -m1 '^native-code' badging.log)"
-          CERT="$(grep -m1 'Signer #1 certificate SHA-256' apksigner.log | sed 's/.*: //')"
-          SCHEMES="$(grep -E 'Verified using v[0-9].*true' apksigner.log | sed 's/Verified using //; s/ scheme.*//' | tr '\n' ' ')"
-          echo "::notice title=APK de Android::${PKG} ${SDK} ${ABI}"
+          PKG="$(grep -m1 '^package:' badging.log || true)"
+          SDK="$(grep -m1 '^sdkVersion' badging.log || true) $(grep -m1 '^targetSdkVersion' badging.log || true)"
+          ABI="$(grep -m1 '^native-code' badging.log || true)"
+          LIBS="$(unzip -l build/android/${GAME}.apk | grep -oE 'lib/[^/]+/libgodot_android\.so' | cut -d/ -f2 | tr '\n' ' ' || true)"
+          CERT="$(grep -m1 'Signer #1 certificate SHA-256' apksigner.log | sed 's/.*: //' || true)"
+          SCHEMES="$(grep -E 'Verified using v[0-9.]+ scheme.*: true' apksigner.log | sed -E 's/Verified using (v[0-9.]+) scheme.*/\1/' | tr '\n' ' ' || true)"
+          echo "::notice title=APK de Android::${PKG} ${SDK} ${ABI} · librerías: ${LIBS}"
           echo "::notice title=Firma del APK::esquemas ${SCHEMES}· certificado SHA-256 ${CERT}"
           {
             echo "### APK de Android"
@@ -232,6 +245,7 @@ jobs:
             echo "${PKG}"
             echo "${SDK}"
             echo "${ABI}"
+            echo "Librerías nativas: ${LIBS}"
             echo "Firma: ${SCHEMES}"
             echo "Certificado SHA-256: ${CERT}"
             echo '```'
@@ -243,13 +257,16 @@ jobs:
         run: |
           mkdir -p dist
           cp build/android/${GAME}.apk "dist/${GAME}-v${VERSION}-android.apk"
-          for d in linux windows; do
-            mkdir -p "build/$d/licencias"
-            cp ASSET_CREDITS.md assets/fonts/*-OFL.txt "build/$d/licencias/"
-          done
           chmod +x build/linux/${GAME}.x86_64
-          (cd build/linux && zip -9 -q -r "../../dist/${GAME}-v${VERSION}-linux-x86_64.zip" .)
-          (cd build/windows && zip -9 -q -r "../../dist/${GAME}-v${VERSION}-windows-x86_64.zip" .)
+          # Cada zip contiene una carpeta «IslaSalvaje/» con el juego y sus licencias.
+          for d in linux windows; do
+            rm -rf "build/pkg/$d" && mkdir -p "build/pkg/$d"
+            cp -a "build/$d" "build/pkg/$d/${GAME}"
+            mkdir -p "build/pkg/$d/${GAME}/licencias"
+            cp ASSET_CREDITS.md assets/fonts/*-OFL.txt "build/pkg/$d/${GAME}/licencias/"
+          done
+          (cd build/pkg/linux && zip -9 -q -r "../../../dist/${GAME}-v${VERSION}-linux-x86_64.zip" "${GAME}")
+          (cd build/pkg/windows && zip -9 -q -r "../../../dist/${GAME}-v${VERSION}-windows-x86_64.zip" "${GAME}")
           (cd dist && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
           ls -la dist
           LIST="$(cd dist && for f in *; do printf '%s (%s) ' "$f" "$(du -h "$f" | cut -f1)"; done)"
