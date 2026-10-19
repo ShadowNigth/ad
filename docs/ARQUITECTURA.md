@@ -49,7 +49,11 @@ scenes/main/main.tscn (main.gd)
      ├─ ResourceNodeManager  árboles, rocas, vetas y plantas (MultiMesh + rejilla espacial)
      ├─ BuildingManager + BuildMode   edificios y colocación con silueta
      ├─ EnemySpawner      fauna de día, criaturas de noche y guardianes
-     ├─ DayNight          sol, cielo, niebla y horas
+     ├─ DayNight          sol, luna, cielo (sky.gdshader), niebla y horas
+     ├─ Weather           despejado, nublado, lluvia y tormenta (weather.gd)
+     ├─ AmbientLife       luciérnagas, mariposas, polen, gaviotas, hojas y peces (ambient_life.gd)
+     ├─ BeachTreasures    botellas y cofres que deja el mar (beach_treasures.gd)
+     ├─ WorldEffects      partículas y efectos breves (effects.gd)
      ├─ Player (scenes/player/player.tscn)  CharacterBody3D + ProceduralRig + cámara
      └─ HUD (scenes/ui/hud.tscn)  barras, menú, joystick, botones táctiles y paneles
 ```
@@ -66,9 +70,51 @@ scenes/main/main.tscn (main.gd)
   sonido de los pasos y los enemigos.
 - Las regiones bloqueadas (jungla y cueva) son zonas no transitables hasta que se repara el
   puente o se despeja el derrumbe. El estado se guarda.
+- **Clima** (`Weather`): máquina de estados con duraciones y probabilidades de
+  `balance.json → weather`. Escribe el estado en `GameState.weather` (se guarda); `SurvivalStats`
+  y `Economy` lo leen para reducir la sed y acelerar los edificios con `rain_bonus` (nunca en la
+  simulación sin conexión). `DayNight` mezcla la nubosidad, la lluvia y los relámpagos en la luz,
+  el cielo y la niebla.
 - **Sin simulación lejana**: los enemigos sólo se procesan cerca del jugador. Los edificios
   lejanos siguen produciendo en `Economy`, pero sin efectos visuales fuera de
   `visual_production_radius`.
+
+## Animación procedural (`ProceduralRig`)
+
+- Los modelos OBJ de Kenney no tienen esqueleto. `ProceduralRig` separa la malla en piernas,
+  brazos y tronco (por superficies o por la posición de los triángulos) y cuelga cada pieza de
+  un pivote en su articulación.
+- Cada fotograma se calcula una **pose base** (andar, respirar, en el aire) y encima se mezcla
+  la **acción** en curso (`play_action`): `attack`, `chop`, `mine`, `gather`, `eat`, `hammer`,
+  `cheer`, `windup`, `lunge` y `flinch`, con curvas de anticipación, golpe y recuperación.
+- El tronco se dobla por la cintura (el modelo gira alrededor de la cadera y las piernas
+  compensan). La voltereta gira un nodo intermedio alrededor del centro del cuerpo.
+- Extras: aplastamiento al aterrizar, aparición con rebote, pausa de impacto (`freeze`), aviso
+  naranja (`telegraph`), caídas al morir y animaciones de reposo.
+- La capa de destello solo se asigna mientras se ve, para no añadir una pasada de dibujo por
+  pieza a cada personaje.
+
+## Renderizado
+
+- **Compatibilidad** en todas las plataformas (OpenGL ES 3 en Android).
+- **Sin sombras en tiempo real.** En Compatibilidad, una luz direccional con sombras se dibuja
+  en una pasada aditiva que se tonemapea y se pasa a sRGB por separado y se suma sobre la
+  pasada base (`scene.glsl`, `USE_ADDITIVE_LIGHTING`). Esa suma en espacio sRGB lava las zonas
+  iluminadas al mediodía y, además, duplica las llamadas de dibujo. Se comprobó con capturas
+  del renderizador real. En su lugar:
+  - `BlobShadow`: un cuadro con degradado radial bajo personajes, criaturas, animales,
+    trabajadores y objetos, apoyado en el terreno y orientado con la pendiente.
+  - Sombras fijas bajo los edificios y un MultiMesh de sombras por trozo para árboles, rocas y
+    arbustos (calidad media y alta).
+- **Cielo** (`assets/shaders/sky.gdshader`): degradado, sol, luna con halo, estrellas y nubes
+  con ruido (menos octavas en calidad baja y en el mapa de radiancia).
+- **Viento** (`assets/shaders/foliage.gdshader`): el peso del balanceo se hornea en el alfa del
+  color de vértice (0 en la base, 1 en la copa) y el *shader* desplaza los vértices en
+  coordenadas de mundo. Lo usan los MultiMesh de vegetación, la decoración fusionada y las
+  decoraciones con `"sway": true`. Respeta `OUTPUT_IS_SRGB` como el material estándar.
+- **Efectos** (`WorldEffects`): partículas por CPU con un tope de 40 simultáneas y cantidades
+  reducidas en calidad baja; estelas, anillos y destellos son mallas sencillas que se animan con
+  *tweens*.
 
 ## Rendimiento (objetivo: 30 FPS en Android modesto)
 
@@ -82,13 +128,14 @@ scenes/main/main.tscn (main.gd)
   destruir nodos.
 - **Decoración** fusionada por trozos de 64 m con distancia de visibilidad. La densidad
   depende de la calidad gráfica.
-- **Luces**: un sol direccional con sombras (desactivadas en calidad baja) y luces puntuales
-  sin sombras sólo en fogatas, antorchas, el laboratorio y algunos lugares de interés. En la
-  partida de prueba hay 7.
+- **Luces**: un sol direccional sin sombras (ver Renderizado) y luces puntuales sin sombras
+  sólo en fogatas, antorchas, el laboratorio y algunos lugares de interés. En la partida de
+  prueba hay 7.
 - **Física sencilla**: terreno `HeightMapShape3D`, cilindros y cajas para árboles, rocas y
   edificios, y capas separadas (terreno, jugador, enemigos, edificios, recursos, obstáculos).
-- **Calidad** baja, media o alta: sombras, distancia de visión, densidad de vegetación, escala
-  de renderizado y MSAA. Hay límite de FPS de 30, 60 o sin límite.
+- **Calidad** baja, media o alta: sombras suaves (solo personajes o todo), distancia de visión,
+  densidad de vegetación, escala de renderizado, MSAA, cantidad de partículas, gotas de lluvia y
+  detalle de las nubes. Hay límite de FPS de 30, 60 o sin límite.
 
 ## Guardado (`user://savegame.json`)
 
@@ -118,8 +165,13 @@ scenes/main/main.tscn (main.gd)
 
 ## Pruebas y CI
 
-- `tests/test_runner.tscn` hace 227 comprobaciones de toda la sección 19. `tests/main_flow.tscn`
-  prueba el flujo del menú.
+- `tests/test_runner.tscn` hace 273 comprobaciones de toda la sección 19 y de los sistemas de la
+  v1.1 (animación, efectos, clima, cielo, decoración, interfaz). Incluye la compilación de todos
+  los *shaders*: el renderizador de prueba sin GPU también los analiza y avisa de errores.
+  `tests/main_flow.tscn` prueba el flujo del menú.
+- `tests/tools/capturas.tscn` hace capturas con el **renderizador real**. En GitHub Actions se
+  ejecuta con Xvfb y OpenGL de Mesa (llvmpipe) cuando el mensaje del commit contiene
+  `[capturas]`, y las imágenes se guardan en `docs/capturas/`.
 - `tests/ci_entry.tscn` es la escena principal **sólo** en el preset *Linux (pruebas CI)*, por
   la característica `pruebas_ci`. Permite ejecutar las mismas pruebas sobre el juego exportado.
 - `.github/workflows/exportar.yml` usa Godot oficial y hace, por orden:

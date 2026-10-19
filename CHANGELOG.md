@@ -69,23 +69,39 @@ más de contenido. Las partidas de la v1.0 se cargan sin cambios.
 - Las ventanas se cierran con una animación. Los botones se encogen al pulsarlos y rebotan al
   soltarlos.
 - Las barras de supervivencia se deslizan hasta su valor y laten cuando un valor vital es bajo.
-- Los avisos entran con un pequeño rebote. Los textos flotantes aparecen con un golpe de escala
-  y los números de daño son más grandes.
+- Los avisos entran con un pequeño rebote, los repetidos se agrupan («×3») y nunca hay más de
+  tres a la vez. Los textos flotantes aparecen con un golpe de escala y los números de daño son
+  más grandes.
 - Los objetos recogidos **vuelan hasta su contador** del HUD (o hasta el botón de inventario).
 - El reloj indica el clima cuando no está despejado.
 - Nuevos ajustes: *Clima dinámico* y *Sacudidas de cámara*.
 
+### Luz y sombras
+- **Calibrado con el renderizador real** (capturas automáticas en GitHub Actions). Con sombras
+  en tiempo real, el renderizador de *Compatibilidad* suma la luz del sol en una pasada aparte
+  en espacio sRGB y la escena salía lavada al mediodía. Ahora:
+  - El sol ilumina sin sombras en tiempo real (colores correctos y la mitad de llamadas de
+    dibujo en móviles).
+  - **Sombras suaves** bajo el jugador, criaturas, animales, trabajadores, objetos caídos,
+    edificios, árboles, rocas y arbustos.
+  - Luz del mediodía algo más suave.
+- Halos de luz en fogatas y faroles que se encienden al anochecer.
+- La vegetación con viento usa el mismo color que el resto del mundo en *Compatibilidad*.
+
 ### Técnico
-- Nuevos scripts: `scripts/world/weather.gd`, `ambient_life.gd` y `beach_treasures.gd`.
+- Nuevos scripts: `scripts/world/weather.gd`, `ambient_life.gd`, `beach_treasures.gd` y
+  `blob_shadow.gd`.
   Nuevos *shaders*: `assets/shaders/sky.gdshader` y `foliage.gdshader`.
 - La capa de destello de los modelos animados solo se dibuja mientras se ve (menos llamadas de
   dibujo con muchas criaturas y trabajadores).
-- Las pruebas automáticas pasan de 227 a 274: comprueban también que todos los *shaders*
+- Las pruebas automáticas pasan de 227 a 273: comprueban también que todos los *shaders*
   compilan, los gestos de animación, los avisos de las criaturas, el imán del botín, el clima y
   su efecto en la economía, el cielo de día y de noche, los tesoros, la belleza, los caminos,
   los iconos de edificios parados, los rótulos y el cierre animado de las ventanas.
 - **Capturas con el renderizador real**: GitHub Actions puede renderizar escenas preparadas con
-  OpenGL (Mesa) cuando el commit lleva `[capturas]` y las guarda en `docs/capturas/`.
+  OpenGL (Mesa) cuando el commit lleva `[capturas]` y las guarda en `docs/capturas/` (carpeta
+  excluida del proyecto de Godot con `.gdignore`, para que no entre en las exportaciones).
+- Versión 1.1.0 (código de Android 10100).
 
 ## v1.0.0 — 2026-10-19
 

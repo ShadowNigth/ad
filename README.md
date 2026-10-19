@@ -10,6 +10,23 @@ primeras herramientas, levantas un refugio y sobrevives a las noches. Después v
 una base que produce sola: leñadores, canteras, aserraderos, fundiciones y fábricas, con
 trabajadores, árbol tecnológico y progreso mientras no juegas.
 
+**Novedades de la v1.1**: animaciones por acción, efectos de combate y recolección, clima con
+lluvia y tormentas, cielo con estrellas y nubes, vegetación que se mece, vida ambiental,
+tesoros en la playa, decoración que mejora la base y una interfaz más viva
+([registro de cambios](CHANGELOG.md)).
+
+### Capturas
+
+Hechas con el renderizador real de Godot (OpenGL, *Compatibilidad*) en GitHub Actions con
+`tests/tools/capturas.tscn`. Se ven a menos de 10 FPS porque el servidor no tiene GPU.
+
+| | |
+|---|---|
+| ![Playa de día](docs/capturas/01_playa_dia.png) | ![Base al atardecer](docs/capturas/02_base_atardecer.png) |
+| ![Noche junto a la fogata](docs/capturas/03_noche_fogata.png) | ![Lluvia en la base](docs/capturas/04_lluvia.png) |
+| ![Tormenta](docs/capturas/05_tormenta_relampago.png) | ![Combate](docs/capturas/06_combate.png) |
+| ![Rótulo de subida de nivel](docs/capturas/07_rotulo_nivel.png) | ![Menú de decoración](docs/capturas/08_menu_decoracion.png) |
+
 ---
 
 ## Descargar y jugar
@@ -129,11 +146,15 @@ Todos los botones admiten **multitáctil**: puedes moverte, girar la cámara y a
 - **Fabricación (27 recetas).**
   - Cola de fabricación con barra de progreso.
   - Las recetas bloqueadas muestran qué tecnología o estación necesitan.
-- **Construcción (21 edificios).**
+- **Construcción (28 edificios).**
   - Refugio, fogata, almacén, huerto, purificador, puesto de leñador, cantera, choza de
     recolección, aserradero, horno de carbón, mina, fundición, taller, granja de animales,
     laboratorio, generador, refinería, fábrica avanzada, antorchas, torre de defensa y cabaña
     de trabajadores.
+  - **Decoración** (v1.1): valla, seto, macetas con flores, camino de losas, estandarte, estatua
+    y fuente. Cada una suma **belleza** y la base produce hasta un 10 % más. Los caminos de
+    losas hacen caminar un 15 % más rápido.
+  - Los edificios parados muestran un icono con lo que les falta; los muy dañados arden.
   - Cada edificio tiene **niveles** (más producción, más velocidad o menos consumo), un límite
     de unidades y costes progresivos.
   - Su panel permite ver estadísticas (producción por minuto, nivel, coste de mejora), mejorar,
@@ -157,7 +178,16 @@ Todos los botones admiten **multitáctil**: puedes moverte, girar la cámara y a
   malditos y espíritus de noche; y dos guardianes de zona con barra de salud propia.
   - Usan detección, persecución y enfriamiento entre ataques. Tienen distintas vidas,
     velocidades y daños, y no atraviesan edificios.
+  - Muestran «!» al verte y avisan antes de atacar: se echan atrás y parpadean en naranja.
+    Si los golpeas en ese momento, interrumpes el ataque (salvo a los guardianes).
   - Los ciervos y conejos son pacíficos y se cazan para conseguir carne y cuero.
+- **Clima** (v1.1): despejado, nublado, lluvia y tormenta con relámpagos. Con lluvia la sed baja
+  más despacio y los huertos crecen un 25 % más rápido. Se puede desactivar en los ajustes.
+- **Tesoros en la playa** (v1.1): el mar deja botellas y cofres con botín aleatorio.
+- **Mundo vivo** (v1.1): cielo con sol, luna, estrellas y nubes; vegetación y banderas que se
+  mecen con el viento; luciérnagas, mariposas, gaviotas y peces que saltan.
+- **Animación**: gestos propios para talar, picar, recoger, comer, martillear y celebrar;
+  voltereta al esquivar, saltos y aterrizajes, y criaturas que aparecen, avisan y caen al morir.
 - **Progreso sin conexión.**
   - Al volver se calcula lo que produjeron los edificios y trabajadores, con un máximo de 8 h
     (ampliable a 12 h con *Logística*).
@@ -171,7 +201,7 @@ Todos los botones admiten **multitáctil**: puedes moverte, girar la cámara y a
     borra la partida.
 - **Ajustes**: sensibilidad, distancia e inversión vertical de la cámara, volúmenes (general,
   música, efectos y ambiente), calidad gráfica (baja, media o alta), límite de FPS (30, 60 o sin
-  límite), mostrar FPS y escala de la interfaz (85–130 %).
+  límite), clima dinámico, sacudidas de cámara, mostrar FPS y escala de la interfaz (85–130 %).
 
 Todos los números del juego están en `data/` (JSON): costes, recetas, tiempos, producciones,
 niveles, enemigos, misiones y equilibrio.
@@ -273,7 +303,7 @@ de ANGLE en Windows si las plantillas las incluyen.
 Se ejecutan sin ventana y devuelven código de salida distinto de 0 si algo falla:
 
 ```bash
-godot --headless --path . tests/test_runner.tscn   # 227 comprobaciones (sección 19 completa)
+godot --headless --path . tests/test_runner.tscn   # 273 comprobaciones (sección 19 completa + v1.1)
 godot --headless --path . tests/main_flow.tscn     # menú → nueva partida → guardar → menú → continuar → resumen sin conexión
 ```
 
@@ -299,29 +329,35 @@ godot --headless --path . tests/main_flow.tscn     # menú → nueva partida →
 | Guardado | Ida y vuelta completa (inventario, edificios, tecnologías, trabajadores, almacén, supervivencia y posición). Cargar dos veces no duplica. Si el archivo principal está dañado se usa la copia de seguridad. La suma de verificación detecta manipulaciones. |
 | Sin conexión | No baja el hambre. Límite de 8 h. Respeta la capacidad del almacén. Las ausencias cortas no generan informe y un reloj atrasado no genera recursos. |
 | Interfaz | Controles dentro de pantalla a 854×480, 1280×720, 2400×1080 y 1024×768. Se abren todos los paneles. **Ningún botón sin función** (324 revisados). |
+| Pulido v1.1 | Todos los *shaders* compilan. Vegetación con viento (solo plantas, con peso de la base a la copa). Gestos de animación, voltereta, aparición y muerte. Avisos «!» y amago de las criaturas, e interrupción. Botín en arco con imán. Lluvia, tormenta, sed y huertos con clima (y sin bonificación en el cálculo sin conexión). Cielo de día y de noche. Tesoros. Belleza, caminos rápidos, iconos de edificios parados y fuego por daño. Rótulos, objetos que vuelan al contador, cierre animado de ventanas, luciérnagas y polen. El clima se guarda. |
 | Rendimiento | Vegetación en MultiMesh y pocas luces. La isla se genera en menos de 6 s. Se mide el coste del *tick* de producción y de la simulación sin conexión. |
 
 ### Resultados
 
 - **Godot 4.7.2 oficial (GitHub Actions)**:
-  - `test_runner`: 227 correctas, 0 fallidas. `main_flow`: OK.
+  - `test_runner`: 273 correctas, 0 fallidas. `main_flow`: OK.
   - Lo mismo **sobre la build exportada** de Linux: se ejecuta el `.pck` real, con scripts
     compilados y recursos importados.
-- **Escritorio sin GPU (servidor de pruebas)**: 227/0.
-  - La isla se genera en ~1,3 s, con 604 nodos de recursos y ~2500 piezas de decoración.
-  - 131 MultiMesh con 663 instancias, ~150 mallas sueltas y 7 luces.
+- **Escritorio sin GPU (servidor de pruebas)**: 273/0.
+  - La isla se genera en ~1,2 s, con 604 nodos de recursos y ~2500 piezas de decoración.
+  - 135 MultiMesh con 1015 instancias (incluidas las sombras suaves), ~200 mallas sueltas y
+    7 luces.
   - *Tick* de producción: ~65 µs. Simular 8 h sin conexión: ~110–130 ms.
 - **APK**: GitHub Actions comprueba en cada compilación su firma (`apksigner verify`), el
   manifiesto (`aapt2 dump badging`) y las librerías ARM incluidas.
+- **Renderizador real (Mesa llvmpipe, OpenGL)**: las capturas de arriba. Sirvieron para
+  calibrar la luz: con sombras en tiempo real, el renderizador de *Compatibilidad* suma la luz
+  del sol en espacio sRGB y la escena salía lavada al mediodía, así que se sustituyeron por
+  sombras suaves (y de paso se ahorran llamadas de dibujo). Ningún *shader* da errores.
 
 ### Pendiente de verificar en hardware real
 
 - **FPS en un Android modesto.** El objetivo es 30 FPS en gama baja y 60 en gama media, y el
   juego trae preajustes de calidad para eso. Todavía no se ha medido en un dispositivo físico:
   todas las pruebas se hicieron sin GPU.
-- El aspecto visual sólo se revisó con un renderizador por software (`tools/render_snapshot.py`)
-  y con capturas de las disposiciones de la interfaz. Puede haber pequeñas diferencias de color
-  o de sombreado con una GPU real.
+- El aspecto visual se revisó con el renderizador real de Godot sobre OpenGL por software
+  (Mesa llvmpipe). Con la GPU de un teléfono puede haber pequeñas diferencias de color o de
+  rendimiento de los efectos.
 - La build de **Windows** se genera con las plantillas oficiales, pero no se ha ejecutado en un
   PC con Windows.
 
@@ -349,15 +385,17 @@ scenes/{main,world,player,ui}/        escenas principales
 scripts/
   core/          autoloads: EventBus, GameData, Settings, ModelLibrary, AudioManager, GameState
   inventory/ crafting/ incremental/ (economía, trabajadores) technology/ (árbol, misiones)
-  world/         generador de la isla, decoración agrupada, lugares de interés, efectos
+  world/         generador de la isla, decoración agrupada, lugares de interés, efectos,
+                 clima, vida ambiental, tesoros de la playa y sombras suaves
   resources/ player/ survival/ buildings/ enemies/ save_system/ ui/ main/
 assets/
   models/<pack>/   OBJ + MTL + Textures/colormap.png + License.txt + SOURCE.md
   sounds/<tipo>/ music/   OGG (licencias en sounds/licenses/)
-  textures/ icons/ fonts/ shaders/
-tests/           pruebas automáticas y herramientas de captura
+  textures/ icons/ fonts/ shaders/ (agua, cielo, vegetación con viento, barras)
+tests/           pruebas automáticas y herramientas de captura (tools/capturas.tscn: render real)
 tools/           scripts de Python del flujo de recursos y la firma de Android
 docs/ARQUITECTURA.md   descripción técnica
+docs/capturas/         capturas automáticas con el renderizador real (fuera del proyecto: .gdignore)
 ASSET_CREDITS.md       procedencia y licencia de cada recurso
 ```
 

@@ -32,7 +32,6 @@ func _ready() -> void:
 	world.day_night.paused = true
 	_prepare_base()
 	await _wait(1.0)
-	await _calibrate()
 	await _scene_beach()
 	await _scene_base_sunset()
 	await _scene_night()
@@ -64,49 +63,6 @@ func _clear_ui() -> void:
 	for c in hud.toast_box.get_children():
 		c.queue_free()
 	hud.toast_box.offset_top = 176.0
-
-
-## Variantes de luz y tono para elegir la exposición con el renderizador real.
-func _calibrate() -> void:
-	var env: Environment = world.env_node.environment
-	var dir := out_dir.path_join("calibracion")
-	DirAccess.make_dir_recursive_absolute(dir)
-	var saved_dir := out_dir
-	out_dir = dir
-	# [nombre, sol, ambiente, tonemapper, blanco, exposición, sombras reales]
-	var variants := [
-		["G_sin_sombras", 1.0, 1.0, Environment.TONE_MAPPER_FILMIC, 1.0, 1.05, false],
-		["H_sin_sombras_suave", 0.9, 0.85, Environment.TONE_MAPPER_FILMIC, 1.4, 1.12, false],
-		["I_sin_sombras_agx", 1.0, 0.9, Environment.TONE_MAPPER_AGX, 1.0, 1.25, false],
-		["J_sombras_compensadas", 0.4, 0.85, Environment.TONE_MAPPER_FILMIC, 1.0, 1.0, true],
-	]
-	var beach := _beach_point()
-	for v in variants:
-		world.day_night.sun_scale = v[1]
-		world.day_night.ambient_scale = v[2]
-		env.tonemap_mode = v[3]
-		env.tonemap_white = v[4]
-		env.tonemap_exposure = v[5]
-		world.sun.shadow_enabled = v[6]
-		_clear_ui()
-		_set_time(10.0)
-		_place(beach, _sea_yaw(beach), -0.22, 7.0)
-		await _wait(1.2)
-		await _shot("%s_playa" % v[0])
-		_set_time(12.5)
-		_place(_camp() + Vector3(0, 0, -16), PI, -0.32, 10.0)
-		await _wait(1.2)
-		await _shot("%s_base" % v[0])
-		_set_time(18.9)
-		await _wait(1.0)
-		await _shot("%s_atardecer" % v[0])
-	world.day_night.sun_scale = 1.0
-	world.day_night.ambient_scale = 1.0
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_white = 1.0
-	env.tonemap_exposure = 1.05
-	world.sun.shadow_enabled = bool(Settings.quality().shadows)
-	out_dir = saved_dir
 
 
 func _sea_yaw(b: Vector3) -> float:
@@ -250,8 +206,8 @@ func _scene_combat() -> void:
 	_clear_ui()
 	_set_time(11.0)
 	var p := world.player
-	var pos := _camp() + Vector3(18, 0, 10)
-	_place(pos, PI * 0.5, -0.28, 6.5)
+	var pos := _camp() + Vector3(-14, 0, -24)
+	_place(pos, PI * 0.25, -0.3, 6.5)
 	p._iframes = 999.0
 	await _wait(0.5)
 	var types := ["jabali", "cangrejo", "esqueleto"]

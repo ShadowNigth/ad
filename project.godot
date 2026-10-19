@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Isla Salvaje: Supervivencia Incremental"
 config/description="Juego 3D low poly de supervivencia, progresión incremental y automatización en una isla tropical."
-config/version="1.0.0"
+config/version="1.1.0"
 run/main_scene="res://scenes/main/main.tscn"
 run/main_scene.pruebas_ci="res://tests/ci_entry.tscn"
 config/use_custom_user_dir=true
