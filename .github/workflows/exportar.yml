@@ -218,7 +218,7 @@ jobs:
           echo "apksigner: ${APKSIGNER:-no encontrado} · aapt2: ${AAPT2:-no encontrado}"
           # La firma es obligatoria: si apksigner no la verifica, el paso falla.
           "$APKSIGNER" verify --verbose --print-certs build/android/${GAME}.apk > apksigner.log
-          grep -E "Verifies|Verified using|Signer #1 certificate (DN|SHA-256)" apksigner.log
+          grep -E "Verifies|Verified using|certificate (DN|SHA-256)" apksigner.log
           # El manifiesto es informativo: un aviso de aapt2 no debe tumbar la publicación.
           RC=0
           if [ -n "$AAPT2" ]; then
@@ -232,12 +232,13 @@ jobs:
           grep -E "^package:|application-label:|sdkVersion|native-code|launchable-activity" badging.log || true
           unzip -l build/android/${GAME}.apk | grep -E "lib/.*\.so" || true
           PKG="$(grep -m1 '^package:' badging.log || true)"
-          SDK="$(grep -m1 '^sdkVersion' badging.log || true) $(grep -m1 '^targetSdkVersion' badging.log || true)"
+          SDK="$(grep -m1 -E '^(min)?[sS]dkVersion' badging.log || true) $(grep -m1 '^targetSdkVersion' badging.log || true)"
           ABI="$(grep -m1 '^native-code' badging.log || true)"
+          PERMS="$(grep -E '^uses-permission' badging.log | sed -E "s/.*name='([^']+)'.*/\1/" | tr '\n' ' ' || true)"
           LIBS="$(unzip -l build/android/${GAME}.apk | grep -oE 'lib/[^/]+/libgodot_android\.so' | cut -d/ -f2 | tr '\n' ' ' || true)"
-          CERT="$(grep -m1 'Signer #1 certificate SHA-256' apksigner.log | sed 's/.*: //' || true)"
+          CERT="$(grep -m1 'SHA-256 digest' apksigner.log | sed 's/.*: //' || true)"
           SCHEMES="$(grep -E 'Verified using v[0-9.]+ scheme.*: true' apksigner.log | sed -E 's/Verified using (v[0-9.]+) scheme.*/\1/' | tr '\n' ' ' || true)"
-          echo "::notice title=APK de Android::${PKG} ${SDK} ${ABI} · librerías: ${LIBS}"
+          echo "::notice title=APK de Android::${PKG} ${SDK} ${ABI} · librerías: ${LIBS} · permisos: ${PERMS:-ninguno}"
           echo "::notice title=Firma del APK::esquemas ${SCHEMES}· certificado SHA-256 ${CERT}"
           {
             echo "### APK de Android"
@@ -246,6 +247,7 @@ jobs:
             echo "${SDK}"
             echo "${ABI}"
             echo "Librerías nativas: ${LIBS}"
+            echo "Permisos: ${PERMS:-ninguno}"
             echo "Firma: ${SCHEMES}"
             echo "Certificado SHA-256: ${CERT}"
             echo '```'
