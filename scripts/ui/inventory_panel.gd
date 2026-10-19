@@ -329,7 +329,7 @@ func _drop() -> void:
 		return
 	GameState.validate_equipped()
 	var p: Player = hud.player
-	hud.world.spawn_drop(out.id, int(out.qty), p.global_position + p.forward_dir() * 1.5)
+	hud.world.spawn_drop(out.id, int(out.qty), p.global_position + p.forward_dir() * 1.5, true, true)
 	AudioManager.play_ui("ui/drop_item")
 	if GameState.inventory.slots[selected] == null:
 		selected = -1

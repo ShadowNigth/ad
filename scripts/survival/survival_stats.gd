@@ -45,7 +45,7 @@ func _process(delta: float) -> void:
 	var night_mult := GameData.bf("survival.night_drain_mult", 1.1) if _is_night() else 1.0
 	var sprint_mult := GameData.bf("survival.sprint_drain_mult", 1.5) if sprinting else 1.0
 	var hunger_rate := GameData.bf("survival.hunger_drain_per_min", 4.0) / 60.0 * night_mult * sprint_mult * (1.0 + TechTree.mod("hunger_drain_mult"))
-	var thirst_rate := GameData.bf("survival.thirst_drain_per_min", 5.5) / 60.0 * night_mult * sprint_mult * (1.0 + TechTree.mod("thirst_drain_mult"))
+	var thirst_rate := GameData.bf("survival.thirst_drain_per_min", 5.5) / 60.0 * night_mult * sprint_mult * (1.0 + TechTree.mod("thirst_drain_mult")) * GameState.weather_thirst_mult()
 	if resting:
 		hunger_rate *= 0.5
 		thirst_rate *= 0.5

@@ -21,6 +21,8 @@ var lost_backpack: Dictionary = {}
 var spawn_point: Vector3 = Vector3.ZERO
 var playtime: float = 0.0
 var session_active := false
+## Clima actual y segundos que le quedan (lo gestiona Weather; se guarda).
+var weather: Dictionary = {"state": "despejado", "left": 300.0}
 
 
 func _ready() -> void:
@@ -50,10 +52,20 @@ func new_game() -> void:
 	var sp: Array = GameData.world.get("spawn", [0.0, 0.0])
 	spawn_point = Vector3(float(sp[0]), 0.0, float(sp[1]))
 	playtime = 0.0
+	weather = {"state": "despejado", "left": 300.0}
 
 
 func now() -> float:
 	return Time.get_unix_time_from_system()
+
+
+func is_raining() -> bool:
+	return str(weather.get("state", "")) in ["lluvia", "tormenta"]
+
+
+## Multiplicador del gasto de sed según el clima (la lluvia la reduce).
+func weather_thirst_mult() -> float:
+	return GameData.bf("weather.rain_thirst_mult", 0.6) if is_raining() else 1.0
 
 
 # ------------------------------------------------------------------ atributos
@@ -174,6 +186,7 @@ func to_dict() -> Dictionary:
 		"lost_backpack": lost_backpack,
 		"spawn_point": [spawn_point.x, spawn_point.y, spawn_point.z],
 		"playtime": playtime,
+		"weather": weather,
 	}
 
 
@@ -219,4 +232,7 @@ func from_dict(d: Dictionary) -> void:
 	if spp.size() == 3:
 		spawn_point = Vector3(float(spp[0]), float(spp[1]), float(spp[2]))
 	playtime = float(d.get("playtime", 0.0))
+	var wt: Variant = d.get("weather", {})
+	if typeof(wt) == TYPE_DICTIONARY and str(wt.get("state", "")) in ["despejado", "nublado", "lluvia", "tormenta"]:
+		weather = {"state": str(wt.state), "left": clampf(float(wt.get("left", 300.0)), 1.0, 3600.0)}
 	validate_equipped()

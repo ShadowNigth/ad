@@ -129,6 +129,22 @@ def wav_to_ogg(src_rel: str, dst_rel: str, peak: float = 0.89, quality: float = 
     record(os.path.join(SND, dst_rel), src_rel, "convertido de WAV a OGG")
 
 
+def weather_audio() -> None:
+    """Lluvia (bucle) y truenos (tomas sueltas) del registro CC0 «Rain and Thunder Ambience Tübingen»."""
+    x, sr = sf.read(os.path.join(RAW, "omarchy", "storm.ogg"), dtype="float32")
+    mono = resample(to_mono(x), sr, 32000)
+    # Tramo inicial (8-72 s): lluvia constante sin truenos.
+    rain = rms_normalize(loop_crossfade(mono, 32000, 8.0, 60.0, 4.0), 0.07)
+    write_ogg(os.path.join(SND, "ambient/rain_loop.ogg"), rain, 32000, 0.25)
+    record(os.path.join(SND, "ambient/rain_loop.ogg"), "omarchy/storm.ogg", "lluvia: recorte de 60 s en bucle, mono 32 kHz")
+    # Truenos: picos de energía grave localizados en 196 s, 241 s y 280 s del original.
+    for k, (st, du) in enumerate(((236.0, 14.5), (191.5, 12.0), (275.5, 15.0))):
+        seg = mono[int(st * 32000):int((st + du) * 32000)]
+        seg = fade(peak_normalize(seg, 0.9), 32000, 0.25, 3.0)
+        write_ogg(os.path.join(SND, f"ambient/thunder_{k}.ogg"), seg, 32000, 0.3)
+        record(os.path.join(SND, f"ambient/thunder_{k}.ogg"), "omarchy/storm.ogg", f"trueno: {st:.1f}-{st + du:.1f} s, mono 32 kHz")
+
+
 def main() -> None:
     k = "kenney/"
     # ---------------- Pasos -----------------
@@ -275,6 +291,7 @@ def main() -> None:
         y = rms_normalize(loop_crossfade(y, 32000, st, du, xf), rms)
         write_ogg(os.path.join(SND, dst), y, 32000, 0.25)
         record(os.path.join(SND, dst), f"omarchy/{name}.ogg", f"recorte de {du:.0f} s en bucle, mono 32 kHz")
+    weather_audio()
     # ---------------- Música -----------------
     for src, dst in (("freepd/Connecting Rainbows.mp3", "day_connecting_rainbows.ogg"),
                      ("freepd/Midnight in the Green House.mp3", "night_midnight_green_house.ogg")):
@@ -309,5 +326,22 @@ def main() -> None:
     print(f"{count} archivos OGG, {total / 1e6:.2f} MB")
 
 
+def main_weather_only() -> None:
+    """Regenera solo el audio del clima y lo fusiona en el registro de orígenes existente."""
+    import json
+    path = os.path.join(SND, "licenses", "audio_sources.json")
+    entries = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
+    weather_audio()
+    new_files = {e["file"] for e in SOURCES}
+    entries = [e for e in entries if e["file"] not in new_files] + SOURCES
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(entries, fh, ensure_ascii=False, indent=1)
+    print("audio del clima:", ", ".join(sorted(new_files)))
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--solo-clima" in sys.argv:
+        main_weather_only()
+    else:
+        main()

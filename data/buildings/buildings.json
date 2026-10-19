@@ -255,7 +255,7 @@
       "id": "huerto", "name": "Huerto", "category": "produccion",
       "desc": "Cultiva verduras. Las plantas crecen a la vista mientras avanza la producción.",
       "footprint": 2.2, "max_count": 4, "cost": {"madera": 10, "fibra": 10, "piedra": 4}, "cost_growth": 1.45,
-      "unlock": "agr_cultivo", "zone": "any", "worker_type": "granjero", "requires_item": "azada", "visual": "crops",
+      "unlock": "agr_cultivo", "zone": "any", "worker_type": "granjero", "requires_item": "azada", "visual": "crops", "rain_bonus": true,
       "production": [{"id": "p_zanahoria", "name": "Zanahorias", "interval": 40.0, "in": {}, "out": {"zanahoria": 2}},
                      {"id": "p_maiz", "name": "Maíz", "interval": 45.0, "in": {}, "out": {"maiz": 2}},
                      {"id": "p_calabaza", "name": "Calabazas (riego)", "interval": 50.0, "in": {"agua": 1}, "out": {"calabaza": 2}, "unlock": "agr_riego"}],
@@ -671,6 +671,97 @@
            {"model": "town/wall-wood-window-shutters", "scale": 3.0, "rot": 0},
            {"model": "town/roof-gable", "scale": 3.0, "pos": [0.0, 3.0, 0.0]}
          ]}
+      ]
+    },
+    {
+      "id": "valla", "name": "Valla de madera", "category": "decoracion",
+      "desc": "Delimita tu base. Cada decoración suma belleza y los trabajadores rinden un poco más.",
+      "footprint": 0.5, "max_count": 40, "cost": {"madera": 3}, "cost_growth": 1.0,
+      "unlock": null, "zone": "any", "beauty": 1,
+      "levels": [
+        {"name": "Valla sencilla", "hp": 50, "models": [{"model": "nature/fence_simple", "scale": 2.4, "pos": [0.0, 0.0, -1.12]}]},
+        {"name": "Valla de tablones", "hp": 90, "beauty": 2, "upgrade_cost": {"tablas": 2},
+         "models": [{"model": "nature/fence_planks", "scale": 2.4, "pos": [0.0, 0.0, -1.15]}]}
+      ]
+    },
+    {
+      "id": "seto", "name": "Seto", "category": "decoracion",
+      "desc": "Un seto verde y frondoso para separar zonas de la base.",
+      "footprint": 0.6, "max_count": 30, "cost": {"fibra": 4, "madera": 1}, "cost_growth": 1.0,
+      "unlock": null, "zone": "any", "beauty": 1,
+      "levels": [
+        {"name": "Seto bajo", "hp": 40, "models": [{"model": "town/hedge", "scale": 2.4, "pos": [-0.9, 0.0, 0.0]}]},
+        {"name": "Seto alto", "hp": 70, "beauty": 2, "upgrade_cost": {"fibra": 6},
+         "models": [{"model": "town/hedge-large", "scale": 2.4, "pos": [-0.72, 0.0, 0.0]}]}
+      ]
+    },
+    {
+      "id": "macetas", "name": "Macetas con flores", "category": "decoracion",
+      "desc": "Flores de la isla en macetas de barro. Se mecen con el viento.",
+      "footprint": 0.7, "max_count": 20, "cost": {"piedra": 3, "fibra": 2}, "cost_growth": 1.0,
+      "unlock": null, "zone": "any", "beauty": 2, "sway": true,
+      "levels": [
+        {"name": "Maceta", "hp": 30, "models": [
+          {"model": "nature/pot_large", "scale": 2.5},
+          {"model": "nature/flower_redA", "scale": 3.0, "pos": [-0.25, 0.42, 0.05]},
+          {"model": "nature/flower_yellowA", "scale": 3.0, "pos": [0.22, 0.42, 0.12], "rot": 120},
+          {"model": "nature/flower_purpleA", "scale": 3.0, "pos": [0.02, 0.42, -0.22], "rot": 240}
+        ]},
+        {"name": "Jardinera", "hp": 50, "beauty": 3, "upgrade_cost": {"piedra": 4, "fibra": 4}, "models": [
+          {"model": "nature/pot_large", "scale": 2.5},
+          {"model": "nature/flower_redA", "scale": 3.0, "pos": [-0.25, 0.42, 0.05]},
+          {"model": "nature/flower_yellowA", "scale": 3.0, "pos": [0.22, 0.42, 0.12], "rot": 120},
+          {"model": "nature/flower_purpleA", "scale": 3.0, "pos": [0.02, 0.42, -0.22], "rot": 240},
+          {"model": "nature/pot_small", "scale": 2.4, "pos": [0.95, 0.0, 0.35]},
+          {"model": "nature/flower_purpleB", "scale": 2.6, "pos": [0.95, 0.58, 0.35]},
+          {"model": "nature/pot_small", "scale": 2.4, "pos": [-0.9, 0.0, -0.4]},
+          {"model": "nature/flower_redB", "scale": 2.6, "pos": [-0.9, 0.58, -0.4]}
+        ]}
+      ]
+    },
+    {
+      "id": "camino", "name": "Camino de losas", "category": "decoracion",
+      "desc": "Losas de piedra para unir los edificios. Caminar por ellas es un 15 % más rápido.",
+      "footprint": 0.6, "max_count": 80, "cost": {"piedra": 2}, "cost_growth": 1.0,
+      "unlock": null, "zone": "any", "beauty": 0.5, "walkable": true, "surface": "stone", "move_bonus": 0.15,
+      "levels": [
+        {"name": "Losas", "hp": 60, "models": [{"model": "nature/path_stone", "scale": 1.8, "pos": [0.0, 0.0, -0.02]}]}
+      ]
+    },
+    {
+      "id": "estandarte", "name": "Estandarte", "category": "decoracion",
+      "desc": "Una bandera que ondea sobre tu base y se ve desde lejos.",
+      "footprint": 0.5, "max_count": 6, "cost": {"tablas": 4, "fibra": 6}, "cost_growth": 1.2,
+      "unlock": "con_carpinteria", "zone": "any", "beauty": 3, "sway": true,
+      "levels": [
+        {"name": "Bandera", "hp": 60, "models": [{"model": "pirate/flag", "scale": 1.3, "pos": [-0.6, 0.0, 0.0]}]}
+      ]
+    },
+    {
+      "id": "estatua", "name": "Estatua de piedra", "category": "decoracion",
+      "desc": "Un monumento tallado en la roca de la isla. Aporta mucha belleza.",
+      "footprint": 0.9, "max_count": 4, "cost": {"piedra": 25}, "cost_growth": 1.4,
+      "unlock": "min_canteria", "zone": "any", "beauty": 5,
+      "levels": [
+        {"name": "Busto", "hp": 200, "models": [
+          {"model": "nature/statue_block", "scale": 2.5},
+          {"model": "nature/statue_head", "scale": 1.6, "pos": [0.0, 1.0, 0.0]}
+        ]},
+        {"name": "Monumento", "hp": 320, "beauty": 8, "upgrade_cost": {"piedra": 30, "lingote_hierro": 2}, "models": [
+          {"model": "nature/statue_block", "scale": 2.5},
+          {"model": "nature/statue_head", "scale": 1.6, "pos": [0.0, 1.0, 0.0]},
+          {"model": "nature/statue_column", "scale": 2.0, "pos": [-1.2, 0.0, 0.0]},
+          {"model": "nature/statue_column", "scale": 2.0, "pos": [1.2, 0.0, 0.0]}
+        ]}
+      ]
+    },
+    {
+      "id": "fuente", "name": "Fuente", "category": "decoracion",
+      "desc": "Una fuente de piedra con agua que brota sin parar. La decoración más bonita de la isla.",
+      "footprint": 1.7, "max_count": 2, "cost": {"piedra": 30, "tablas": 10}, "cost_growth": 1.5,
+      "unlock": "agr_riego", "zone": "any", "beauty": 8, "fountain": true,
+      "levels": [
+        {"name": "Fuente redonda", "hp": 250, "models": [{"model": "town/fountain-round-detail", "scale": 1.6}]}
       ]
     }
   ]

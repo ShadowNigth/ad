@@ -43,7 +43,7 @@ func _on_upgraded(uid: int, type_id: String, level: int) -> void:
 	if b:
 		AudioManager.play_at("build/creak", b.position)
 		AudioManager.play("events/upgrade", -4.0)
-		world.effects.sparkle(b.global_position + Vector3.UP * 2.0)
+		b.play_upgrade(level)
 	GameState.add_xp(int(GameData.b("progression.xp_upgrade", 14)))
 	EventBus.notify("%s mejorado a nivel %d." % [GameData.building(type_id).name, level], "good")
 

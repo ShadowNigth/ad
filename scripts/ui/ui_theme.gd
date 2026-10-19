@@ -203,9 +203,6 @@ static func round_button(icon_tex: Texture2D, callback: Callable, size: float = 
 	b.add_child(ic)
 	b.pressed.connect(func(): AudioManager.play_ui("ui/click"))
 	b.pressed.connect(callback)
-	b.button_down.connect(func(): b.scale = Vector2(0.92, 0.92))
-	b.button_up.connect(func(): b.scale = Vector2.ONE)
-	b.resized.connect(func(): b.pivot_offset = b.size * 0.5)
 	return b
 
 

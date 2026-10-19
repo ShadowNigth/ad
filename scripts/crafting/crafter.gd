@@ -119,7 +119,7 @@ func _process(delta: float) -> void:
 		if left > 0:
 			left -= int(Economy.add_storage(r.result, left))
 		if left > 0 and world:
-			world.spawn_drop(r.result, left, world.player.global_position + world.player.forward_dir())
+			world.spawn_drop(r.result, left, world.player.global_position + world.player.forward_dir(), true, true)
 		GameState.count_stat("crafted", r.result, qty)
 		GameState.add_xp(int(GameData.b("progression.xp_craft", 3)))
 		EventBus.item_crafted.emit(r.result, qty)

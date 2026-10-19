@@ -158,6 +158,39 @@ var _baked_arrays: Dictionary = {}
 var _baked_meshes: Dictionary = {}
 var _tex_images: Dictionary = {}
 var _vc_material: StandardMaterial3D
+var _foliage_material: ShaderMaterial
+
+## Vegetación que se mueve con el viento: fragmento del nombre -> amplitud.
+const SWAY := {"palm": 1.0, "tree_": 0.9, "bush": 0.55, "plant_": 0.45, "grass": 0.45, "flower": 0.4, "crops_": 0.35,
+	"flag": 0.6, "banner": 0.5}
+const NO_SWAY := ["stump", "log", "moss"]
+
+
+## Amplitud de balanceo de un modelo (0 = rígido).
+func sway_amount(model_id: String) -> float:
+	var n := model_id.get_file()
+	for bad in NO_SWAY:
+		if n.contains(bad):
+			return 0.0
+	for key in SWAY:
+		if n.contains(key):
+			return float(SWAY[key])
+	return 0.0
+
+
+## Material de la vegetación con viento (mismo aspecto que el de color de vértice).
+func foliage_material() -> ShaderMaterial:
+	if _foliage_material == null:
+		_foliage_material = ShaderMaterial.new()
+		_foliage_material.shader = load("res://assets/shaders/foliage.gdshader")
+	return _foliage_material
+
+
+## Fuerza del viento en la vegetación (el clima la sube con lluvia y tormenta).
+func set_wind(strength: float, speed: float = 1.0) -> void:
+	var m := foliage_material()
+	m.set_shader_parameter("wind_strength", strength)
+	m.set_shader_parameter("wind_speed", speed)
 
 
 func vertex_color_material() -> StandardMaterial3D:
@@ -192,6 +225,8 @@ func baked_arrays(model_id: String, tint: Color = Color.WHITE) -> Dictionary:
 	if m == null:
 		_baked_arrays[key] = out
 		return out
+	var sway := sway_amount(model_id)
+	var box := m.get_aabb()
 	for s in m.get_surface_count():
 		var arr := m.surface_get_arrays(s)
 		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
@@ -212,6 +247,8 @@ func baked_arrays(model_id: String, tint: Color = Color.WHITE) -> Dictionary:
 				var py := clampi(int(fposmod(uv.y, 1.0) * img.get_height()), 0, img.get_height() - 1)
 				var t := img.get_pixel(px, py)
 				c = Color(t.r * base.r, t.g * base.g, t.b * base.b, 1.0)
+			# Alfa = peso del viento (0 en la base). El material opaco lo ignora.
+			c.a = sway * clampf((verts[k].y - box.position.y) / maxf(box.size.y, 0.001), 0.0, 1.0)
 			vcols[k] = c
 		if idx.is_empty():
 			out.v.append_array(verts)
@@ -226,7 +263,7 @@ func baked_arrays(model_id: String, tint: Color = Color.WHITE) -> Dictionary:
 	return out
 
 
-func _arrays_to_mesh(v: PackedVector3Array, n: PackedVector3Array, c: PackedColorArray) -> ArrayMesh:
+func _arrays_to_mesh(v: PackedVector3Array, n: PackedVector3Array, c: PackedColorArray, foliage: bool = false) -> ArrayMesh:
 	var am := ArrayMesh.new()
 	if v.is_empty():
 		return am
@@ -236,7 +273,7 @@ func _arrays_to_mesh(v: PackedVector3Array, n: PackedVector3Array, c: PackedColo
 	arrays[Mesh.ARRAY_NORMAL] = n
 	arrays[Mesh.ARRAY_COLOR] = c
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	am.surface_set_material(0, vertex_color_material())
+	am.surface_set_material(0, foliage_material() if foliage else vertex_color_material())
 	return am
 
 
@@ -246,13 +283,13 @@ func baked_mesh(model_id: String, tint: Color = Color.WHITE) -> ArrayMesh:
 	if _baked_meshes.has(key):
 		return _baked_meshes[key]
 	var a := baked_arrays(model_id, tint)
-	var am := _arrays_to_mesh(a.v, a.n, a.c)
+	var am := _arrays_to_mesh(a.v, a.n, a.c, sway_amount(model_id) > 0.0)
 	_baked_meshes[key] = am
 	return am
 
 
 ## Combina piezas en una sola malla de un único material (1 llamada de dibujo).
-func baked_merged(parts: Array, cache_key: String = "") -> ArrayMesh:
+func baked_merged(parts: Array, cache_key: String = "", foliage: bool = false) -> ArrayMesh:
 	if cache_key != "" and _merged.has("B:" + cache_key):
 		return _merged["B:" + cache_key]
 	var v := PackedVector3Array()
@@ -270,7 +307,7 @@ func baked_merged(parts: Array, cache_key: String = "") -> ArrayMesh:
 		v.append_array(xf * (a.v as PackedVector3Array))
 		n.append_array(Transform3D(xf.basis, Vector3.ZERO) * (a.n as PackedVector3Array))
 		c.append_array(a.c)
-	var am := _arrays_to_mesh(v, n, c)
+	var am := _arrays_to_mesh(v, n, c, foliage)
 	if cache_key != "":
 		_merged["B:" + cache_key] = am
 	return am

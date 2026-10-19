@@ -16,6 +16,9 @@ signal item_gathered(item_id: String, amount: int)
 signal item_crafted(item_id: String, amount: int)
 signal item_consumed(item_id: String)
 signal water_collected(amount: int)
+## Objeto recogido en un punto del mundo (la interfaz lo hace volar al contador).
+signal item_collected_at(item_id: String, amount: int, world_pos: Vector3)
+signal treasure_opened(kind: String)
 
 # Construcción y economía
 signal building_placed(uid: int, type_id: String)
@@ -47,10 +50,14 @@ signal player_ate(item_id: String)
 signal enemy_killed(enemy_type: String, position: Vector3)
 signal danger_nearby(active: bool)
 
-# Tiempo
+# Tiempo y clima
 signal day_started(day: int)
 signal night_started(day: int)
 signal hour_changed(hour: int)
+signal weather_changed(state: String)
+
+# Interfaz: rótulo grande en el centro (título, subtítulo, tipo)
+signal banner(title: String, subtitle: String, kind: String)
 
 # Sistema
 signal settings_changed

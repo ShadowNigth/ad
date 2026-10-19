@@ -73,7 +73,7 @@ func _rebuild() -> void:
 			continue
 		var mi := MeshInstance3D.new()
 		mi.name = "Decor_%d_%d" % [key.x, key.y]
-		mi.mesh = ModelLibrary.baked_merged(list.slice(0, count))
+		mi.mesh = ModelLibrary.baked_merged(list.slice(0, count), "", true)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visibility_range_end = _view
 		mi.visibility_range_end_margin = 8.0

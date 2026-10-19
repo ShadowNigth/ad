@@ -15,6 +15,7 @@ var size_ratio := Vector2(0.9, 0.9)
 var data: Variant = null
 var is_open := false
 var pauses_game := false
+var _tw: Tween
 
 
 func _init() -> void:
@@ -78,14 +79,17 @@ func open(d: Variant = null) -> void:
 	title_label.text = title
 	is_open = true
 	visible = true
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	_layout()
 	refresh()
 	modulate = Color(1, 1, 1, 0)
 	frame.scale = Vector2(0.94, 0.94)
 	frame.pivot_offset = frame.size * 0.5
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(self, "modulate:a", 1.0, 0.12)
-	tw.tween_property(frame, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if _tw:
+		_tw.kill()
+	_tw = create_tween().set_parallel(true)
+	_tw.tween_property(self, "modulate:a", 1.0, 0.12)
+	_tw.tween_property(frame, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	AudioManager.play_ui("ui/open")
 	if pauses_game:
 		get_tree().paused = true
@@ -95,11 +99,21 @@ func close() -> void:
 	if not is_open:
 		return
 	is_open = false
-	visible = false
 	AudioManager.play_ui("ui/close")
 	if pauses_game:
 		get_tree().paused = false
 	closed.emit()
+	# Se encoge y desvanece; se oculta al terminar (si no se ha vuelto a abrir).
+	if _tw:
+		_tw.kill()
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.pivot_offset = frame.size * 0.5
+	_tw = create_tween().set_parallel(true)
+	_tw.tween_property(self, "modulate:a", 0.0, 0.1)
+	_tw.tween_property(frame, "scale", Vector2(0.95, 0.95), 0.1)
+	_tw.chain().tween_callback(func():
+		if not is_open:
+			visible = false)
 
 
 func _process(_delta: float) -> void:

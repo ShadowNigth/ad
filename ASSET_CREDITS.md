@@ -124,7 +124,7 @@ Espejo de descarga: https://github.com/Tiddybub/3d-assets (commit 11ff708) (los 
 
 - Renderizados para este proyecto con `tools/render_icons.py` a partir de los modelos OBJ de Kenney listados arriba
   (obra derivada de recursos CC0; se distribuyen también como CC0).
-- 21 archivos: `almacen.png`, `antorcha.png`, `aserradero.png`, `cabana.png`, `cantera.png`, `carbonera.png`, `choza.png`, `fabrica.png`, `fogata.png`, `fundicion.png`, `generador.png`, `granja.png`, `huerto.png`, `laboratorio.png`, `lenador.png`, `mina.png`, `purificador.png`, `refineria.png`, `refugio.png`, `taller.png`, `torre.png`
+- 28 archivos: `almacen.png`, `antorcha.png`, `aserradero.png`, `cabana.png`, `camino.png`, `cantera.png`, `carbonera.png`, `choza.png`, `estandarte.png`, `estatua.png`, `fabrica.png`, `fogata.png`, `fuente.png`, `fundicion.png`, `generador.png`, `granja.png`, `huerto.png`, `laboratorio.png`, `lenador.png`, `macetas.png`, `mina.png`, `purificador.png`, `refineria.png`, `refugio.png`, `seto.png`, `taller.png`, `torre.png`, `valla.png`
 
 ### `assets/fonts/`
 
@@ -384,6 +384,10 @@ origen en `assets/sounds/licenses/`.
 | `music/day_flowing_rocks.ogg` | Kenney — Music Loops: `Flowing Rocks.ogg` · https://kenney.nl (pack «Music Loops» 1.1, incluido en Kenney Game Assets All-in-1) | Kenney | CC0 1.0 |  |
 | `music/danger_infinite_descent.ogg` | Kenney — Music Loops: `Infinite Descent.ogg` · https://kenney.nl (pack «Music Loops» 1.1, incluido en Kenney Game Assets All-in-1) | Kenney | CC0 1.0 |  |
 | `music/day_mischief_stroll.ogg` | Kenney — Music Loops: `Mishief Stroll.ogg` · https://kenney.nl (pack «Music Loops» 1.1, incluido en Kenney Game Assets All-in-1) | Kenney | CC0 1.0 |  |
+| `sounds/ambient/rain_loop.ogg` | Freesound «Rain and Thunder Ambience Tübingen» https://freesound.org/s/369547/ | Sheyvan | CC0 1.0 | lluvia: recorte de 60 s en bucle, mono 32 kHz |
+| `sounds/ambient/thunder_0.ogg` | Freesound «Rain and Thunder Ambience Tübingen» https://freesound.org/s/369547/ | Sheyvan | CC0 1.0 | trueno: 236.0-250.5 s, mono 32 kHz |
+| `sounds/ambient/thunder_1.ogg` | Freesound «Rain and Thunder Ambience Tübingen» https://freesound.org/s/369547/ | Sheyvan | CC0 1.0 | trueno: 191.5-203.5 s, mono 32 kHz |
+| `sounds/ambient/thunder_2.ogg` | Freesound «Rain and Thunder Ambience Tübingen» https://freesound.org/s/369547/ | Sheyvan | CC0 1.0 | trueno: 275.5-290.5 s, mono 32 kHz |
 
 ## 4. Comprobación de licencias
 
@@ -391,7 +395,7 @@ origen en `assets/sounds/licenses/`.
   (copiados en `assets/models/*/License.txt` y `assets/sounds/licenses/`).
 - FreePD.com: «This music is all licensed CC0 1.0 Universal Public Domain Dedication» (copia archivada del sitio).
 - Freesound: cada grabación usada figura como «Creative Commons 0» en su página (se verificaron, entre otras,
-  414098, 588401 y 547203); los créditos completos de los recopiladores están en `assets/sounds/licenses/`.
+  414098, 588401, 547203 y 369547); los créditos completos de los recopiladores están en `assets/sounds/licenses/`.
 - OpenGameArt: los packs usados están publicados bajo CC0 (p. ej. «7 Eating Crunches» de StarNinjas).
 - Fuentes: SIL Open Font License 1.1, texto incluido en `assets/fonts/`.
 

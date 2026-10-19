@@ -6,7 +6,8 @@ extends Node
 var world: Node3D
 var sun: DirectionalLight3D
 var env: Environment
-var sky_mat: ProceduralSkyMaterial
+var sky_mat: Material          # ShaderMaterial (cielo propio) o ProceduralSkyMaterial
+var base_fog := 0.0035          # densidad de niebla según la calidad (la ajusta World)
 var _was_night := false
 var _last_hour := -1
 var paused := false
@@ -29,7 +30,8 @@ func setup(w: Node3D, sun_light: DirectionalLight3D, environment: Environment) -
 	world = w
 	sun = sun_light
 	env = environment
-	sky_mat = (env.sky.sky_material as ProceduralSkyMaterial) if env.sky else null
+	sky_mat = env.sky.sky_material if env.sky else null
+	base_fog = env.fog_density
 	_was_night = is_night()
 	_last_hour = int(GameState.hour)
 	_apply_visuals()
@@ -121,12 +123,50 @@ func _apply_visuals() -> void:
 		elev = deg_to_rad(28.0 + sin(nt * PI) * 22.0)
 		azim = lerpf(deg_to_rad(60.0), deg_to_rad(-60.0), nt)
 	sun.rotation = Vector3(-elev, azim + PI * 0.15, 0.0)
-	sun.light_color = s[2]
-	sun.light_energy = s[3]
-	if sky_mat:
-		sky_mat.sky_top_color = s[0]
-		sky_mat.sky_horizon_color = s[1]
-		sky_mat.ground_horizon_color = (s[1] as Color).darkened(0.1)
-		sky_mat.ground_bottom_color = (s[0] as Color).darkened(0.5)
-	env.ambient_light_energy = s[4]
-	env.fog_light_color = (s[1] as Color).lerp(s[0], 0.4)
+	# Clima: las nubes y la lluvia apagan el sol y agrisan el cielo; los relámpagos lo iluminan todo.
+	var overcast := 0.0
+	var rain := 0.0
+	var flash := 0.0
+	var weather: Variant = world.get("weather") if world else null
+	if weather != null:
+		overcast = float(weather.overcast)
+		rain = float(weather.rain)
+		flash = float(weather.flash)
+	var gray := Color(0.5, 0.53, 0.58) * (1.0 - darkness() * 0.8)
+	var top: Color = (s[0] as Color).lerp(gray, overcast * 0.65)
+	var horizon: Color = (s[1] as Color).lerp(gray.lightened(0.15), overcast * 0.6)
+	if flash > 0.0:
+		top = top.lerp(Color(0.85, 0.88, 1.0), flash * 0.7)
+		horizon = horizon.lerp(Color(0.9, 0.92, 1.0), flash * 0.7)
+	sun.light_color = (s[2] as Color).lerp(Color(0.8, 0.85, 1.0), flash)
+	sun.light_energy = float(s[3]) * (1.0 - 0.55 * overcast) + flash * 1.6
+	if sky_mat is ShaderMaterial:
+		var sm := sky_mat as ShaderMaterial
+		sm.set_shader_parameter("sky_top", top)
+		sm.set_shader_parameter("sky_horizon", horizon)
+		sm.set_shader_parameter("ground_horizon", horizon.darkened(0.1))
+		sm.set_shader_parameter("ground_bottom", top.darkened(0.5))
+		sm.set_shader_parameter("sun_color", s[2])
+		var sun_vis := 0.0
+		var moon_vis := 0.0
+		if night:
+			moon_vis = clampf(fposmod(h - 19.5, 24.0) / 0.6, 0.0, 1.0) * (clampf((6.0 - h) / 0.5, 0.0, 1.0) if h < 12.0 else 1.0)
+		else:
+			sun_vis = clampf((h - 6.0) / 0.5, 0.0, 1.0) * clampf((19.5 - h) / 0.5, 0.0, 1.0)
+		sm.set_shader_parameter("sun_disc", sun_vis * (1.0 - overcast * 0.85))
+		sm.set_shader_parameter("moon_disc", moon_vis * (1.0 - overcast * 0.9))
+		sm.set_shader_parameter("stars", smoothstep(0.55, 0.9, darkness()) * (1.0 - overcast))
+		sm.set_shader_parameter("cloud_cover", 0.3 + overcast * 0.62)
+		var cl: Color = Color(1, 1, 1).lerp(s[1], 0.35) * (1.0 - darkness() * 0.78)
+		cl = cl.lerp(gray, overcast * 0.6)
+		sm.set_shader_parameter("cloud_light", cl.lerp(Color(1, 1, 1), flash * 0.8))
+		sm.set_shader_parameter("cloud_shadow", cl.darkened(0.3 + overcast * 0.2).lerp(Color(0.35, 0.4, 0.55), 0.2))
+	elif sky_mat is ProceduralSkyMaterial:
+		var pm := sky_mat as ProceduralSkyMaterial
+		pm.sky_top_color = top
+		pm.sky_horizon_color = horizon
+		pm.ground_horizon_color = horizon.darkened(0.1)
+		pm.ground_bottom_color = top.darkened(0.5)
+	env.ambient_light_energy = float(s[4]) * (1.0 - 0.2 * overcast) + flash * 0.8
+	env.fog_light_color = horizon.lerp(top, 0.4)
+	env.fog_density = base_fog * (1.0 + overcast * 0.5 + rain * 1.4)

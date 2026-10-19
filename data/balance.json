@@ -31,7 +31,9 @@
     "gather_interval": 0.62,
     "fist_damage": 5,
     "inventory_slots": 24,
-    "respawn_health": 60.0
+    "respawn_health": 60.0,
+    "pickup_magnet_radius": 3.2,
+    "pickup_collect_radius": 0.7
   },
   "survival": {
     "max_health": 100.0,
@@ -76,7 +78,9 @@
     "visual_production_radius": 70.0,
     "demolish_refund": 0.5,
     "repair_cost_factor": 0.35,
-    "damaged_efficiency": 0.5
+    "damaged_efficiency": 0.5,
+    "beauty_bonus_per_point": 0.005,
+    "beauty_bonus_max": 0.1
   },
   "death": {
     "carried_loss_fraction": 0.5,
@@ -91,5 +95,41 @@
     "max_night_enemies": 7,
     "safe_light_margin": 2.0,
     "building_attack_chance": 0.35
+  },
+  "combat": {
+    "_comment": "Aviso previo de los ataques enemigos (s) y pausa de impacto en el modelo golpeado (s).",
+    "enemy_windup": 0.45,
+    "hit_freeze": 0.07,
+    "lunge_speed": 4.0
+  },
+  "weather": {
+    "_comment": "Clima: duración (s) de cada estado y probabilidad del siguiente. Con lluvia la sed baja más despacio y los edificios con rain_bonus producen más rápido.",
+    "enabled": true,
+    "first_rain_day": 2,
+    "rain_thirst_mult": 0.6,
+    "rain_crop_speed_mult": 1.25,
+    "thunder_interval": [9.0, 22.0],
+    "rain_particles": 260,
+    "rain_particles_low": 110,
+    "states": {
+      "despejado": {"min": 300.0, "max": 600.0, "next": {"despejado": 0.25, "nublado": 0.55, "lluvia": 0.2}},
+      "nublado": {"min": 120.0, "max": 260.0, "next": {"despejado": 0.45, "lluvia": 0.42, "tormenta": 0.13}},
+      "lluvia": {"min": 140.0, "max": 260.0, "next": {"nublado": 0.55, "despejado": 0.33, "tormenta": 0.12}},
+      "tormenta": {"min": 90.0, "max": 160.0, "next": {"lluvia": 0.7, "nublado": 0.3}}
+    }
+  },
+  "treasure": {
+    "_comment": "Tesoros que el mar deja en la playa: cuántos puede haber a la vez, cada cuánto aparece uno (s) y botín posible.",
+    "max_active": 3,
+    "spawn_interval": 240.0,
+    "loot": [
+      {"item": "cuerda", "min": 1, "max": 3, "weight": 3},
+      {"item": "lingote_hierro", "min": 1, "max": 2, "weight": 2},
+      {"item": "piezas", "min": 1, "max": 2, "weight": 1},
+      {"item": "coco", "min": 2, "max": 4, "weight": 3},
+      {"item": "hierbas", "min": 1, "max": 3, "weight": 2},
+      {"item": "venda", "min": 1, "max": 2, "weight": 1}
+    ],
+    "xp": 8
   }
 }

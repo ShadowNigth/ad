@@ -23,6 +23,9 @@ signal ready_done
 
 var gen: IslandGenerator
 var crafter: Crafter
+var weather: Weather
+var ambient_life: AmbientLife
+var treasures: BeachTreasures
 var water: MeshInstance3D
 var water_mat: ShaderMaterial
 var map_texture: ImageTexture
@@ -46,7 +49,19 @@ func _ready() -> void:
 	decor.setup(gen, exclusions)
 	pois.setup(self)
 	buildings.setup(self)
+	weather = Weather.new()
+	weather.name = "Clima"
+	add_child(weather)
+	weather.setup(self)
 	day_night.setup(self, sun, env_node.environment)
+	ambient_life = AmbientLife.new()
+	ambient_life.name = "VidaAmbiental"
+	add_child(ambient_life)
+	ambient_life.setup(self)
+	treasures = BeachTreasures.new()
+	treasures.name = "Tesoros"
+	add_child(treasures)
+	treasures.setup(self)
 	enemies.setup(self)
 	build_mode.setup(self)
 	crafter = Crafter.new()
@@ -87,10 +102,9 @@ func _build_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_curve = 0.12
-	sky_mat.ground_curve = 0.05
-	sky_mat.sun_angle_max = 18.0
+	# Cielo propio (degradado, sol, luna, estrellas y nubes); DayNight ajusta sus parámetros.
+	var sky_mat := ShaderMaterial.new()
+	sky_mat.shader = load("res://assets/shaders/sky.gdshader")
 	sky.sky_material = sky_mat
 	sky.radiance_size = Sky.RADIANCE_SIZE_32
 	env.sky = sky
@@ -183,6 +197,9 @@ func _apply_quality() -> void:
 	effects.budget = 0.6 if Settings.get_value("quality") == "baja" else 1.0
 	var env := env_node.environment
 	env.fog_density = 2.4 / maxf(vd * 6.0, 1.0)
+	day_night.base_fog = env.fog_density
+	if env.sky and env.sky.sky_material is ShaderMaterial:
+		(env.sky.sky_material as ShaderMaterial).set_shader_parameter("detail", 0 if Settings.get_value("quality") == "baja" else 1)
 
 
 # ------------------------------------------------------------------ consultas
@@ -194,6 +211,14 @@ func water_depth_at(pos: Vector3) -> float:
 	if pois.on_bridge(pos):
 		return 0.0
 	return gen.water_depth(pos.x, pos.z)
+
+
+## Bonificación de velocidad del suelo (caminos de losas).
+func ground_speed_bonus(pos: Vector3) -> float:
+	var uid := buildings.nearest(pos, 0.0)
+	if uid < 0:
+		return 0.0
+	return float(GameData.building(Economy.get_building(uid).get("type", "")).get("move_bonus", 0.0))
 
 
 func is_fresh_water(pos: Vector3) -> bool:
@@ -222,7 +247,7 @@ func surface_at(pos: Vector3) -> String:
 		return "wood"
 	var uid := buildings.nearest(pos, 0.0)
 	if uid >= 0:
-		return "wood"
+		return str(GameData.building(Economy.get_building(uid).get("type", "")).get("surface", "wood"))
 	var zone := gen.zone_at(pos.x, pos.z)
 	var zdata: Dictionary = GameData.world.get("zones", {}).get(zone, {})
 	if gen.height_at(pos.x, pos.z) < 0.8:
@@ -267,14 +292,21 @@ func interact_poi(id: String) -> void:
 
 
 # ------------------------------------------------------------------ objetos y efectos
-func spawn_drop(item_id: String, qty: int, pos: Vector3) -> void:
+func spawn_drop(item_id: String, qty: int, pos: Vector3, launch: bool = true, player_drop: bool = false) -> Pickup:
 	if qty <= 0 or not GameData.has_item(item_id):
-		return
+		return null
 	var p := Pickup.new()
 	pickups_root.add_child(p)
 	p.setup(item_id, qty)
+	p.bind_world(self)
+	p.player_drop = player_drop
 	var ground := height_at(pos.x, pos.z)
 	p.global_position = Vector3(pos.x, maxf(ground, 0.0) + 0.05, pos.z)
+	if launch:
+		# Sale despedido en arco y rebota antes de quedarse en el suelo.
+		var a := randf() * TAU
+		p.launch(Vector3(cos(a), 0.0, sin(a)) * randf_range(1.2, 2.6) + Vector3.UP * randf_range(3.5, 5.0), self)
+	return p
 
 
 func spawn_hit_effect(pos: Vector3, node_type: String) -> void:
@@ -409,14 +441,14 @@ func _on_night(_day: int) -> void:
 	AudioManager.play("events/stinger_night", -6.0)
 	AudioManager.play_at("events/wolf_howl", player.global_position + Vector3(30, 0, -20), -4.0)
 	AudioManager.set_mood("night")
-	EventBus.notify("Cae la noche. Las criaturas despiertan: busca la luz de una fogata.", "warn")
+	EventBus.banner.emit("Cae la noche", "Las criaturas despiertan: busca la luz de una fogata.", "night")
 
 
 func _on_day(day: int) -> void:
 	AudioManager.play("events/stinger_dawn", -6.0)
 	if AudioManager.get_mood() != "danger":
 		AudioManager.set_mood("day")
-	EventBus.notify("Amanece el día %d." % day, "good")
+	EventBus.banner.emit("Día %d" % day, "Amanece en la isla", "day")
 
 
 func _on_danger(active: bool) -> void:
@@ -453,10 +485,12 @@ func _update_ambient() -> void:
 				else:
 					near_river = maxf(near_river, 1.0 - d / 26.0)
 	var high := clampf((p.y - 7.0) / 8.0, 0.0, 1.0)
-	AudioManager.set_ambient("birds", 0.0 if night else 0.55 * (1.0 - near_sea * 0.5))
-	AudioManager.set_ambient("crickets", 0.6 if night else 0.0)
+	var wet := weather.rain if weather else 0.0
+	var gust := (weather.wind - 1.0) * 0.3 if weather else 0.0
+	AudioManager.set_ambient("birds", 0.0 if night else 0.55 * (1.0 - near_sea * 0.5) * (1.0 - wet))
+	AudioManager.set_ambient("crickets", 0.6 * (1.0 - wet * 0.7) if night else 0.0)
 	AudioManager.set_ambient("waves", near_sea * 0.85)
 	AudioManager.set_ambient("river", near_river * 0.7)
-	AudioManager.set_ambient("wind", 0.2 + high * 0.6)
+	AudioManager.set_ambient("wind", clampf(0.2 + high * 0.6 + gust, 0.0, 1.0))
 	if night and randf() < 0.04:
 		AudioManager.play_at("ambient/owl", p + Vector3(randf_range(-25, 25), 6, randf_range(-25, 25)), -8.0)

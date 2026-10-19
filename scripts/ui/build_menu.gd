@@ -3,7 +3,7 @@ extends UIPanel
 ## Menú de construcción: edificios por categoría con miniatura, coste,
 ## límite de unidades y requisitos bloqueados.
 
-const CATEGORIES := [["supervivencia", "Supervivencia"], ["produccion", "Producción"], ["procesado", "Procesado"], ["avanzado", "Avanzado"], ["defensa", "Defensa"]]
+const CATEGORIES := [["supervivencia", "Supervivencia"], ["produccion", "Producción"], ["procesado", "Procesado"], ["avanzado", "Avanzado"], ["defensa", "Defensa"], ["decoracion", "Decoración"]]
 
 var tabs: TabBar
 var grid: GridContainer
@@ -78,6 +78,11 @@ func _card(id: String, bd: Dictionary) -> Control:
 				if not outs.has(nm):
 					outs.append(nm)
 		tv.add_child(UITheme.label("Produce: " + ", ".join(outs), 15, UITheme.GOOD))
+	if float(bd.get("beauty", 0.0)) > 0.0:
+		var extra := ""
+		if float(bd.get("move_bonus", 0.0)) > 0.0:
+			extra = " · +%d %% velocidad al caminar" % int(round(float(bd.move_bonus) * 100.0))
+		tv.add_child(UITheme.label("Belleza +%s%s" % [str(snappedf(float(bd.beauty), 0.5)).trim_suffix(".0"), extra], 15, UITheme.GOOD))
 	var desc := UITheme.label(str(bd.get("desc", "")), 15)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(desc)

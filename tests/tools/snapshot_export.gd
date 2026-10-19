@@ -47,6 +47,8 @@ func _ready() -> void:
 			var a := TAU * k / 7.0
 			world.enemies._spawn(t, focus + Vector3(cos(a) * 5.0, 0.5, sin(a) * 5.0))
 			k += 1
+	if scenario == "poses":
+		_spawn_poses(world)
 	for i in 10:
 		await get_tree().process_frame
 	_walk(world)
@@ -59,12 +61,54 @@ func _ready() -> void:
 	get_tree().quit()
 
 
+## Fila de modelos del jugador congelados en distintas poses de animación
+## (para revisar la dirección de los giros sin GPU). Miran hacia +X.
+func _spawn_poses(world: Node) -> void:
+	var acts := [["", 0.0], ["attack", 0.3], ["attack", 0.5], ["chop", 0.35], ["chop", 0.52], ["mine", 0.4], ["mine", 0.56],
+		["gather", 0.45], ["eat", 0.5], ["cheer", 0.3], ["windup", 0.95], ["roll", 0.3], ["air", 0.0], ["flinch", 0.5]]
+	for i in acts.size():
+		var r := ProceduralRig.new()
+		world.add_child(r)
+		r.build(Player.MODEL, "biped", Player.MODEL_SCALE)
+		r.idle_variations = false
+		r.process_mode = Node.PROCESS_MODE_DISABLED
+		var pos := focus + Vector3(i * 1.6 - 10.4, 0.0, 0.0)
+		pos.y = world.height_at(pos.x, pos.z)
+		r.global_position = pos
+		r.rotation.y = -PI * 0.5
+		var kind: String = acts[i][0]
+		var t: float = acts[i][1]
+		var total := 0.0
+		if kind == "roll":
+			r.play_roll(1.0)
+			total = t
+		elif kind == "air":
+			r.airborne = true
+			r.vertical_speed = 3.0
+			total = 0.6
+		elif kind != "":
+			r.play_action(kind)
+			total = r.action_dur * t
+		var dt := 1.0 / 60.0
+		var steps := int(round(total / dt))
+		for k in steps:
+			r._process(dt)
+		if steps == 0:
+			r._process(0.0)
+		print("pose %d: %s t=%.2f" % [i, kind, t])
+
+
 func _prepare_base(world: Node) -> void:
 	# Base de ejemplo para revisar edificios: se colocan algunos sin coste.
 	var c := Vector3(6, 0, 28)
 	var list := [["refugio", Vector3(-6, 0, -4), 0], ["fogata", Vector3(0, 0, 2), 0], ["almacen", Vector3(6, 0, -5), 0],
 		["lenador", Vector3(-9, 0, 6), 90], ["cantera", Vector3(9, 0, 6), 270], ["huerto", Vector3(-3, 0, 12), 0],
-		["aserradero", Vector3(4, 0, 13), 0], ["purificador", Vector3(12, 0, 0), 0], ["antorcha", Vector3(3, 0, -1), 0]]
+		["aserradero", Vector3(4, 0, 13), 0], ["purificador", Vector3(12, 0, 0), 0], ["antorcha", Vector3(3, 0, -1), 0],
+		["fuente", Vector3(0, 0, -10), 0], ["estatua", Vector3(-4, 0, -12), 0], ["estandarte", Vector3(4, 0, -12), 0],
+		["macetas", Vector3(-2.5, 0, -6.5), 0], ["macetas", Vector3(2.5, 0, -6.5), 0],
+		["camino", Vector3(0, 0, -4.5), 90], ["camino", Vector3(0, 0, -2.6), 90],
+		["valla", Vector3(-7, 0, -14), 0], ["valla", Vector3(-4.6, 0, -14), 0], ["valla", Vector3(4.6, 0, -14), 0], ["valla", Vector3(7, 0, -14), 0],
+		["seto", Vector3(-9.5, 0, -10), 0], ["seto", Vector3(9.5, 0, -10), 0]]
 	for e in list:
 		var pos: Vector3 = c + e[1]
 		pos.y = world.height_at(pos.x, pos.z)
@@ -115,6 +159,8 @@ func _mat_info(mat: Material, info: Dictionary) -> void:
 		if bm.albedo_texture:
 			info.tex = ProjectSettings.globalize_path(bm.albedo_texture.resource_path)
 		info.vcol = bm.vertex_color_use_as_albedo
+	elif mat is ShaderMaterial and (mat as ShaderMaterial).shader and (mat as ShaderMaterial).shader.resource_path.contains("foliage"):
+		info.vcol = true
 	elif mat is ShaderMaterial:
 		info.color = [0.2, 0.6, 0.75, 0.6]
 		info.shader = true

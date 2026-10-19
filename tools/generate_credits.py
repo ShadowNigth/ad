@@ -44,7 +44,8 @@ OGA = {
     "themightyglider": ("Catching fire", "themightyglider", "https://opengameart.org/content/catching-fire"),
 }
 
-OMARCHY_LABEL = {"birds": "Forest birds", "crickets": "Night crickets", "waves": "Ocean waves", "stream": "Stream", "wind": "Wind"}
+OMARCHY_LABEL = {"birds": "Forest birds", "crickets": "Night crickets", "waves": "Ocean waves", "stream": "Stream", "wind": "Wind",
+                 "storm": "Thunderstorm"}
 
 FREEPD = {
     "Connecting Rainbows": "Kevin MacLeod",
@@ -226,7 +227,7 @@ def main() -> None:
     w("  (copiados en `assets/models/*/License.txt` y `assets/sounds/licenses/`).")
     w("- FreePD.com: «This music is all licensed CC0 1.0 Universal Public Domain Dedication» (copia archivada del sitio).")
     w("- Freesound: cada grabación usada figura como «Creative Commons 0» en su página (se verificaron, entre otras,")
-    w("  414098, 588401 y 547203); los créditos completos de los recopiladores están en `assets/sounds/licenses/`.")
+    w("  414098, 588401, 547203 y 369547); los créditos completos de los recopiladores están en `assets/sounds/licenses/`.")
     w("- OpenGameArt: los packs usados están publicados bajo CC0 (p. ej. «7 Eating Crunches» de StarNinjas).")
     w("- Fuentes: SIL Open Font License 1.1, texto incluido en `assets/fonts/`.")
     w("")

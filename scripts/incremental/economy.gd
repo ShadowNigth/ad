@@ -25,6 +25,7 @@ var _simulating := false
 var _sim_log: Dictionary = {}
 var _tick_accum := 0.0
 var _storage_signal_cooldown := 0.0
+var _beauty_cache := -1.0
 var running := false
 
 
@@ -36,6 +37,7 @@ func reset() -> void:
 	produced_total.clear()
 	research_accum = 0.0
 	energy_ratio = 1.0
+	_beauty_cache = -1.0
 
 
 func _process(delta: float) -> void:
@@ -225,6 +227,7 @@ func can_build(type_id: String) -> Dictionary:
 
 ## Crea el registro del edificio (los visuales se crean al recibir la señal).
 func place_building(type_id: String, pos: Vector3, rot_deg: float, free: bool = false) -> int:
+	_beauty_cache = -1.0
 	if not free:
 		if not can_build(type_id).ok:
 			return -1
@@ -269,6 +272,7 @@ func can_upgrade(uid: int) -> Dictionary:
 
 
 func upgrade(uid: int) -> bool:
+	_beauty_cache = -1.0
 	if not can_upgrade(uid).ok:
 		return false
 	if not pay(upgrade_cost(uid)):
@@ -297,6 +301,7 @@ func repair_cost(uid: int) -> Dictionary:
 
 
 func repair(uid: int) -> bool:
+	_beauty_cache = -1.0
 	var rec := get_building(uid)
 	if rec.is_empty():
 		return false
@@ -311,6 +316,7 @@ func repair(uid: int) -> bool:
 
 
 func damage_building(uid: int, amount: float) -> void:
+	_beauty_cache = -1.0
 	var rec := get_building(uid)
 	if rec.is_empty() or amount <= 0.0:
 		return
@@ -319,6 +325,7 @@ func damage_building(uid: int, amount: float) -> void:
 
 
 func demolish(uid: int) -> Dictionary:
+	_beauty_cache = -1.0
 	var rec := get_building(uid)
 	if rec.is_empty():
 		return {}
@@ -404,7 +411,37 @@ func speed_mult(rec: Dictionary) -> float:
 	var hp_ratio := float(rec.hp) / maxf(max_hp(rec), 1.0)
 	if hp_ratio < 0.5:
 		m *= GameData.bf("economy.damaged_efficiency", 0.5)
+	m *= weather_mult(rec)
+	m *= 1.0 + beauty_bonus()
 	return maxf(m, 0.01)
+
+
+## Belleza total de la base: suma de las decoraciones en pie (se recalcula en cada tic).
+func beauty() -> float:
+	if _beauty_cache >= 0.0:
+		return _beauty_cache
+	var total := 0.0
+	for rec in buildings:
+		if float(rec.hp) <= 0.0:
+			continue
+		var bd := GameData.building(rec.type)
+		total += float(level_data(rec).get("beauty", bd.get("beauty", 0.0)))
+	_beauty_cache = total
+	return total
+
+
+## Bonificación de producción por belleza (trabajadores más contentos), con tope.
+func beauty_bonus() -> float:
+	return minf(beauty() * GameData.bf("economy.beauty_bonus_per_point", 0.005), GameData.bf("economy.beauty_bonus_max", 0.1))
+
+
+## Bonificación de la lluvia a cultivos (solo en juego, nunca en el cálculo sin conexión).
+func weather_mult(rec: Dictionary) -> float:
+	if _simulating or not GameState.is_raining():
+		return 1.0
+	if not bool(GameData.building(rec.type).get("rain_bonus", false)):
+		return 1.0
+	return GameData.bf("weather.rain_crop_speed_mult", 1.25)
 
 
 func cycle_time(rec: Dictionary) -> float:
@@ -492,6 +529,7 @@ func _produce_outputs(rec: Dictionary) -> Dictionary:
 func tick(delta: float) -> void:
 	if delta <= 0.0:
 		return
+	_beauty_cache = -1.0
 	# 1) Energía disponible (generadores con combustible en marcha).
 	energy_supply = 0.0
 	energy_demand = 0.0
@@ -635,6 +673,7 @@ func to_dict() -> Dictionary:
 
 
 func from_dict(d: Dictionary) -> void:
+	_beauty_cache = -1.0
 	reset()
 	var st: Variant = d.get("storage", {})
 	if typeof(st) == TYPE_DICTIONARY:

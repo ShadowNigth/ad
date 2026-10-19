@@ -1183,5 +1183,25 @@
   "file": "assets/music/day_mischief_stroll.ogg",
   "src": "kenney/Music Loops/Mishief Stroll.ogg",
   "note": ""
+ },
+ {
+  "file": "assets/sounds/ambient/rain_loop.ogg",
+  "src": "omarchy/storm.ogg",
+  "note": "lluvia: recorte de 60 s en bucle, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/thunder_0.ogg",
+  "src": "omarchy/storm.ogg",
+  "note": "trueno: 236.0-250.5 s, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/thunder_1.ogg",
+  "src": "omarchy/storm.ogg",
+  "note": "trueno: 191.5-203.5 s, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/thunder_2.ogg",
+  "src": "omarchy/storm.ogg",
+  "note": "trueno: 275.5-290.5 s, mono 32 kHz"
  }
 ]

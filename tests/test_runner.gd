@@ -60,6 +60,7 @@ func _ready() -> void:
 	await _test_death_and_backpack()
 	await _test_day_night()
 	await _test_regions()
+	await _test_polish()
 	await _test_save_load()
 	_test_offline()
 	await _test_ui_scaling_and_buttons()
@@ -829,7 +830,236 @@ func _snapshot() -> Dictionary:
 	return {"inv": GameState.inventory.all_items(), "buildings": Economy.buildings.size(), "storage": Economy.storage.duplicate(),
 			"techs": TechTree.researched.size(), "quest": Quests.index, "workers": Workers.hired.size(),
 			"hp": snappedf(float(GameState.survival.health), 0.01), "day": GameState.day, "regions": GameState.regions.size(),
-			"levels": Economy.buildings.map(func(b): return int(b.level))}
+			"levels": Economy.buildings.map(func(b): return int(b.level)), "weather": str(GameState.weather.get("state", ""))}
+
+
+# ------------------------------------------------------------------ 15b. Pulido visual, clima y contenido
+func _test_polish() -> void:
+	section("Animaciones, efectos, clima y decoración")
+	var p := world.player
+	# Todos los shaders compilan (el renderizador de prueba los analiza igual que el real).
+	var bad: Array[String] = []
+	for f in DirAccess.get_files_at("res://assets/shaders"):
+		if not f.ends_with(".gdshader"):
+			continue
+		var sh := Shader.new()
+		sh.code = FileAccess.get_file_as_string("res://assets/shaders/" + f)
+		if sh.get_shader_uniform_list().is_empty():
+			bad.append(f)
+	check(bad.is_empty(), "Todos los shaders compilan sin errores %s" % [bad])
+	# Vegetación con viento: solo plantas y árboles, con peso creciente hacia la copa.
+	check(ModelLibrary.sway_amount("pirate/palm-straight") > 0.5 and ModelLibrary.sway_amount("nature/grass") > 0.0, "Palmeras y hierba se mueven con el viento")
+	check(ModelLibrary.sway_amount("nature/stone_largeA") == 0.0 and ModelLibrary.sway_amount("nature/stump_old") == 0.0, "Rocas y tocones no se mueven")
+	var palm := ModelLibrary.baked_mesh("pirate/palm-straight")
+	check(palm.surface_get_material(0) == ModelLibrary.foliage_material(), "Las palmeras usan el material con viento")
+	var arr := ModelLibrary.baked_arrays("pirate/palm-straight")
+	var lo := 1.0
+	var hi := 0.0
+	for k in (arr.v as PackedVector3Array).size():
+		var a: float = (arr.c as PackedColorArray)[k].a
+		lo = minf(lo, a)
+		hi = maxf(hi, a)
+	check(lo < 0.05 and hi > 0.8, "El peso del viento va de la base (%.2f) a la copa (%.2f)" % [lo, hi])
+	# Animación procedural: acciones con duración, voltereta, muerte y aparición.
+	var rig := ProceduralRig.new()
+	add_child(rig)
+	rig.build(Player.MODEL, "biped", Player.MODEL_SCALE)
+	rig.idle_variations = false
+	rig.process_mode = Node.PROCESS_MODE_DISABLED
+	rig._process(0.016)
+	var rest: Vector3 = rig._pivots.arm_r.rotation
+	rig.play_action("chop")
+	for i in 14:
+		rig._process(0.016)
+	check(rig.is_acting() and rig._pivots.arm_r.rotation.distance_to(rest) > 0.5, "La tala mueve el brazo (%.2f rad)" % rig._pivots.arm_r.rotation.distance_to(rest))
+	for i in 30:
+		rig._process(0.016)
+	check(not rig.is_acting(), "Las acciones terminan solas")
+	rig.play_roll(0.4)
+	for i in 12:
+		rig._process(0.016)
+	var mid_roll: bool = not rig._spin.transform.is_equal_approx(Transform3D.IDENTITY)
+	for i in 20:
+		rig._process(0.016)
+	check(mid_roll and rig._spin.transform.is_equal_approx(Transform3D.IDENTITY), "La voltereta gira el cuerpo y vuelve a su sitio")
+	rig.play_action("gather")
+	for i in 15:
+		rig._process(0.016)
+	check(rig._root.rotation.x > 0.3, "Al recoger se inclina hacia delante (%.2f rad)" % rig._root.rotation.x)
+	check(not rig._overlay_on, "Sin destello no se dibuja la capa superpuesta (ahorra llamadas)")
+	rig.flash()
+	rig._process(0.016)
+	check(rig._overlay_on, "El destello de daño activa la capa superpuesta")
+	rig.spawn_in()
+	rig._process(0.016)
+	var small: float = rig._root.scale.x
+	for i in 40:
+		rig._process(0.016)
+	check(small < rig._base_scale * 0.6 and absf(rig._root.scale.x - rig._base_scale) < 0.05, "Las criaturas aparecen creciendo")
+	rig.die()
+	for i in 60:
+		rig._process(0.016)
+	check(absf(rig.rotation.x) > 1.3 or absf(rig.rotation.z) > 1.3, "Al morir cae al suelo")
+	rig.queue_free()
+	# El jugador anima sus acciones.
+	p._iframes = 0.0
+	GameState.survival.stamina = 100.0
+	p._dodge_t = 0.0
+	p.dodge()
+	check(p.rig.is_rolling(), "Esquivar hace una voltereta")
+	await physics_frames(30)
+	GameState.inventory.add("bayas", 3)
+	var slot := -1
+	for i in GameState.inventory.slots.size():
+		var sl: Variant = GameState.inventory.slots[i]
+		if sl != null and sl.id == "bayas":
+			slot = i
+	p.eat_slot(slot)
+	check(p.rig.action == "eat", "Comer tiene su animación")
+	var tree_id := _nearest_node("palmera")
+	if tree_id < 0:
+		tree_id = _nearest_node("arbol")
+	if tree_id >= 0:
+		var trec: Dictionary = world.resources.get_node_rec(tree_id)
+		GameState.inventory.add("hacha_piedra", 1)
+		p.global_position = trec.pos + Vector3(1.4, 0.5, 0)
+		await physics_frames(5)
+		p._update_target()
+		p._gather_cd = 0.0
+		p.interact_pressed()
+		check(p.rig.action == "chop", "Talar con hacha usa el gesto de tala")
+	# Enemigos: aviso de detección, amago con destello e interrupción.
+	p.global_position = _camp_pos() + Vector3(0, 0.5, 18)
+	await physics_frames(3)
+	var e := world.enemies._spawn("jabali", p.global_position + Vector3(5, 0.3, 0))
+	await physics_frames(2)
+	e.state = Enemy.State.IDLE
+	e._think()
+	check(e.state in [Enemy.State.CHASE, Enemy.State.ATTACK] and e.get_node_or_null("Aviso") != null, "Al detectarte muestra un «!» sobre la cabeza")
+	e._attack_cd = 0.0
+	e._attack_windup = -1.0
+	e._set_chase_or_attack(0.5)
+	check(e.rig.action == "windup" and e.rig._telegraph_t > 0.0, "Antes de atacar se echa atrás y parpadea en naranja")
+	e.take_damage(1.0, p.global_position)
+	check(e._attack_windup < 0.0, "Golpearle durante el amago interrumpe su ataque")
+	e.queue_free()
+	# Objetos caídos: arco, imán y recogida.
+	var wood0 := GameState.inventory.count("madera")
+	var drop := world.spawn_drop("madera", 2, p.global_position + Vector3(2.0, 0.0, 0.0))
+	check(drop != null and drop._airborne, "El botín sale despedido en arco")
+	for i in 120:
+		await get_tree().process_frame
+		if not is_instance_valid(drop):
+			break
+	check(not is_instance_valid(drop) and GameState.inventory.count("madera") == wood0 + 2, "El imán atrae el botín y se recoge sin duplicar")
+	var own := world.spawn_drop("piedra", 1, p.global_position + Vector3(1.0, 0.0, 0.0), false, true)
+	await get_tree().create_timer(1.0).timeout
+	check(is_instance_valid(own), "Lo que suelta el propio jugador no vuelve solo a la mochila")
+	if is_instance_valid(own):
+		own.queue_free()
+	# Clima: lluvia, tormenta y efectos sobre la economía y la sed.
+	var wt: Weather = world.weather
+	wt.force("lluvia", true)
+	await frames(2)
+	check(GameState.is_raining() and wt._rain_fx.emitting, "La lluvia se ve (partículas activas)")
+	check(GameState.weather_thirst_mult() < 1.0, "Con lluvia la sed baja más despacio (x%.2f)" % GameState.weather_thirst_mult())
+	TechTree.researched["agr_cultivo"] = true
+	var hu := Economy.place_building("huerto", _camp_pos() + Vector3(14, 0, -12), 0.0, true)
+	var hrec := Economy.get_building(hu)
+	var ct_rain := Economy.cycle_time(hrec)
+	wt.force("despejado", true)
+	var ct_dry := Economy.cycle_time(hrec)
+	check(ct_rain < ct_dry * 0.85, "Los huertos crecen más rápido con lluvia (%.1f s frente a %.1f s)" % [ct_rain, ct_dry])
+	Economy._simulating = true
+	wt.force("lluvia", true)
+	var ct_sim := Economy.cycle_time(hrec)
+	Economy._simulating = false
+	check(absf(ct_sim - ct_dry) < 0.001, "El cálculo sin conexión no usa la bonificación de lluvia")
+	wt.force("tormenta", true)
+	wt._lightning()
+	await frames(3)
+	check(wt.flash > 0.0, "Los relámpagos iluminan la escena")
+	world.day_night._apply_visuals()
+	var sky: ShaderMaterial = world.env_node.environment.sky.sky_material
+	check(float(sky.get_shader_parameter("cloud_cover")) > 0.8, "La tormenta cubre el cielo de nubes")
+	wt.force("despejado", true)
+	await frames(2)
+	check(not wt._rain_fx.emitting, "Al despejar deja de llover")
+	# Cielo de noche con estrellas y luna.
+	var h0 := GameState.hour
+	GameState.hour = 23.5
+	world.day_night._apply_visuals()
+	check(float(sky.get_shader_parameter("stars")) > 0.5 and float(sky.get_shader_parameter("moon_disc")) > 0.5, "De noche se ven estrellas y la luna")
+	GameState.hour = 12.0
+	world.day_night._apply_visuals()
+	check(float(sky.get_shader_parameter("stars")) < 0.01 and float(sky.get_shader_parameter("sun_disc")) > 0.5, "De día se ve el sol y no las estrellas")
+	GameState.hour = h0
+	world.day_night._apply_visuals()
+	# Tesoros en la orilla.
+	var tr: BeachTreasures = world.treasures
+	var n0 := tr.count()
+	GameState.flags["tesoro_t"] = 0.0
+	var spawned := tr.spawn_one()
+	check(spawned and tr.count() == n0 + 1, "El mar deja tesoros en la playa")
+	var xp0 := GameState.xp + GameState.level * 100000
+	var got := tr.open(tr.count() - 1)
+	check(not got.is_empty() and tr.count() == n0 and GameState.xp + GameState.level * 100000 > xp0, "Abrir un tesoro da botín y experiencia")
+	check((GameState.flags.get("tesoros", []) as Array).size() == tr.count(), "Los tesoros sin abrir se guardan con la partida")
+	# Decoración: belleza, caminos rápidos y aviso de edificio parado.
+	var b0 := Economy.beauty()
+	var deco := Economy.place_building("macetas", _camp_pos() + Vector3(-12, 0, -14), 0.0, true)
+	var path_uid := Economy.place_building("camino", _camp_pos() + Vector3(-16, 0, -14), 0.0, true)
+	await frames(2)
+	check(Economy.beauty() > b0 and Economy.beauty_bonus() > 0.0, "Las decoraciones suman belleza (+%d %% producción)" % int(round(Economy.beauty_bonus() * 100.0)))
+	var prec := Economy.get_building(path_uid)
+	var ppos := Vector3(prec.pos[0], prec.pos[1], prec.pos[2])
+	check(world.ground_speed_bonus(ppos) > 0.1 and world.surface_at(ppos) == "stone", "Los caminos de losas aceleran el paso y suenan a piedra")
+	var pnode: Building = world.buildings.get_building_node(path_uid)
+	check(pnode._body == null, "Los caminos no bloquean el paso")
+	TechTree.researched["con_carpinteria"] = true
+	var saw := Economy.place_building("aserradero", _camp_pos() + Vector3(-12, 0, 14), 0.0, true)
+	Economy.storage.erase("madera")
+	Economy.tick(0.5)
+	await frames(2)
+	var snode: Building = world.buildings.get_building_node(saw)
+	snode._update_badge(Economy.get_building(saw), true)
+	check(snode._badge != null and snode._badge.visible and snode._badge_key == "in:madera", "Un edificio parado muestra el material que le falta")
+	var srec := Economy.get_building(saw)
+	var hp_full := float(srec.hp)
+	srec.hp = hp_full * 0.1
+	snode._update_damage_fx(0.1)
+	check(snode._dmg_fire != null, "Un edificio muy dañado arde")
+	srec.hp = hp_full
+	snode._update_damage_fx(1.0)
+	check(snode._dmg_fire == null, "Al repararlo se apaga el fuego")
+	for uid in [hu, deco, path_uid, saw]:
+		Economy.demolish(uid)
+	# Interfaz: rótulos, objetos que vuelan al contador y cierre animado.
+	var hud: Node = world.hud
+	EventBus.banner.emit("Prueba", "Rótulo", "level")
+	await frames(1)
+	check(hud._banner_layer.get_child_count() > 0, "Los rótulos grandes aparecen en pantalla")
+	var cam := get_viewport().get_camera_3d()
+	EventBus.item_collected_at.emit("madera", 1, cam.global_position - cam.global_transform.basis.z * 4.0)
+	await frames(1)
+	check(hud._fly_layer.get_child_count() > 0, "El objeto recogido vuela hasta su contador")
+	hud.open_panel("inventory")
+	await frames(2)
+	hud.panels.inventory.close()
+	check(not hud.panels.inventory.is_open and hud.panels.inventory.visible, "Las ventanas se cierran con una animación")
+	await get_tree().create_timer(0.3).timeout
+	check(not hud.panels.inventory.visible, "Al terminar la animación la ventana queda oculta")
+	# Vida ambiental: luciérnagas de noche y no de día.
+	var al: AmbientLife = world.ambient_life
+	GameState.hour = 23.0
+	al._zone = "pradera"
+	al._zone_t = 99.0
+	al._process(0.1)
+	var night_ok: bool = al._fireflies.emitting
+	GameState.hour = 12.0
+	al._process(0.1)
+	check(night_ok and not al._fireflies.emitting and al._pollen.emitting, "Luciérnagas de noche y polen de día en la pradera")
+	GameState.hour = h0
 
 
 func _test_save_load() -> void:
@@ -837,6 +1067,7 @@ func _test_save_load() -> void:
 	SaveManager.enabled = true
 	SaveManager.delete_save()
 	world.player.sync_to_state()
+	world.weather.force("nublado", true)
 	var before := _snapshot()
 	var pos_before := world.player.global_position
 	check(SaveManager.save_game(), "Guardar partida en user://")
@@ -856,6 +1087,7 @@ func _test_save_load() -> void:
 	check(after.storage == before.storage, "Almacén restaurado")
 	check(after.hp == before.hp and after.day == before.day and after.regions == before.regions, "Supervivencia, día y regiones restaurados")
 	check(GameState.player_pos.distance_to(pos_before) < 0.05, "Posición del jugador restaurada")
+	check(str(GameState.weather.get("state", "")) == before.weather, "El clima se guarda y se restaura (%s)" % before.weather)
 	# Cargar dos veces no duplica nada.
 	SaveManager.load_game(false)
 	check(_snapshot().buildings == before.buildings and _snapshot().inv == before.inv, "Cargar dos veces no duplica edificios ni objetos")

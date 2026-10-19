@@ -40,6 +40,13 @@ var _knockback := Vector3.ZERO
 var _last_safe_pos := Vector3.ZERO
 var _water_tick := 0.0
 var _gravity := 18.0
+var _air_time := 0.0
+var _min_vy := 0.0
+var _was_in_water := false
+var _base_fov := 65.0
+var _fov_kick := 0.0
+var _ground_bonus := 0.0
+var _ground_t := 0.0
 
 
 func _ready() -> void:
@@ -55,6 +62,12 @@ func _ready() -> void:
 	survival.died.connect(_on_died)
 	EventBus.equipped_changed.connect(func(_id): _refresh_tool())
 	EventBus.settings_changed.connect(_apply_settings)
+	EventBus.level_up.connect(func(_l): _cheer())
+	EventBus.quest_completed.connect(func(_q): _cheer())
+	EventBus.building_placed.connect(func(uid, _t): _hammer_at(uid))
+	EventBus.building_upgraded.connect(func(uid, _t, _l): _hammer_at(uid))
+	EventBus.building_repaired.connect(_hammer_at)
+	_base_fov = camera.fov
 	_apply_settings()
 	_last_safe_pos = global_position
 
@@ -141,9 +154,15 @@ func _physics_process(delta: float) -> void:
 		survival.sprinting = true
 	else:
 		survival.sprinting = false
+	rig.sprint_lean = lerpf(rig.sprint_lean, 0.14 if survival.sprinting else 0.0, clampf(delta * 6.0, 0.0, 1.0))
 	var in_water := world.water_depth_at(global_position) > 0.35
 	if in_water:
 		speed *= 0.6
+	_ground_t -= delta
+	if _ground_t <= 0.0:
+		_ground_t = 0.25
+		_ground_bonus = world.ground_speed_bonus(global_position)
+	speed *= 1.0 + _ground_bonus
 	var target_vel := dir * speed
 	if _dodge_t > 0.0:
 		_dodge_t -= delta
@@ -170,6 +189,7 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y < 0.0:
 		velocity.y = -0.5
 	move_and_slide()
+	_update_air(delta, in_water)
 	# Seguridad: si caes por debajo del terreno, vuelve a la última posición segura.
 	var ground: float = world.height_at(global_position.x, global_position.z)
 	if global_position.y < ground - 3.0 or global_position.y < -12.0:
@@ -192,6 +212,11 @@ func _physics_process(delta: float) -> void:
 		if _water_tick <= 0.0 and hvel.length() > 1.0:
 			_water_tick = 0.45
 			AudioManager.play_at("footsteps/water", global_position, -6.0)
+			world.effects.splash(Vector3(global_position.x, 0.02, global_position.z), 0.45)
+	if in_water and not _was_in_water and (hvel.length() > 2.5 or velocity.y < -3.0):
+		world.effects.splash(Vector3(global_position.x, 0.02, global_position.z), 1.0)
+		AudioManager.play_at("footsteps/water", global_position, -1.0)
+	_was_in_water = in_water
 
 
 func _process(delta: float) -> void:
@@ -201,6 +226,10 @@ func _process(delta: float) -> void:
 	var focus := global_position + Vector3(0.0, 1.55, 0.0)
 	cam_rig.global_position = cam_rig.global_position.lerp(focus, clampf(delta * 14.0, 0.0, 1.0))
 	cam_rig.rotation = Vector3(pitch, yaw, 0.0)
+	# Ligero aumento del campo de visión al esprintar o esquivar.
+	_fov_kick = move_toward(_fov_kick, 0.0, delta * 30.0)
+	var fov_target := _base_fov + (5.0 if survival.sprinting else 0.0) + _fov_kick
+	camera.fov = lerpf(camera.fov, fov_target, clampf(delta * 6.0, 0.0, 1.0))
 	if _shake > 0.0:
 		_shake = maxf(_shake - delta * 2.5, 0.0)
 		camera.h_offset = randf_range(-1.0, 1.0) * _shake * 0.25
@@ -237,6 +266,8 @@ func _footsteps(dist: float) -> void:
 		var surf: String = world.surface_at(global_position)
 		var key: String = {"sand": "footsteps/sand", "stone": "footsteps/stone", "dirt": "footsteps/dirt", "wood": "footsteps/wood", "water": "footsteps/water"}.get(surf, "footsteps/grass")
 		AudioManager.play_at(key, global_position, -9.0, 0.12)
+		if survival.sprinting and surf in ["sand", "dirt", "grass"]:
+			world.effects.footstep_dust(global_position, _dust_color(surf), 3)
 
 
 # ------------------------------------------------------------------ acciones
@@ -247,6 +278,8 @@ func jump() -> void:
 		return
 	velocity.y = GameData.bf("player.jump_velocity", 6.2)
 	AudioManager.play_at("combat/woosh", global_position, -14.0)
+	rig.land(0.25)
+	world.effects.footstep_dust(global_position, _dust_color(world.surface_at(global_position)), 4)
 
 
 func dodge() -> void:
@@ -262,7 +295,10 @@ func dodge() -> void:
 	_dodge_t = GameData.bf("player.dodge_time", 0.32)
 	_iframes = maxf(_iframes, GameData.bf("player.iframes_dodge", 0.36))
 	rig.rotation.y = atan2(-_dodge_dir.x, -_dodge_dir.z)
+	rig.play_roll(_dodge_t + 0.08)
+	_fov_kick = 6.0
 	AudioManager.play_at("combat/woosh", global_position, -4.0)
+	world.effects.footstep_dust(global_position, _dust_color(world.surface_at(global_position)), 5)
 
 
 func attack() -> void:
@@ -284,15 +320,18 @@ func attack() -> void:
 	if enemy:
 		var d := enemy.global_position - global_position
 		rig.rotation.y = atan2(-d.x, -d.z)
-	rig.play_attack()
+	rig.play_action("attack")
 	AudioManager.play_at("combat/swing", global_position, -3.0)
 	await get_tree().create_timer(0.16).timeout
 	if dead:
 		return
+	world.effects.slash(global_position + Vector3.UP * 1.05, forward_dir(), reach * 0.9)
 	var hits: Array = world.enemies_in_arc(global_position, forward_dir(), reach + 0.4, GameData.bf("player.attack_arc_deg", 110.0))
 	var dmg := GameState.weapon_damage()
 	for e in hits:
 		e.take_damage(dmg, global_position)
+	if not hits.is_empty():
+		rig.freeze(GameData.bf("combat.hit_freeze", 0.07))
 	if not hits.is_empty() and GameState.equipped_index >= 0:
 		if GameState.inventory.wear(GameState.equipped_index, 1):
 			EventBus.notify("¡Tu %s se ha roto!" % GameData.item_name(weapon_id), "bad")
@@ -320,6 +359,12 @@ func interact_pressed() -> void:
 		"backpack":
 			world.recover_backpack()
 			interact_held = false
+		"treasure":
+			_face_point(target.pos, 1.0)
+			rig.play_action("gather")
+			world.treasures.open(int(target.id))
+			interact_held = false
+			_update_target()
 		_:
 			interact_held = false
 
@@ -346,7 +391,22 @@ func _gather(node_id: int) -> void:
 			power = int(t.get("power", 1))
 			tier = int(t.get("tier", 1))
 	_face_point(rec.pos, 1.0)
-	rig.play_attack()
+	var anim := "gather"
+	var strike := 0.12
+	match str(tool_type):
+		"axe":
+			anim = "chop"
+			strike = 0.22
+		"pickaxe":
+			anim = "mine"
+			strike = 0.27
+		"spear":
+			anim = "attack"
+			strike = 0.18
+	if tool_id == "" and anim != "gather":
+		anim = "attack"
+		strike = 0.16
+	rig.play_action(anim)
 	_show_tool(tool_id, 0.8)
 	var res: Dictionary = world.resources.hit(node_id, str(tool_type) if tool_id != "" else "", power, tier, global_position)
 	if not res.ok:
@@ -355,10 +415,23 @@ func _gather(node_id: int) -> void:
 			AudioManager.play_ui("ui/error")
 		interact_held = false
 		return
-	AudioManager.play_at(str(nd.get("sound", "gather/pickup")), rec.pos + Vector3.UP, -2.0)
-	world.spawn_hit_effect(rec.pos + Vector3(0, minf(float(nd.get("height", 1.0)) * 0.4, 1.4), 0), str(rec.type))
-	if res.depleted and nd.has("break_sound"):
-		AudioManager.play_at(str(nd.break_sound), rec.pos, 0.0)
+	# El golpe se ve y se oye cuando la herramienta llega al recurso.
+	var hit_pos: Vector3 = rec.pos + Vector3(0, minf(float(nd.get("height", 1.0)) * 0.4, 1.4), 0)
+	var node_type := str(rec.type)
+	var depleted: bool = res.depleted
+	get_tree().create_timer(strike).timeout.connect(func():
+		if not is_instance_valid(world):
+			return
+		AudioManager.play_at(str(nd.get("sound", "gather/pickup")), hit_pos, -2.0)
+		world.spawn_hit_effect(hit_pos, node_type)
+		if str(tool_type) == "spear":
+			world.effects.splash(Vector3(hit_pos.x, 0.02, hit_pos.z), 0.8)
+		if depleted:
+			world.effects.burst(hit_pos, WorldEffects.COLORS.get(node_type, Color(0.6, 0.55, 0.45)), 16, 4.5, 0.9, 1.5)
+			if nd.has("break_sound"):
+				AudioManager.play_at(str(nd.break_sound), hit_pos, 0.0)
+		if anim != "gather":
+			_shake = maxf(_shake, 0.12))
 	if slot >= 0 and tool_id != "":
 		if GameState.inventory.wear(slot, 1):
 			EventBus.notify("¡Tu %s se ha roto!" % GameData.item_name(tool_id), "bad")
@@ -372,8 +445,9 @@ func _gather(node_id: int) -> void:
 			text_parts.append("+%d %s" % [got, GameData.item_name(item_id)])
 			GameState.count_stat("gathered", item_id, got)
 			EventBus.item_gathered.emit(item_id, got)
+			EventBus.item_collected_at.emit(item_id, got, rec.pos + Vector3.UP * 1.2)
 		if left > 0:
-			world.spawn_drop(item_id, left, global_position + forward_dir() * 0.8)
+			world.spawn_drop(item_id, left, global_position + forward_dir() * 0.8, true, true)
 			EventBus.notify("Inventario lleno: deposita recursos en el almacén.", "warn")
 	if not text_parts.is_empty():
 		EventBus.floating_text.emit(rec.pos + Vector3(0, 1.8, 0), "  ".join(text_parts), Color(1, 0.95, 0.6))
@@ -423,8 +497,11 @@ func eat_slot(index: int) -> bool:
 	survival.consume(food)
 	var is_drink := float(it.food.get("thirst", 0)) > float(it.food.get("hunger", 0))
 	AudioManager.play_at("survival/drink" if is_drink else "survival/eat", global_position)
+	rig.play_action("eat")
+	_show_held_item(id, 0.9)
 	if float(it.food.get("health", 0)) > 10.0:
 		AudioManager.play("survival/heal", -6.0)
+		world.effects.sparkle(global_position + Vector3.UP * 1.0, Color(0.5, 1.0, 0.5), 12)
 	EventBus.item_consumed.emit(id)
 	EventBus.player_ate.emit(id)
 	GameState.add_stat("eaten")
@@ -471,6 +548,11 @@ func _find_target() -> Dictionary:
 	# Mochila perdida.
 	if world.backpack_near(pos, 2.5):
 		return {"kind": "backpack", "label": "Recuperar mochila", "icon": "icon_hand", "pos": pos}
+	# Tesoros en la orilla.
+	if world.treasures:
+		var ti: int = world.treasures.nearest(pos, 2.4)
+		if ti >= 0:
+			return {"kind": "treasure", "id": ti, "label": world.treasures.label_for(ti), "icon": "icon_hand", "pos": world.treasures.position_of(ti)}
 	# Puntos de interés (cofres, puente, derrumbe...).
 	var poi: Dictionary = world.poi_near(pos, 3.2)
 	if not poi.is_empty():
@@ -509,6 +591,86 @@ func _find_target() -> Dictionary:
 					break
 			return {"kind": "water", "label": "Recoger agua" if has_container else "Beber agua", "icon": "icon_hand", "pos": wp}
 	return {}
+
+
+# ------------------------------------------------------------------ animación y efectos
+## Aterrizajes: aplastamiento proporcional a la caída, polvo y sonido.
+func _update_air(delta: float, in_water: bool) -> void:
+	var ground: float = world.height_at(global_position.x, global_position.z)
+	var on_floor := is_on_floor()
+	rig.airborne = not on_floor and global_position.y - ground > 0.3
+	rig.vertical_speed = velocity.y
+	if not on_floor:
+		_air_time += delta
+		_min_vy = minf(_min_vy, velocity.y)
+		return
+	if _air_time > 0.15:
+		var fall := -_min_vy
+		rig.land(clampf(fall / 12.0, 0.15, 1.0))
+		if not in_water and fall > 4.0:
+			var surf: String = world.surface_at(global_position)
+			world.effects.footstep_dust(global_position, _dust_color(surf), 4 + int(fall))
+			AudioManager.play_at({"sand": "footsteps/sand", "stone": "footsteps/stone", "wood": "footsteps/wood"}.get(surf, "footsteps/grass"), global_position, -3.0)
+			if fall > 9.0:
+				_shake = maxf(_shake, 0.3)
+				world.effects.ring(global_position, Color(0.9, 0.85, 0.7, 0.6), 1.6, 0.4)
+	_air_time = 0.0
+	_min_vy = 0.0
+
+
+func _dust_color(surf: String) -> Color:
+	match surf:
+		"sand":
+			return Color(0.93, 0.86, 0.66)
+		"stone":
+			return Color(0.7, 0.68, 0.66)
+		"grass":
+			return Color(0.66, 0.72, 0.5)
+	return Color(0.75, 0.66, 0.52)
+
+
+## Celebra (subida de nivel, objetivo cumplido) si no está ocupado.
+func _cheer() -> void:
+	if dead or world == null:
+		return
+	world.effects.celebrate(global_position)
+	if not rig.is_acting() and _dodge_t <= 0.0:
+		rig.play_action("cheer")
+
+
+## Martillea al construir, mejorar o reparar un edificio cercano.
+func _hammer_at(uid: int) -> void:
+	if dead or world == null:
+		return
+	var rec := Economy.get_building(uid)
+	if rec.is_empty():
+		return
+	var bpos := Vector3(rec.pos[0], rec.pos[1], rec.pos[2])
+	if bpos.distance_to(global_position) > 14.0:
+		return
+	_face_point(bpos, 1.0)
+	_show_tool("martillo" if GameState.inventory.count("martillo") > 0 else "", 1.0)
+	rig.play_action("hammer", 0.9)
+
+
+## Muestra un objeto (comida) en la mano durante un momento.
+func _show_held_item(item_id: String, seconds: float) -> void:
+	if _tool_mesh == null:
+		return
+	var it := GameData.item(item_id)
+	var model: String = it.get("drop_model", it.get("icon_model", ""))
+	if model == "":
+		return
+	var tint := Color.WHITE
+	if it.has("icon_tint"):
+		tint = Color(it.icon_tint[0], it.icon_tint[1], it.icon_tint[2])
+	_tool_mesh.mesh = ModelLibrary.tinted_mesh(model, tint)
+	var size := maxf(ModelLibrary.aabb(model).get_longest_axis_size(), 0.05)
+	var sc := 0.22 / size
+	_tool_mesh.transform = Transform3D(Basis().scaled(Vector3(sc, sc, sc)), Vector3(0.0, -0.02, -0.04))
+	_tool_mesh.visible = true
+	_tool_shown_id = "@" + item_id
+	_tool_show_t = seconds
 
 
 # ------------------------------------------------------------------ herramienta en mano
@@ -553,6 +715,9 @@ func take_damage(amount: float, from_pos: Vector3, source: String = "") -> void:
 	_iframes = GameData.bf("player.iframes_hit", 0.7)
 	survival.damage(amount)
 	rig.flash()
+	if not rig.is_rolling():
+		rig.play_action("flinch")
+	world.effects.impact(global_position + Vector3.UP * 1.1, Color(1.0, 0.45, 0.35))
 	_shake = 0.6
 	var away := global_position - from_pos
 	away.y = 0.0

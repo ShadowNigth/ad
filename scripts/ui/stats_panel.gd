@@ -56,6 +56,11 @@ func _resources() -> void:
 	var prod: Dictionary = r.production
 	var cons: Dictionary = r.consumption
 	content.add_child(UITheme.label("Capacidad del almacén: %d por recurso · Energía: %s / %s (%d%%)" % [Economy.capacity(), UITheme.fmt_num(Economy.energy_supply), UITheme.fmt_num(Economy.energy_demand), int(Economy.energy_ratio * 100.0)], 18, UITheme.BROWN, true))
+	var bonus := Economy.beauty_bonus()
+	content.add_child(UITheme.label("Belleza de la base: %s puntos · Ánimo de los trabajadores: +%d %% de producción (máx. +%d %%)" % [
+		str(snappedf(Economy.beauty(), 0.5)).trim_suffix(".0"), int(round(bonus * 100.0)), int(round(GameData.bf("economy.beauty_bonus_max", 0.1) * 100.0))], 17, UITheme.GOOD if bonus > 0.0 else UITheme.BROWN_LIGHT))
+	if GameState.is_raining():
+		content.add_child(UITheme.label("Está lloviendo: los huertos crecen un %d %% más rápido." % int(round((GameData.bf("weather.rain_crop_speed_mult", 1.25) - 1.0) * 100.0)), 17, UITheme.GOOD))
 	var widths := [44, 210, 130, 130, 130, 170]
 	content.add_child(_row(["", "Recurso", "Produce/min", "Consume/min", "Neto/min", "En almacén"], widths, UITheme.BROWN_LIGHT, true))
 	var ids := {}

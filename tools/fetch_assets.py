@@ -245,7 +245,7 @@ for n in ("Night at the Beach", "Farm Frolics", "Flowing Rocks", "Infinite Desce
     AUDIO_FILES.append(("token", K + "Music Loops/Loops/" + n + ".ogg", "kenney/Music Loops/" + n + ".ogg"))
 
 # Grabaciones de campo CC0 (Freesound) ya preparadas como bucles.
-for n in ("birds", "crickets", "waves", "stream", "wind"):
+for n in ("birds", "crickets", "waves", "stream", "wind", "storm"):
     AUDIO_FILES.append(("omarchy", "sounds/" + n + ".ogg", "omarchy/" + n + ".ogg"))
 AUDIO_FILES.append(("omarchy", "CREDITS.md", "omarchy/CREDITS.md"))
 

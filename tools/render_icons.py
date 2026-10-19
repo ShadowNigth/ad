@@ -224,12 +224,16 @@ def main() -> None:
     ap.add_argument("--pitch", type=float, default=28.0)
     ap.add_argument("--out", default="/tmp/previews")
     ap.add_argument("--buildings", action="store_true", help="genera miniaturas de edificios")
+    ap.add_argument("--only", default="", help="ids separados por comas (solo esos edificios/objetos)")
     args = ap.parse_args()
+    only = {x.strip() for x in args.only.split(",") if x.strip()}
     if args.buildings:
         data = json.load(open(os.path.join(ROOT, "data", "buildings", "buildings.json"), encoding="utf-8"))["buildings"]
         out_dir = os.path.join(ROOT, "assets", "icons", "buildings")
         os.makedirs(out_dir, exist_ok=True)
         for b in data:
+            if only and b["id"] not in only:
+                continue
             levels = b["levels"]
             parts = levels[-1]["models"] if b["id"] in ("refugio",) else levels[0]["models"]
             parts = list(parts)
@@ -237,7 +241,7 @@ def main() -> None:
                 parts.append(levels[0]["spinner"])
             im = render(parts, 192, 35.0, 30.0, outline=True, margin=0.06)
             im.save(os.path.join(out_dir, b["id"] + ".png"), optimize=True)
-        print(f"{len(data)} miniaturas en {out_dir}")
+        print(f"{len([b for b in data if not only or b['id'] in only])} miniaturas en {out_dir}")
         return
     if args.preview:
         os.makedirs(args.out, exist_ok=True)

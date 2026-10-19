@@ -71,6 +71,13 @@ func refresh() -> void:
 		extras.append("Luz: %.0f m" % float(lvl.light))
 	if lvl.has("tower_range"):
 		extras.append("Defensa: %d daño, %.0f m" % [int(lvl.tower_damage), float(lvl.tower_range)])
+	var beauty := float(lvl.get("beauty", bd.get("beauty", 0.0)))
+	if beauty > 0.0:
+		extras.append("Belleza +%s (base: +%d %% producción)" % [str(snappedf(beauty, 0.5)).trim_suffix(".0"), int(round(Economy.beauty_bonus() * 100.0))])
+	if float(bd.get("move_bonus", 0.0)) > 0.0:
+		extras.append("+%d %% velocidad al caminar" % int(round(float(bd.move_bonus) * 100.0)))
+	if bool(bd.get("rain_bonus", false)):
+		extras.append("Crece +%d %% más rápido con lluvia" % int(round((GameData.bf("weather.rain_crop_speed_mult", 1.25) - 1.0) * 100.0)))
 	if not extras.is_empty():
 		tv.add_child(UITheme.label(" · ".join(extras), 16, UITheme.BROWN_LIGHT))
 	_special_actions(rec, bd)

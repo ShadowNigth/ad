@@ -41,6 +41,15 @@ var _danger := false
 var _low_health := false
 var _update_t := 0.0
 var _quest_flash := 0.0
+var _quest_target := 0.0
+var _banner_layer: Control
+var _banner_queue: Array = []
+var _banner_busy := false
+var _fly_layer: Control
+var _flyers := 0
+var _time := 0.0
+var _last_target_key := ""
+var weather_label: Label
 
 const RES_SHOWN := ["madera", "piedra", "fibra", "tablas", "lingote_hierro"]
 
@@ -96,6 +105,11 @@ func _build() -> void:
 	float_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	float_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(float_layer)
+	_banner_layer = Control.new()
+	_banner_layer.name = "Rotulos"
+	_banner_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_banner_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_banner_layer)
 	_build_status()
 	_build_top()
 	_build_quest()
@@ -103,6 +117,11 @@ func _build() -> void:
 	_build_build_controls()
 	_build_toasts()
 	_build_boss()
+	_fly_layer = Control.new()
+	_fly_layer.name = "Recogidas"
+	_fly_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fly_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_fly_layer)
 	_build_panels()
 
 
@@ -150,7 +169,8 @@ func _build_status() -> void:
 		l.custom_minimum_size = Vector2(36, 0)
 		hb.add_child(l)
 		vb.add_child(hb)
-		bars[d[0]] = {"bar": pb, "label": l, "icon": ic}
+		ic.pivot_offset = Vector2(15, 15)
+		bars[d[0]] = {"bar": pb, "label": l, "icon": ic, "target": 1.0}
 
 
 func _build_top() -> void:
@@ -173,6 +193,11 @@ func _build_top() -> void:
 	age_label = UITheme.hud_label("Edad primitiva", 15)
 	age_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cvb.add_child(age_label)
+	weather_label = UITheme.hud_label("", 14)
+	weather_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	weather_label.add_theme_color_override("font_color", Color(0.75, 0.88, 1.0))
+	weather_label.visible = false
+	cvb.add_child(weather_label)
 	# Menú (derecha superior).
 	var menu := HBoxContainer.new()
 	menu.anchor_left = 1.0
@@ -215,6 +240,7 @@ func _build_top() -> void:
 		hb.tooltip_text = GameData.item_name(id)
 		info.add_child(hb)
 		res_labels[id] = {"label": l, "box": hb}
+		hb.resized.connect(func(): hb.pivot_offset = hb.size * 0.5)
 	var lv := VBoxContainer.new()
 	lv.add_theme_constant_override("separation", 0)
 	level_label = UITheme.hud_label("Nivel 1", 17)
@@ -443,7 +469,11 @@ func _connect() -> void:
 	EventBus.player_damaged.connect(func(_a, _s): _pulse_vignette())
 	EventBus.danger_nearby.connect(func(a): _danger = a)
 	EventBus.game_saved.connect(_on_saved)
-	EventBus.region_unlocked.connect(func(_r): AudioManager.play("events/achievement"))
+	EventBus.region_unlocked.connect(_on_region)
+	EventBus.banner.connect(banner)
+	EventBus.item_collected_at.connect(_fly_item)
+	EventBus.weather_changed.connect(func(_s): _refresh_clock())
+	EventBus.enemy_killed.connect(_on_enemy_killed)
 	EventBus.settings_changed.connect(func(): fps_label.visible = bool(Settings.get_value("show_fps")))
 	player.target_changed.connect(_on_target)
 	world.build_mode.validity_changed.connect(func(ok, reason):
@@ -465,7 +495,7 @@ func _refresh_bars() -> void:
 	var sv := player.survival
 	for key in bars:
 		var b: Dictionary = bars[key]
-		(b.bar as ProgressBar).value = sv.ratio(key)
+		b.target = sv.ratio(key)
 		(b.label as Label).text = str(int(round(sv.s(key))))
 	_low_health = sv.ratio("health") < 0.3
 
@@ -495,7 +525,7 @@ func _refresh_quest() -> void:
 	quest_desc.text = q.desc
 	var v := mini(Quests.current_value(), Quests.target_value())
 	quest_count.text = "%d/%d" % [v, Quests.target_value()]
-	quest_bar.value = float(v) / maxf(float(Quests.target_value()), 1.0)
+	_quest_target = float(v) / maxf(float(Quests.target_value()), 1.0)
 
 
 func _refresh_clock() -> void:
@@ -505,12 +535,16 @@ func _refresh_clock() -> void:
 	clock_label.text = "Día %d · %02d:%02d" % [GameState.day, h, m]
 	clock_label.add_theme_color_override("font_color", Color(0.7, 0.82, 1.0) if night else Color(1.0, 0.96, 0.78))
 	age_label.text = TechTree.age_name()
+	var wlabel: String = world.weather.label() if world.weather else ""
+	weather_label.visible = wlabel != "" and wlabel != "Despejado"
+	weather_label.text = wlabel
 
 
 func _on_level_up(level: int) -> void:
 	AudioManager.play("events/level_up")
-	toast("¡Nivel %d! +%d puntos de tecnología" % [level, int(GameData.b("progression.tech_points_per_level", 2))], "good")
+	banner("¡Nivel %d!" % level, "+%d puntos de tecnología" % int(GameData.b("progression.tech_points_per_level", 2)), "level")
 	_refresh_level()
+	_pulse(level_label, 1.35)
 
 
 func _on_quest_completed(qid: String) -> void:
@@ -519,7 +553,7 @@ func _on_quest_completed(qid: String) -> void:
 		if x.id == qid:
 			q = x
 	AudioManager.play("events/jingle_%02d" % (randi() % 17), -2.0)
-	toast("Objetivo completado: %s (%s)" % [q.get("title", ""), Quests.reward_text(q)], "good")
+	banner("¡Objetivo cumplido!", "%s · %s" % [q.get("title", ""), Quests.reward_text(q)], "quest")
 	_quest_flash = 1.0
 	_refresh_quest()
 
@@ -531,8 +565,20 @@ func _on_tech(tech_id: String) -> void:
 
 func _on_age(age: int) -> void:
 	AudioManager.play("events/unlock")
-	toast("¡Nueva era: %s!" % GameData.age_name(age), "good")
+	banner("¡Nueva era!", GameData.age_name(age), "age")
 	_refresh_clock()
+
+
+func _on_region(region_id: String) -> void:
+	AudioManager.play("events/achievement")
+	var reg_name: String = {"jungla": "La jungla", "cueva": "La cueva de cristal"}.get(region_id, region_id.capitalize())
+	banner("Nueva región", reg_name, "region")
+
+
+func _on_enemy_killed(enemy_type: String, _pos: Vector3) -> void:
+	var ed: Dictionary = GameData.enemies.get(enemy_type, {})
+	if bool(ed.get("boss", false)):
+		banner("¡Guardián derrotado!", str(ed.get("name", "")), "quest")
 
 
 func _on_build_mode(active: bool) -> void:
@@ -545,6 +591,10 @@ func _on_build_mode(active: bool) -> void:
 func _on_target(info: Dictionary) -> void:
 	var has := not info.is_empty()
 	interact_btn.modulate = Color(1, 1, 1, 1.0 if has else 0.55)
+	var key := "%s|%s|%s" % [info.get("kind", ""), info.get("id", ""), info.get("uid", "")]
+	if has and key != _last_target_key:
+		_pulse(interact_btn, 1.12)
+	_last_target_key = key
 	interact_label.text = str(info.get("label", ""))
 	var icon_name := str(info.get("icon", "icon_hand"))
 	interact_icon.texture = UITheme.ctrl(icon_name) if UITheme.ctrl(icon_name) else UITheme.ctrl("icon_hand")
@@ -646,11 +696,16 @@ func toast(text: String, kind: String = "info") -> void:
 	pc.add_child(l)
 	toast_box.add_child(pc)
 	pc.modulate = Color(1, 1, 1, 0)
+	pc.scale = Vector2(0.85, 0.6)
+	pc.resized.connect(func(): pc.pivot_offset = Vector2(pc.size.x * 0.5, 0.0))
 	var tw := pc.create_tween()
-	tw.tween_property(pc, "modulate:a", 1.0, 0.2)
-	tw.tween_interval(3.2 if kind != "bad" else 4.5)
-	tw.tween_property(pc, "modulate:a", 0.0, 0.5)
-	tw.tween_callback(pc.queue_free)
+	tw.set_parallel(true)
+	tw.tween_property(pc, "modulate:a", 1.0, 0.18)
+	tw.tween_property(pc, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_interval(3.2 if kind != "bad" else 4.5)
+	tw.chain().tween_property(pc, "modulate:a", 0.0, 0.45)
+	tw.parallel().tween_property(pc, "scale", Vector2(0.92, 0.92), 0.45)
+	tw.chain().tween_callback(pc.queue_free)
 	if kind == "warn" or kind == "bad":
 		AudioManager.play_ui("ui/question" if kind == "warn" else "ui/error", -8.0)
 
@@ -661,11 +716,13 @@ func floating_text(world_pos: Vector3, text: String, color: Color) -> void:
 	if _floats.size() > 14:
 		var old: Dictionary = _floats.pop_front()
 		(old.label as Node).queue_free()
-	var l := UITheme.hud_label(text, 20)
+	var big := text.begins_with("-") or text.is_valid_int()
+	var l := UITheme.hud_label(text, 26 if big else 20)
 	l.add_theme_color_override("font_color", color)
+	l.add_theme_constant_override("outline_size", 8)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	float_layer.add_child(l)
-	_floats.append({"label": l, "pos": world_pos, "t": 0.0})
+	_floats.append({"label": l, "pos": world_pos, "t": 0.0, "dx": randf_range(-18.0, 18.0)})
 
 
 func _process(delta: float) -> void:
@@ -680,14 +737,19 @@ func _process(delta: float) -> void:
 			l.queue_free()
 			_floats.remove_at(i)
 			continue
-		var p: Vector3 = f.pos + Vector3.UP * float(f.t) * 1.1
+		var ft := float(f.t)
+		var rise := 1.0 - pow(1.0 - clampf(ft / 1.4, 0.0, 1.0), 2.0)
+		var p: Vector3 = f.pos + Vector3.UP * rise * 1.4
 		if cam.is_position_behind(p):
 			l.visible = false
 			continue
 		l.visible = true
 		var sp := cam.unproject_position(p)
-		l.position = sp - l.size * 0.5
-		l.modulate.a = clampf(1.6 - float(f.t) * 1.2, 0.0, 1.0)
+		l.pivot_offset = l.size * 0.5
+		var pop := 1.0 + 0.55 * (1.0 - clampf(ft / 0.16, 0.0, 1.0))
+		l.scale = Vector2.ONE * pop
+		l.position = sp - l.size * 0.5 + Vector2(float(f.dx) * rise, 0.0)
+		l.modulate.a = clampf(1.6 - ft * 1.2, 0.0, 1.0)
 	_update_t -= delta
 	if _update_t <= 0.0:
 		_update_t = 0.25
@@ -713,7 +775,144 @@ func _process(delta: float) -> void:
 	if _quest_flash > 0.0:
 		_quest_flash = maxf(_quest_flash - delta, 0.0)
 		quest_box.modulate = Color(1, 1, 1).lerp(Color(1.6, 1.5, 0.8), _quest_flash)
+	_time += delta
+	_animate_bars(delta)
+	quest_bar.value = lerpf(quest_bar.value, _quest_target, clampf(delta * 6.0, 0.0, 1.0)) if absf(quest_bar.value - _quest_target) > 0.002 else _quest_target
 	var inputs_blocked := any_panel_open()
 	joystick.visible = not inputs_blocked
 	if inputs_blocked:
 		player.set_touch_move(Vector2.ZERO, false)
+
+
+# ------------------------------------------------------------------ animaciones de la interfaz
+## Las barras se deslizan hacia su valor y laten cuando un recurso vital es bajo.
+func _animate_bars(delta: float) -> void:
+	for key in bars:
+		var b: Dictionary = bars[key]
+		var bar: ProgressBar = b.bar
+		var target: float = b.target
+		if absf(bar.value - target) > 0.001:
+			bar.value = lerpf(bar.value, target, clampf(delta * (12.0 if target > bar.value else 7.0), 0.0, 1.0))
+		var ic: TextureRect = b.icon
+		var low: bool = key != "stamina" and target < 0.25 and not player.dead
+		if low:
+			var k := absf(sin(_time * 5.0))
+			ic.scale = Vector2.ONE * (1.0 + 0.2 * k)
+			bar.modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.5, 0.75, 0.7), k)
+		elif ic.scale != Vector2.ONE:
+			ic.scale = Vector2.ONE
+			bar.modulate = Color.WHITE
+
+
+## Pequeño rebote de escala en un control.
+func _pulse(c: Control, amount: float = 1.25) -> void:
+	if c == null or not c.is_inside_tree():
+		return
+	c.pivot_offset = c.size * 0.5
+	var tw := c.create_tween()
+	tw.tween_property(c, "scale", Vector2.ONE * amount, 0.08)
+	tw.tween_property(c, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Rótulo grande en el centro (subida de nivel, objetivos, nueva era, noche...).
+func banner(title_text: String, subtitle: String = "", kind: String = "info") -> void:
+	if _banner_layer == null:
+		return
+	_banner_queue.append([title_text, subtitle, kind])
+	if _banner_queue.size() > 4:
+		_banner_queue.pop_front()
+	if not _banner_busy:
+		_next_banner()
+
+
+func _next_banner() -> void:
+	if _banner_queue.is_empty():
+		_banner_busy = false
+		return
+	_banner_busy = true
+	var e: Array = _banner_queue.pop_front()
+	var kind: String = e[2]
+	var accent: Color = {"level": Color(1.0, 0.82, 0.3), "quest": Color(0.6, 1.0, 0.5), "age": Color(1.0, 0.65, 0.3),
+		"region": Color(0.5, 0.85, 1.0), "night": Color(0.65, 0.72, 1.0), "day": Color(1.0, 0.9, 0.6)}.get(kind, Color(1.0, 0.95, 0.8))
+	var box := PanelContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_stylebox_override("panel", UITheme.flat(Color(0.08, 0.05, 0.03, 0.72), 18, Color(accent, 0.85), 3))
+	var vb := VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 0)
+	box.add_child(vb)
+	var t := UITheme.hud_label(str(e[0]), 46 if kind in ["level", "quest", "age"] else 38)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_color_override("font_color", accent)
+	t.add_theme_constant_override("outline_size", 12)
+	vb.add_child(t)
+	if str(e[1]) != "":
+		var st := UITheme.hud_label(str(e[1]), 20)
+		st.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		st.custom_minimum_size = Vector2(420, 0)
+		vb.add_child(st)
+	# Centrado horizontal automático; el rebote usa el centro de la caja.
+	var holder := CenterContainer.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.anchor_left = 0.0
+	holder.anchor_right = 1.0
+	holder.anchor_top = 0.22
+	holder.anchor_bottom = 0.22
+	holder.offset_bottom = 150.0
+	_banner_layer.add_child(holder)
+	holder.add_child(box)
+	box.resized.connect(func(): box.pivot_offset = box.size * 0.5)
+	box.scale = Vector2(0.6, 0.6)
+	holder.modulate = Color(1, 1, 1, 0)
+	var hold := 2.2 if kind in ["level", "quest", "age", "region"] else 1.6
+	var tw := holder.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(holder, "modulate:a", 1.0, 0.2)
+	tw.tween_property(box, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_interval(hold)
+	tw.chain().tween_property(holder, "modulate:a", 0.0, 0.4)
+	tw.parallel().tween_property(holder, "offset_top", -24.0, 0.4)
+	tw.parallel().tween_property(holder, "offset_bottom", 126.0, 0.4)
+	tw.chain().tween_callback(func():
+		holder.queue_free()
+		_next_banner())
+
+
+## Icono del objeto que vuela desde el mundo hasta su contador (o la mochila).
+func _fly_item(item_id: String, amount: int, world_pos: Vector3) -> void:
+	if _fly_layer == null or _flyers >= 8 or amount <= 0:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or cam.is_position_behind(world_pos):
+		return
+	var start := cam.unproject_position(world_pos)
+	var target_ctrl: Control = null
+	if res_labels.has(item_id) and (res_labels[item_id].box as Control).is_visible_in_tree():
+		target_ctrl = res_labels[item_id].box
+	else:
+		target_ctrl = root.find_child("Btn_inventory", true, false) as Control
+	if target_ctrl == null:
+		return
+	var end := target_ctrl.get_global_rect().get_center()
+	var ic := TextureRect.new()
+	ic.texture = GameData.item_icon(item_id)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size = Vector2(40, 40)
+	ic.pivot_offset = Vector2(20, 20)
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ic.position = start - ic.size * 0.5
+	_fly_layer.add_child(ic)
+	_flyers += 1
+	var ctrl_pt := Vector2(lerpf(start.x, end.x, 0.3), minf(start.y, end.y) - 80.0)
+	var tw := ic.create_tween()
+	tw.tween_method(func(k: float):
+		var a := start.lerp(ctrl_pt, k)
+		var b := ctrl_pt.lerp(end, k)
+		ic.position = a.lerp(b, k) - ic.size * 0.5
+		ic.scale = Vector2.ONE * lerpf(1.25, 0.7, k), 0.0, 1.0, 0.55).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(func():
+		_flyers -= 1
+		ic.queue_free()
+		_pulse(target_ctrl, 1.25))

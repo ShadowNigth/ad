@@ -74,6 +74,9 @@ func setup(w: World, t: String, pos: Vector3, poi_id: String = "") -> void:
 	_hp_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_hp_bar)
 	rig.walk_rate = 1.8
+	rig.spawn_in()
+	if str(data.get("time", "")) == "night" and w.effects:
+		w.effects.poof(pos + Vector3.UP * 0.6, Color(0.45, 0.3, 0.65), 12, 1.2, 1.1, 0.8)
 	_pick_wander()
 	add_to_group("enemies")
 
@@ -232,9 +235,13 @@ func _think() -> void:
 		detect *= 1.2
 	if p and p.resting and world.is_lit(p.global_position, 0.0):
 		detect *= 0.3
+	var was_chasing := state in [State.CHASE, State.ATTACK]
+	var was_fleeing := state == State.FLEE
 	match behavior:
 		"flee":
 			if dist < detect or _aggro:
+				if not was_fleeing:
+					world.effects.alert_mark(self, rig.world_height(), "!", Color(1.0, 1.0, 1.0))
 				state = State.FLEE
 				if dist > detect * 2.5:
 					_aggro = false
@@ -266,6 +273,7 @@ func _think() -> void:
 				_aggro = false
 				state = State.WANDER
 				_pick_wander()
+				world.effects.alert_mark(self, rig.world_height(), "?", Color(0.85, 0.85, 0.9))
 			elif state == State.IDLE and _state_t > _rng.randf_range(1.5, 4.0):
 				# De noche, algunas criaturas atacan edificios si no hay nadie cerca.
 				if data.get("building_damage", 0) > 0 and world.day_night.is_night() and _rng.randf() < GameData.bf("night.building_attack_chance", 0.35):
@@ -285,8 +293,12 @@ func _think() -> void:
 					var fp := float(GameData.building(brec.type).get("footprint", 1.5))
 					if global_position.distance_to(bpos) < fp + 1.4 and _attack_cd <= 0.0:
 						_attack_cd = float(data.get("attack_cooldown", 1.5)) * 1.5
-						rig.play_attack()
+						rig.play_action("lunge")
 						Economy.damage_building(_target_building, float(data.get("building_damage", 5)))
+	if not was_chasing and state in [State.CHASE, State.ATTACK]:
+		world.effects.alert_mark(self, rig.world_height(), "!", Color(1.0, 0.35, 0.2) if is_hostile() else Color(1.0, 0.85, 0.3))
+		if data.get("sounds", {}).has("idle"):
+			AudioManager.play_at(str(data.sounds.idle), global_position, -3.0)
 	if _idle_sound_t <= 0.0 and dist < 22.0 and data.get("sounds", {}).has("idle"):
 		_idle_sound_t = _rng.randf_range(5.0, 11.0)
 		AudioManager.play_at(str(data.sounds.idle), global_position, -6.0)
@@ -300,9 +312,12 @@ func _set_chase_or_attack(dist: float) -> void:
 	if dist <= reach:
 		state = State.ATTACK
 		if _attack_cd <= 0.0 and _attack_windup < 0.0:
-			_attack_windup = 0.38
+			# Amago visible (se echa atrás y parpadea en naranja) antes de golpear.
+			var windup := float(data.get("windup", GameData.bf("combat.enemy_windup", 0.45)))
+			_attack_windup = windup
 			_attack_cd = float(data.get("attack_cooldown", 1.4))
-			rig.play_attack()
+			rig.play_action("windup", windup)
+			rig.telegraph(windup)
 			if data.get("sounds", {}).has("attack"):
 				AudioManager.play_at(str(data.sounds.attack), global_position, -2.0)
 	else:
@@ -313,8 +328,13 @@ func _set_chase_or_attack(dist: float) -> void:
 
 func _resolve_attack() -> void:
 	var p := _player()
+	rig.play_action("lunge")
 	if p == null or p.dead:
 		return
+	var to := p.global_position - global_position
+	to.y = 0.0
+	if to.length() > 0.05:
+		_knock = to.normalized() * GameData.bf("combat.lunge_speed", 4.0)
 	var reach := float(data.get("attack_range", 1.4)) + float(data.get("radius", 0.4)) + 0.5
 	if global_position.distance_to(p.global_position) <= reach:
 		p.take_damage(float(data.get("damage", 5)), global_position, type_id)
@@ -339,7 +359,15 @@ func take_damage(amount: float, from_pos: Vector3) -> void:
 		return
 	hp -= amount
 	rig.flash()
+	rig.freeze(GameData.bf("combat.hit_freeze", 0.07))
 	_aggro = true
+	# Golpearle durante el amago le interrumpe (salvo a los guardianes).
+	if _attack_windup >= 0.0 and not is_boss() and hp > 0.0:
+		_attack_windup = -1.0
+		rig.telegraph(0.0)
+		rig.play_action("flinch")
+	elif hp > 0.0 and not rig.is_acting():
+		rig.play_action("flinch")
 	var away := global_position - from_pos
 	away.y = 0.0
 	if away.length() > 0.01:
@@ -347,7 +375,7 @@ func take_damage(amount: float, from_pos: Vector3) -> void:
 	_hp_bar.visible = true
 	_hp_mat.set_shader_parameter("progress", clampf(hp / max_hp, 0.0, 1.0))
 	EventBus.floating_text.emit(global_position + Vector3.UP * (rig.world_height() + 0.6), str(int(round(amount))), Color(1.0, 0.85, 0.3))
-	world.effects.burst(global_position + Vector3.UP * rig.world_height() * 0.5, Color(0.9, 0.85, 0.8), 6, 3.0, 0.4, 0.6)
+	world.effects.impact(global_position + Vector3.UP * rig.world_height() * 0.55)
 	var snd: String = data.get("sounds", {}).get("hurt", "combat/soft_hit")
 	AudioManager.play_at(snd, global_position)
 	AudioManager.play_at("combat/hit_flesh", global_position, -6.0)
@@ -379,7 +407,15 @@ func _die() -> void:
 		GameState.guardians_defeated[type_id] = GameState.now() + float(data.get("respawn", 1800.0))
 		EventBus.notify("¡Has derrotado a %s!" % data.get("name", type_id), "good")
 		AudioManager.play("events/stinger_victory", -3.0)
-	get_tree().create_timer(1.6).timeout.connect(queue_free)
+	var fx: WorldEffects = world.effects
+	var at := global_position
+	get_tree().create_timer(0.45).timeout.connect(func():
+		if is_instance_valid(fx):
+			fx.poof(at + Vector3.UP * 0.3, Color(0.85, 0.82, 0.76), 10, 1.0 + rig.world_height() * 0.3, 1.0, 0.5))
+	var tw := create_tween()
+	tw.tween_interval(1.15)
+	tw.tween_property(rig, "scale", Vector3.ONE * 0.05, 0.4).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+	tw.tween_callback(queue_free)
 
 
 ## Desaparece con un destello (al amanecer para las criaturas nocturnas).
@@ -389,6 +425,7 @@ func vanish() -> void:
 	state = State.DEAD
 	collision_layer = 0
 	world.effects.burst(global_position + Vector3.UP, Color(0.7, 0.5, 1.0), 12, 2.5, 0.8, 0.8, -1.0)
+	world.effects.poof(global_position + Vector3.UP * 0.6, Color(0.6, 0.45, 0.85), 12, 1.2, 1.2, 0.8)
 	var tw := create_tween()
 	tw.tween_property(rig, "scale", Vector3.ONE * 0.01, 0.6)
 	tw.tween_callback(queue_free)
