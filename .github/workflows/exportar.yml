@@ -1,0 +1,233 @@
+# Prueba y exporta «Isla Salvaje» con el Godot OFICIAL y sus plantillas.
+#
+# - En cada push: importa el proyecto, ejecuta las pruebas automáticas (editor y
+#   build exportada) y genera APK de Android + Linux + Windows como artefactos.
+# - Al publicar una release en GitHub: hace lo mismo y adjunta los archivos a
+#   esa release para que se puedan descargar.
+# - Manual (workflow_dispatch): igual que un push; si se indica una etiqueta de
+#   release existente, sube los archivos a ella.
+#
+# Firma del APK: si existen los secretos ANDROID_KEYSTORE_BASE64,
+# ANDROID_KEYSTORE_PASSWORD y ANDROID_KEY_ALIAS se usa esa clave privada; si no,
+# la clave pública de tools/android (ver tools/android/LEEME.md).
+name: Exportar juego
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Etiqueta de una release existente donde subir los archivos (vacío = sólo artefactos)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exportar-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_STATUS: "stable"
+  GAME: "IslaSalvaje"
+
+jobs:
+  exportar:
+    name: Pruebas y exportación (Android, Linux, Windows)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Calcular la versión
+        id: ver
+        env:
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          BASE="$(sed -n 's/^config\/version="\(.*\)"$/\1/p' project.godot)"
+          TAG=""
+          if [ "$EVENT" = "release" ]; then TAG="$RELEASE_TAG"; elif [ -n "${INPUT_TAG:-}" ]; then TAG="$INPUT_TAG"; fi
+          if [ -n "$TAG" ]; then VERSION="${TAG#v}"; else VERSION="${BASE}-dev.${GITHUB_RUN_NUMBER}"; fi
+          CORE="${VERSION%%-*}"
+          if ! [[ "$CORE" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]]; then echo "::error::Versión no válida: $VERSION"; exit 1; fi
+          IFS=. read -r MA MI PA _ <<< "${CORE}.0.0"
+          CODE=$(( 10#$MA * 10000 + 10#$MI * 100 + 10#$PA ))
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "core=$CORE"
+            echo "code=$CODE"
+          } >> "$GITHUB_OUTPUT"
+          echo "Versión $VERSION · núcleo $CORE · código Android $CODE · release '${TAG}'"
+
+      - name: Aplicar la versión al proyecto (sólo en esta compilación)
+        env:
+          CORE: ${{ steps.ver.outputs.core }}
+          CODE: ${{ steps.ver.outputs.code }}
+        run: |
+          sed -i "s/^config\/version=.*/config\/version=\"${CORE}\"/" project.godot
+          sed -i "s/^version\/code=.*/version\/code=${CODE}/" export_presets.cfg
+          grep -n '^config/version' project.godot
+          grep -n '^version/code' export_presets.cfg
+
+      - name: Java 17 (para apksigner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Caché de Godot y plantillas
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot-dl
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}-linux-android-windows-v1
+
+      - name: Descargar Godot y plantillas de exportación oficiales
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot-dl/templates && cd ~/godot-dl
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}"
+          curl -fsSL --retry 4 -o godot.zip "$URL/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          curl -fsSL --retry 4 -o templates.tpz "$URL/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
+          chmod +x godot
+          unzip -l templates.tpz | awk '{print $4}' | grep '^templates/' | sort
+          unzip -q -j templates.tpz templates/version.txt templates/linux_release.x86_64 \
+            templates/windows_release_x86_64.exe templates/android_release.apk -d templates
+          unzip -q -j templates.tpz 'templates/*x86_64*.dll' -d templates || echo "(sin DLL adicionales para Windows)"
+          rm -f godot.zip templates.tpz
+          ls -la templates
+
+      - name: Instalar Godot
+        run: |
+          TPL="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          mkdir -p "$TPL"
+          cp -a ~/godot-dl/templates/. "$TPL/"
+          sudo ln -sf ~/godot-dl/godot /usr/local/bin/godot
+          godot --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          ls "$ANDROID_HOME/build-tools"
+
+      - name: Importar el proyecto
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log | tail -n 30
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" import.log; then
+            echo "::warning::Mensajes de error de script durante la importación (las pruebas siguientes deciden)"
+          fi
+
+      - name: Pruebas automáticas en el editor oficial
+        run: |
+          godot --headless --path . tests/test_runner.tscn 2>&1 | tee pruebas_editor.log | grep -E "✘|RESULTADO|SCRIPT ERROR" || true
+          grep -q "RESULTADO: .* 0 fallidas" pruebas_editor.log
+          godot --headless --path . tests/main_flow.tscn 2>&1 | tee flujo_editor.log | tail -n 16
+          grep -q "RESULTADO FLUJO: OK" flujo_editor.log
+
+      - name: Exportar la build de pruebas y ejecutar las pruebas sobre ella
+        run: |
+          mkdir -p build/ci
+          godot --headless --path . --export-release "Linux (pruebas CI)" build/ci/${GAME}-pruebas.x86_64 2>&1 | tail -n 20
+          test -s build/ci/${GAME}-pruebas.x86_64
+          chmod +x build/ci/${GAME}-pruebas.x86_64
+          build/ci/${GAME}-pruebas.x86_64 --headless -- unitarias 2>&1 | tee pruebas_exportada.log | grep -E "✘|RESULTADO|SCRIPT ERROR|Build exportada" || true
+          grep -q "RESULTADO: .* 0 fallidas" pruebas_exportada.log
+          build/ci/${GAME}-pruebas.x86_64 --headless -- flujo 2>&1 | tee flujo_exportada.log | tail -n 16
+          grep -q "RESULTADO FLUJO: OK" flujo_exportada.log
+
+      - name: Preparar la firma de Android
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "${KS_B64}" ] && [ -n "${KS_PASS}" ] && [ -n "${KS_ALIAS}" ]; then
+            echo "${KS_B64}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$RUNNER_TEMP/release.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${KS_ALIAS}"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${KS_PASS}"
+            } >> "$GITHUB_ENV"
+            echo "Firma: clave privada de los secretos del repositorio."
+          else
+            {
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$GITHUB_WORKSPACE/tools/android/isla_salvaje_publica.keystore"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=islasalvaje"
+              echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=islasalvaje-publica"
+            } >> "$GITHUB_ENV"
+            echo "::notice::APK firmado con la clave pública de tools/android (ver tools/android/LEEME.md)."
+          fi
+
+      - name: Exportar Android, Linux y Windows
+        run: |
+          mkdir -p build/android build/linux build/windows
+          godot --headless --path . --export-release "Android" build/android/${GAME}.apk 2>&1 | tee export_android.log | tail -n 25
+          godot --headless --path . --export-release "Linux" build/linux/${GAME}.x86_64 2>&1 | tee export_linux.log | tail -n 10
+          godot --headless --path . --export-release "Windows" build/windows/${GAME}.exe 2>&1 | tee export_windows.log | tail -n 10
+          test -s build/android/${GAME}.apk
+          test -s build/linux/${GAME}.x86_64
+          test -s build/windows/${GAME}.exe
+          ls -la build/*
+
+      - name: Verificar el APK (firma, manifiesto y contenido)
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
+          "$BT/apksigner" verify --verbose --print-certs build/android/${GAME}.apk | grep -E "Verifies|Verified using|Signer #1 certificate (DN|SHA-256)"
+          "$BT/aapt2" dump badging build/android/${GAME}.apk | grep -E "^package:|application-label:|sdkVersion|native-code|launchable-activity" || true
+          unzip -l build/android/${GAME}.apk | grep -E "assets/.*\.pck|lib/.*\.so" || true
+
+      - name: Empaquetar los archivos de descarga
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p dist
+          cp build/android/${GAME}.apk "dist/${GAME}-v${VERSION}-android.apk"
+          for d in linux windows; do
+            mkdir -p "build/$d/licencias"
+            cp ASSET_CREDITS.md assets/fonts/*-OFL.txt "build/$d/licencias/"
+          done
+          chmod +x build/linux/${GAME}.x86_64
+          (cd build/linux && zip -9 -q -r "../../dist/${GAME}-v${VERSION}-linux-x86_64.zip" .)
+          (cd build/windows && zip -9 -q -r "../../dist/${GAME}-v${VERSION}-windows-x86_64.zip" .)
+          (cd dist && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          ls -la dist
+
+      - name: Guardar artefactos
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.GAME }}-v${{ steps.ver.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Adjuntar a la release
+        if: steps.ver.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Registros (si algo falla)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registros-${{ github.run_number }}
+          path: |
+            *.log
+          if-no-files-found: ignore
+          retention-days: 14

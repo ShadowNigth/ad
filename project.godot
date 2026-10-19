@@ -12,8 +12,11 @@ config_version=5
 
 config/name="Isla Salvaje: Supervivencia Incremental"
 config/description="Juego 3D low poly de supervivencia, progresión incremental y automatización en una isla tropical."
-config/version="0.9.0"
+config/version="1.0.0"
 run/main_scene="res://scenes/main/main.tscn"
+run/main_scene.pruebas_ci="res://tests/ci_entry.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="IslaSalvaje"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 boot_splash/bg_color=Color(0.054902, 0.12549, 0.12549, 1)
