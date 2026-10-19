@@ -1,0 +1,95 @@
+{
+  "_comment": "Constantes globales de equilibrio. Todos los tiempos en segundos reales salvo que se indique.",
+  "world": {
+    "seed": 20261019,
+    "size": 256.0,
+    "cell": 2.0,
+    "sea_level": 0.0,
+    "deep_water_block": 0.9
+  },
+  "day_night": {
+    "day_length": 720.0,
+    "start_hour": 8.0,
+    "dawn_hour": 6.0,
+    "dusk_hour": 19.0,
+    "night_hour": 20.5,
+    "morning_hour": 5.5
+  },
+  "player": {
+    "walk_speed": 4.6,
+    "sprint_speed": 7.2,
+    "jump_velocity": 6.2,
+    "gravity": 18.0,
+    "dodge_speed": 11.0,
+    "dodge_time": 0.32,
+    "iframes_dodge": 0.36,
+    "iframes_hit": 0.7,
+    "interact_range": 2.6,
+    "attack_range": 2.0,
+    "attack_arc_deg": 110.0,
+    "attack_cooldown": 0.55,
+    "gather_interval": 0.62,
+    "fist_damage": 5,
+    "inventory_slots": 24,
+    "respawn_health": 60.0
+  },
+  "survival": {
+    "max_health": 100.0,
+    "max_hunger": 100.0,
+    "max_thirst": 100.0,
+    "max_stamina": 100.0,
+    "hunger_drain_per_min": 4.0,
+    "thirst_drain_per_min": 5.5,
+    "night_drain_mult": 1.15,
+    "sprint_drain_mult": 1.6,
+    "starving_damage_per_min": 18.0,
+    "regen_per_min": 12.0,
+    "regen_min_food": 45.0,
+    "rest_regen_per_min": 60.0,
+    "stamina_sprint_per_sec": 14.0,
+    "stamina_regen_per_sec": 20.0,
+    "stamina_regen_delay": 0.9,
+    "stamina_attack": 8.0,
+    "stamina_dodge": 18.0,
+    "stamina_gather": 2.0,
+    "stamina_jump": 6.0,
+    "dirty_water_sick_chance": 0.45
+  },
+  "progression": {
+    "xp_base": 30,
+    "xp_growth": 1.32,
+    "tech_points_per_level": 2,
+    "max_level": 60,
+    "xp_gather": 2,
+    "xp_craft": 3,
+    "xp_build": 10,
+    "xp_upgrade": 14,
+    "age_requirements": [0, 2, 5, 9, 14, 20],
+    "age_names": ["Edad primitiva", "Herramientas de piedra", "Agricultura", "Metalurgia", "Máquinas", "Automatización"]
+  },
+  "economy": {
+    "base_storage": 150,
+    "production_tick": 0.25,
+    "offline_cap_hours": 8.0,
+    "offline_min_seconds": 60.0,
+    "offline_steps": 1800,
+    "visual_production_radius": 70.0,
+    "demolish_refund": 0.5,
+    "repair_cost_factor": 0.35,
+    "damaged_efficiency": 0.5
+  },
+  "death": {
+    "carried_loss_fraction": 0.5,
+    "backpack_lifetime": 1800.0
+  },
+  "save": {
+    "autosave_interval": 60.0,
+    "version": 1
+  },
+  "night": {
+    "spawn_interval": 14.0,
+    "max_night_enemies": 7,
+    "safe_light_margin": 2.0,
+    "building_attack_chance": 0.35
+  }
+}

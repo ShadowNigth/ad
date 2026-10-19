@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://501mxdx5gcax"
+path="res://.godot/imported/planks.obj-e1d9e2d16afce5d4cf9f11d9fae3880c.mesh"
+
+[deps]
+
+files=["res://.godot/imported/planks.obj-e1d9e2d16afce5d4cf9f11d9fae3880c.mesh"]
+
+source_file="res://assets/models/town/planks.obj"
+dest_files=["res://.godot/imported/planks.obj-e1d9e2d16afce5d4cf9f11d9fae3880c.mesh", "res://.godot/imported/planks.obj-e1d9e2d16afce5d4cf9f11d9fae3880c.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

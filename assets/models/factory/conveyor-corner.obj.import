@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://s4iuvctlr5lh"
+path="res://.godot/imported/conveyor-corner.obj-af93c92768e8c8ca9eb390fc1cbbf414.mesh"
+
+[deps]
+
+files=["res://.godot/imported/conveyor-corner.obj-af93c92768e8c8ca9eb390fc1cbbf414.mesh"]
+
+source_file="res://assets/models/factory/conveyor-corner.obj"
+dest_files=["res://.godot/imported/conveyor-corner.obj-af93c92768e8c8ca9eb390fc1cbbf414.mesh", "res://.godot/imported/conveyor-corner.obj-af93c92768e8c8ca9eb390fc1cbbf414.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

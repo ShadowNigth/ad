@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dacb3rcwhixs6"
+path="res://.godot/imported/tree_default.obj-cbb3adb837f4042e76190a26869b1c1e.mesh"
+
+[deps]
+
+files=["res://.godot/imported/tree_default.obj-cbb3adb837f4042e76190a26869b1c1e.mesh"]
+
+source_file="res://assets/models/nature/tree_default.obj"
+dest_files=["res://.godot/imported/tree_default.obj-cbb3adb837f4042e76190a26869b1c1e.mesh", "res://.godot/imported/tree_default.obj-cbb3adb837f4042e76190a26869b1c1e.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

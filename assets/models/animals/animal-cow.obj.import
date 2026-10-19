@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://boq1q1a1lamvw"
+path="res://.godot/imported/animal-cow.obj-2bde3ad81b2da19e9de9a0c89980822e.mesh"
+
+[deps]
+
+files=["res://.godot/imported/animal-cow.obj-2bde3ad81b2da19e9de9a0c89980822e.mesh"]
+
+source_file="res://assets/models/animals/animal-cow.obj"
+dest_files=["res://.godot/imported/animal-cow.obj-2bde3ad81b2da19e9de9a0c89980822e.mesh", "res://.godot/imported/animal-cow.obj-2bde3ad81b2da19e9de9a0c89980822e.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

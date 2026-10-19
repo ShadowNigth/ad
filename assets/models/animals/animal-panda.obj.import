@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cnl0v5igfacfn"
+path="res://.godot/imported/animal-panda.obj-2cee36fc461b227d438f47f8e2318293.mesh"
+
+[deps]
+
+files=["res://.godot/imported/animal-panda.obj-2cee36fc461b227d438f47f8e2318293.mesh"]
+
+source_file="res://assets/models/animals/animal-panda.obj"
+dest_files=["res://.godot/imported/animal-panda.obj-2cee36fc461b227d438f47f8e2318293.mesh", "res://.godot/imported/animal-panda.obj-2cee36fc461b227d438f47f8e2318293.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

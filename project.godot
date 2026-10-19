@@ -1,0 +1,94 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Isla Salvaje: Supervivencia Incremental"
+config/description="Juego 3D low poly de supervivencia, progresión incremental y automatización en una isla tropical."
+config/version="0.9.0"
+run/main_scene="res://scenes/main/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.054902, 0.12549, 0.12549, 1)
+config/quit_on_go_back=false
+config/auto_accept_quit=false
+
+[autoload]
+
+EventBus="*res://scripts/core/event_bus.gd"
+GameData="*res://scripts/core/game_data.gd"
+Settings="*res://scripts/core/settings.gd"
+ModelLibrary="*res://scripts/core/model_library.gd"
+AudioManager="*res://scripts/core/audio_manager.gd"
+GameState="*res://scripts/core/game_state.gd"
+TechTree="*res://scripts/technology/tech_tree.gd"
+Economy="*res://scripts/incremental/economy.gd"
+Workers="*res://scripts/incremental/worker_manager.gd"
+Quests="*res://scripts/technology/quest_manager.gd"
+SaveManager="*res://scripts/save_system/save_manager.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+window/vsync/vsync_mode=1
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=false
+common/snap_controls_to_pixels=true
+
+[importer_defaults]
+
+wavefront_obj={
+"force_disable_mesh_compression": false,
+"generate_lightmap_uv2": false,
+"generate_lods": true,
+"generate_shadow_mesh": true,
+"generate_tangents": false,
+"offset_mesh": Vector3(0, 0, 0),
+"scale_mesh": Vector3(1, 1, 1)
+}
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+pointing/emulate_mouse_from_touch=false
+
+[layer_names]
+
+3d_physics/layer_1="terreno"
+3d_physics/layer_2="jugador"
+3d_physics/layer_3="enemigos"
+3d_physics/layer_4="edificios"
+3d_physics/layer_5="recursos"
+3d_physics/layer_6="obstaculos"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=4
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/size.mobile=1024
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=1
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=0
+anti_aliasing/quality/msaa_3d=1
+environment/defaults/default_clear_color=Color(0.47, 0.71, 0.86, 1)
+textures/default_filters/anisotropic_filtering_level=1

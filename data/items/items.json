@@ -1,0 +1,769 @@
+{
+  "_comment": "Definición de objetos. cat: recurso | comida | consumible | herramienta | arma | contenedor | especial. tool.type: axe | pickaxe | hammer | hoe | spear. tool.power = recursos por acción.",
+  "items": [
+    {
+      "id": "madera",
+      "name": "Madera",
+      "desc": "Troncos y ramas. La base de casi todas las construcciones.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 0,
+      "icon_model": "survival/resource-wood",
+      "drop_model": "survival/resource-wood"
+    },
+    {
+      "id": "piedra",
+      "name": "Piedra",
+      "desc": "Piedra suelta o extraída de rocas. Imprescindible para herramientas y cimientos.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 0,
+      "icon_model": "survival/resource-stone",
+      "drop_model": "survival/resource-stone"
+    },
+    {
+      "id": "fibra",
+      "name": "Fibra vegetal",
+      "desc": "Hojas y tallos resistentes. Se trenzan para hacer cuerda.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 0,
+      "icon_model": "nature/grass_leafs",
+      "icon_tint": [
+        0.85,
+        1.0,
+        0.7
+      ],
+      "drop_model": "nature/grass_leafs"
+    },
+    {
+      "id": "bayas",
+      "name": "Bayas silvestres",
+      "desc": "Fruta dulce de los arbustos. Calma un poco el hambre y la sed.",
+      "cat": "comida",
+      "stack": 30,
+      "tier": 0,
+      "icon_model": "food/cherries",
+      "food": {
+        "hunger": 9,
+        "thirst": 3,
+        "health": 0
+      }
+    },
+    {
+      "id": "coco",
+      "name": "Coco",
+      "desc": "Contiene agua y pulpa. Cae de las palmeras.",
+      "cat": "comida",
+      "stack": 20,
+      "tier": 0,
+      "icon_model": "food/coconut",
+      "food": {
+        "hunger": 7,
+        "thirst": 14,
+        "health": 0
+      }
+    },
+    {
+      "id": "agua_sucia",
+      "name": "Agua sin tratar",
+      "desc": "Agua del río o del lago. Bebida tal cual puede enfermarte; hiérvela en una fogata.",
+      "cat": "consumible",
+      "stack": 10,
+      "tier": 0,
+      "icon_model": "survival/bottle",
+      "icon_tint": [
+        0.85,
+        0.8,
+        0.6
+      ],
+      "food": {
+        "hunger": 0,
+        "thirst": 18,
+        "health": 0
+      },
+      "risky": true
+    },
+    {
+      "id": "agua",
+      "name": "Agua potable",
+      "desc": "Agua hervida o purificada. Quita mucha sed.",
+      "cat": "consumible",
+      "stack": 10,
+      "tier": 0,
+      "icon_model": "survival/bottle-large",
+      "food": {
+        "hunger": 0,
+        "thirst": 38,
+        "health": 2
+      }
+    },
+    {
+      "id": "carne_cruda",
+      "name": "Carne cruda",
+      "desc": "Mejor cocinarla antes de comer.",
+      "cat": "comida",
+      "stack": 20,
+      "tier": 0,
+      "icon_model": "food/meat-raw",
+      "food": {
+        "hunger": 8,
+        "thirst": 0,
+        "health": -5
+      }
+    },
+    {
+      "id": "carne_cocida",
+      "name": "Carne asada",
+      "desc": "Muy nutritiva. Recupera algo de salud.",
+      "cat": "comida",
+      "stack": 20,
+      "tier": 0,
+      "icon_model": "food/meat-cooked",
+      "food": {
+        "hunger": 36,
+        "thirst": 0,
+        "health": 6
+      }
+    },
+    {
+      "id": "pescado",
+      "name": "Pescado crudo",
+      "desc": "Pescado con lanza en los bancos de peces.",
+      "cat": "comida",
+      "stack": 20,
+      "tier": 0,
+      "icon_model": "survival/fish",
+      "food": {
+        "hunger": 7,
+        "thirst": 0,
+        "health": -3
+      }
+    },
+    {
+      "id": "pescado_asado",
+      "name": "Pescado asado",
+      "desc": "Ligero y sabroso.",
+      "cat": "comida",
+      "stack": 20,
+      "tier": 0,
+      "icon_model": "food/fish",
+      "food": {
+        "hunger": 28,
+        "thirst": 2,
+        "health": 5
+      }
+    },
+    {
+      "id": "hongo",
+      "name": "Hongo",
+      "desc": "Crece a la sombra del bosque. Ingrediente medicinal.",
+      "cat": "comida",
+      "stack": 30,
+      "tier": 0,
+      "icon_model": "food/mushroom",
+      "food": {
+        "hunger": 5,
+        "thirst": 0,
+        "health": 1
+      }
+    },
+    {
+      "id": "carbon",
+      "name": "Carbón",
+      "desc": "Combustible para fundir metal y generar energía.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 1,
+      "icon_model": "survival/resource-stone",
+      "icon_tint": [
+        0.32,
+        0.32,
+        0.35
+      ],
+      "drop_model": "survival/resource-stone"
+    },
+    {
+      "id": "mineral_hierro",
+      "name": "Mineral de hierro",
+      "desc": "Roca con vetas rojizas. Se funde en lingotes.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 2,
+      "icon_model": "survival/resource-stone-large",
+      "icon_tint": [
+        0.95,
+        0.6,
+        0.45
+      ],
+      "drop_model": "survival/resource-stone-large"
+    },
+    {
+      "id": "lingote_hierro",
+      "name": "Lingote de hierro",
+      "desc": "Metal refinado para herramientas y máquinas.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 2,
+      "icon_model": "survival/metal-panel-narrow",
+      "icon_yaw": 20,
+      "icon_pitch": 60,
+      "icon_roll": -30
+    },
+    {
+      "id": "cuerda",
+      "name": "Cuerda",
+      "desc": "Fibra trenzada. Une piezas y construcciones.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 1,
+      "icon_model": "survival/bedroll-packed",
+      "icon_tint": [
+        1.0,
+        0.9,
+        0.62
+      ]
+    },
+    {
+      "id": "tablas",
+      "name": "Tablas",
+      "desc": "Madera aserrada, lista para construir.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 1,
+      "icon_model": "survival/resource-planks"
+    },
+    {
+      "id": "hierbas",
+      "name": "Hierbas medicinales",
+      "desc": "Plantas curativas de la pradera y la jungla.",
+      "cat": "recurso",
+      "stack": 60,
+      "tier": 1,
+      "icon_model": "nature/plant_flatShort",
+      "icon_tint": [
+        0.8,
+        1.1,
+        0.8
+      ]
+    },
+    {
+      "id": "venda",
+      "name": "Venda",
+      "desc": "Cura heridas leves.",
+      "cat": "consumible",
+      "stack": 10,
+      "tier": 1,
+      "icon_model": "survival/bedroll-packed",
+      "icon_tint": [
+        1,
+        1,
+        1
+      ],
+      "food": {
+        "hunger": 0,
+        "thirst": 0,
+        "health": 28
+      },
+      "icon_whiten": 0.75
+    },
+    {
+      "id": "medicina",
+      "name": "Tónico medicinal",
+      "desc": "Remedio potente. Recupera mucha salud.",
+      "cat": "consumible",
+      "stack": 10,
+      "tier": 2,
+      "icon_model": "food/bottle-oil",
+      "icon_tint": [
+        0.6,
+        1.1,
+        0.65
+      ],
+      "food": {
+        "hunger": 0,
+        "thirst": 5,
+        "health": 60
+      }
+    },
+    {
+      "id": "piezas",
+      "name": "Piezas mecánicas",
+      "desc": "Engranajes y ejes para máquinas.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 3,
+      "icon_model": "factory/cog-a",
+      "icon_pitch": 55
+    },
+    {
+      "id": "acero",
+      "name": "Acero",
+      "desc": "Aleación resistente para herramientas avanzadas.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 4,
+      "icon_model": "survival/metal-panel-narrow",
+      "icon_yaw": 20,
+      "icon_tint": [
+        0.72,
+        0.85,
+        1.15
+      ],
+      "icon_pitch": 60,
+      "icon_roll": -30
+    },
+    {
+      "id": "electronica",
+      "name": "Componentes electrónicos",
+      "desc": "Circuitos alimentados por cristales de energía.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 5,
+      "icon_model": "factory/screen-small"
+    },
+    {
+      "id": "combustible",
+      "name": "Combustible",
+      "desc": "Mezcla refinada que alimenta los generadores.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 4,
+      "icon_model": "food/bottle-oil",
+      "icon_tint": [
+        1.1,
+        0.75,
+        0.35
+      ]
+    },
+    {
+      "id": "cristal",
+      "name": "Cristal de energía",
+      "desc": "Mineral luminoso de la cueva. Fuente de energía avanzada.",
+      "cat": "recurso",
+      "stack": 99,
+      "tier": 4,
+      "icon_model": "crystals/detail-crystal"
+    },
+    {
+      "id": "reliquia",
+      "name": "Reliquia ancestral",
+      "desc": "Fragmento de las ruinas de la jungla. Guarda conocimiento antiguo.",
+      "cat": "especial",
+      "stack": 20,
+      "tier": 4,
+      "icon_model": "nature/statue_head"
+    },
+    {
+      "id": "cuero",
+      "name": "Cuero",
+      "desc": "Piel curtida de jabalí o tigre.",
+      "cat": "recurso",
+      "stack": 60,
+      "tier": 1,
+      "icon_model": "food/bag",
+      "icon_tint": [
+        0.8,
+        0.55,
+        0.38
+      ]
+    },
+    {
+      "id": "hueso",
+      "name": "Restos óseos",
+      "desc": "Restos de criaturas nocturnas.",
+      "cat": "recurso",
+      "stack": 60,
+      "tier": 1,
+      "icon_model": "food/fish-bones",
+      "icon_tint": [
+        1.15,
+        1.1,
+        1.0
+      ]
+    },
+    {
+      "id": "esencia",
+      "name": "Esencia nocturna",
+      "desc": "Energía extraña que dejan las criaturas de la noche.",
+      "cat": "especial",
+      "stack": 60,
+      "tier": 3,
+      "icon_model": "crystals/detail-crystal",
+      "icon_tint": [
+        0.75,
+        0.45,
+        1.2
+      ]
+    },
+    {
+      "id": "zanahoria",
+      "name": "Zanahoria",
+      "desc": "Cultivada en el huerto.",
+      "cat": "comida",
+      "stack": 30,
+      "tier": 1,
+      "icon_model": "food/carrot",
+      "food": {
+        "hunger": 13,
+        "thirst": 2,
+        "health": 1
+      }
+    },
+    {
+      "id": "maiz",
+      "name": "Maíz",
+      "desc": "Mazorca dulce del huerto. También alimenta a los animales.",
+      "cat": "comida",
+      "stack": 30,
+      "tier": 1,
+      "icon_model": "food/corn",
+      "food": {
+        "hunger": 15,
+        "thirst": 0,
+        "health": 1
+      }
+    },
+    {
+      "id": "calabaza",
+      "name": "Calabaza",
+      "desc": "Muy saciante.",
+      "cat": "comida",
+      "stack": 20,
+      "tier": 2,
+      "icon_model": "food/pumpkin-basic",
+      "food": {
+        "hunger": 24,
+        "thirst": 4,
+        "health": 2
+      }
+    },
+    {
+      "id": "huevo",
+      "name": "Huevo",
+      "desc": "Producido en la granja.",
+      "cat": "comida",
+      "stack": 30,
+      "tier": 2,
+      "icon_model": "food/egg",
+      "food": {
+        "hunger": 10,
+        "thirst": 0,
+        "health": 2
+      }
+    },
+    {
+      "id": "guiso",
+      "name": "Guiso de verduras",
+      "desc": "Plato caliente que repone hambre, sed y salud.",
+      "cat": "comida",
+      "stack": 10,
+      "tier": 2,
+      "icon_model": "food/bowl-soup",
+      "food": {
+        "hunger": 48,
+        "thirst": 16,
+        "health": 12
+      }
+    },
+    {
+      "id": "hacha_piedra",
+      "name": "Hacha de piedra",
+      "desc": "Tala 3 de madera por golpe.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 1,
+      "icon_model": "survival/tool-axe",
+      "icon_yaw": 8,
+      "hand_model": "survival/tool-axe",
+      "tool": {
+        "type": "axe",
+        "power": 3,
+        "tier": 1,
+        "durability": 140
+      },
+      "weapon": {
+        "damage": 9
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "pico_piedra",
+      "name": "Pico de piedra",
+      "desc": "Extrae 3 de piedra por golpe y permite picar hierro.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 1,
+      "icon_model": "survival/tool-pickaxe",
+      "icon_yaw": 8,
+      "hand_model": "survival/tool-pickaxe",
+      "tool": {
+        "type": "pickaxe",
+        "power": 3,
+        "tier": 1,
+        "durability": 140
+      },
+      "weapon": {
+        "damage": 8
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "hacha_hierro",
+      "name": "Hacha de hierro",
+      "desc": "Tala 5 de madera por golpe.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 2,
+      "icon_model": "survival/tool-axe-upgraded",
+      "icon_yaw": 8,
+      "hand_model": "survival/tool-axe-upgraded",
+      "tool": {
+        "type": "axe",
+        "power": 5,
+        "tier": 2,
+        "durability": 320
+      },
+      "weapon": {
+        "damage": 14
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "pico_hierro",
+      "name": "Pico de hierro",
+      "desc": "Extrae 5 por golpe. Necesario para el carbón profundo.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 2,
+      "icon_model": "survival/tool-pickaxe-upgraded",
+      "icon_yaw": 8,
+      "hand_model": "survival/tool-pickaxe-upgraded",
+      "tool": {
+        "type": "pickaxe",
+        "power": 5,
+        "tier": 2,
+        "durability": 320
+      },
+      "weapon": {
+        "damage": 12
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "hacha_acero",
+      "name": "Hacha avanzada",
+      "desc": "Tala 8 de madera por golpe.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 3,
+      "icon_model": "survival/tool-axe-upgraded",
+      "icon_yaw": 8,
+      "icon_tint": [
+        0.72,
+        0.85,
+        1.2
+      ],
+      "hand_model": "survival/tool-axe-upgraded",
+      "hand_tint": [
+        0.72,
+        0.85,
+        1.2
+      ],
+      "tool": {
+        "type": "axe",
+        "power": 8,
+        "tier": 3,
+        "durability": 750
+      },
+      "weapon": {
+        "damage": 20
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "pico_acero",
+      "name": "Pico avanzado",
+      "desc": "Extrae 8 por golpe. Capaz de romper cristales de energía.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 3,
+      "icon_model": "survival/tool-pickaxe-upgraded",
+      "icon_yaw": 8,
+      "icon_tint": [
+        0.72,
+        0.85,
+        1.2
+      ],
+      "hand_model": "survival/tool-pickaxe-upgraded",
+      "hand_tint": [
+        0.72,
+        0.85,
+        1.2
+      ],
+      "tool": {
+        "type": "pickaxe",
+        "power": 8,
+        "tier": 3,
+        "durability": 750
+      },
+      "weapon": {
+        "damage": 18
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "lanza",
+      "name": "Lanza de madera",
+      "desc": "Arma de largo alcance. También sirve para pescar.",
+      "cat": "arma",
+      "stack": 1,
+      "tier": 1,
+      "icon_model": "weapons/weapon-spear",
+      "icon_yaw": 8,
+      "hand_model": "weapons/weapon-spear",
+      "tool": {
+        "type": "spear",
+        "power": 1,
+        "tier": 1,
+        "durability": 160
+      },
+      "weapon": {
+        "damage": 15,
+        "reach": 2.6
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "lanza_hierro",
+      "name": "Lanza de hierro",
+      "desc": "Punta de hierro: más daño y pesca 2 peces por golpe.",
+      "cat": "arma",
+      "stack": 1,
+      "tier": 2,
+      "icon_model": "weapons/weapon-spear",
+      "icon_yaw": 8,
+      "icon_tint": [
+        0.8,
+        0.85,
+        1.05
+      ],
+      "hand_model": "weapons/weapon-spear",
+      "hand_tint": [
+        0.8,
+        0.85,
+        1.05
+      ],
+      "tool": {
+        "type": "spear",
+        "power": 2,
+        "tier": 2,
+        "durability": 360
+      },
+      "weapon": {
+        "damage": 24,
+        "reach": 2.7
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "machete",
+      "name": "Machete de hierro",
+      "desc": "Arma rápida y contundente.",
+      "cat": "arma",
+      "stack": 1,
+      "tier": 2,
+      "icon_model": "weapons/weapon-sword",
+      "icon_yaw": 8,
+      "hand_model": "weapons/weapon-sword",
+      "weapon": {
+        "damage": 26,
+        "reach": 2.1
+      },
+      "tool": {
+        "type": "blade",
+        "power": 1,
+        "tier": 2,
+        "durability": 400
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "martillo",
+      "name": "Martillo de construcción",
+      "desc": "Necesario para construir, mejorar y reparar edificios.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 1,
+      "icon_model": "survival/tool-hammer",
+      "icon_yaw": 8,
+      "hand_model": "survival/tool-hammer",
+      "tool": {
+        "type": "hammer",
+        "power": 1,
+        "tier": 1,
+        "durability": 0
+      },
+      "weapon": {
+        "damage": 7
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "azada",
+      "name": "Azada",
+      "desc": "Necesaria para preparar huertos. Mejora la cosecha manual.",
+      "cat": "herramienta",
+      "stack": 1,
+      "tier": 1,
+      "icon_model": "survival/tool-hoe",
+      "icon_yaw": 8,
+      "hand_model": "survival/tool-hoe",
+      "tool": {
+        "type": "hoe",
+        "power": 2,
+        "tier": 1,
+        "durability": 0
+      },
+      "weapon": {
+        "damage": 6
+      },
+      "icon_pitch": 12,
+      "icon_roll": -38
+    },
+    {
+      "id": "cuenco_coco",
+      "name": "Cuenco de coco",
+      "desc": "Recipiente para recoger 1 de agua del río o del lago.",
+      "cat": "contenedor",
+      "stack": 1,
+      "tier": 0,
+      "icon_model": "food/coconut-half",
+      "container": {
+        "capacity": 1
+      }
+    },
+    {
+      "id": "cubo",
+      "name": "Cubo",
+      "desc": "Recipiente grande: recoge 3 de agua de una vez.",
+      "cat": "contenedor",
+      "stack": 1,
+      "tier": 2,
+      "icon_model": "survival/bucket",
+      "container": {
+        "capacity": 3
+      }
+    }
+  ]
+}

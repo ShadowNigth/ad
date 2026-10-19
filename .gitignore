@@ -1,0 +1,13 @@
+# Godot 4
+.godot/
+/android/
+*.tmp
+# Builds / exports
+/build/
+/export/
+*.apk
+*.aab
+# Audio en bruto descargado por tools/fetch_assets.py (se procesa a assets/)
+/.asset_cache/
+# Python
+__pycache__/

@@ -1,0 +1,677 @@
+{
+  "_comment": "Edificios. Cada nivel define modelos (piezas OBJ combinadas en una sola malla), coste de mejora y multiplicadores. production: lista de recetas automáticas (interval en s). Las claves que empiezan por @ son recursos especiales (@investigacion, @energia). zone: any | rocky | meadow | near_water. Coste del n-ésimo edificio igual = cost * cost_growth^(n-1).",
+  "buildings": [
+    {
+      "id": "refugio", "name": "Refugio", "category": "supervivencia",
+      "desc": "Tu hogar en la isla. Permite dormir para saltar la noche, fija el punto de reaparición y aloja trabajadores.",
+      "footprint": 2.4, "max_count": 1, "cost": {"madera": 12, "fibra": 8}, "cost_growth": 1.0,
+      "unlock": null, "zone": "any", "interact": "rest",
+      "levels": [
+        {"name": "Tienda de campaña", "hp": 120, "housing": 2, "storage": 20,
+         "models": [
+           {"model": "nature/tent_detailedOpen", "scale": 4.2},
+           {"model": "survival/bedroll", "scale": 4.2, "pos": [0.0, 0.05, 0.1], "rot": 90}
+         ]},
+        {"name": "Cabaña", "hp": 220, "housing": 4, "storage": 60, "upgrade_cost": {"madera": 40, "piedra": 20, "tablas": 10},
+         "models": [
+           {"model": "survival/floor", "scale": 6.5},
+           {"model": "survival/structure-roof", "scale": 6.5},
+           {"model": "town/wall-wood", "scale": 3.25, "rot": 90},
+           {"model": "town/wall-wood-window-shutters", "scale": 3.25, "rot": 180},
+           {"model": "town/wall-wood", "scale": 3.25, "rot": 0},
+           {"model": "survival/bedroll-frame", "scale": 4.0, "pos": [-0.6, 0.3, -0.4]}
+         ]},
+        {"name": "Casa de madera", "hp": 400, "housing": 6, "storage": 120, "upgrade_cost": {"tablas": 40, "piedra": 40, "lingote_hierro": 4},
+         "models": [
+           {"model": "town/planks", "scale": 3.0, "pos": [-1.5, 0.0, 0.0]},
+           {"model": "town/planks", "scale": 3.0, "pos": [1.5, 0.0, 0.0]},
+           {"model": "town/wall-wood", "scale": 3.0, "pos": [-1.5, 0.0, 0.0], "rot": 90},
+           {"model": "town/wall-wood", "scale": 3.0, "pos": [1.5, 0.0, 0.0], "rot": 90},
+           {"model": "town/wall-wood-door", "scale": 3.0, "pos": [-1.5, 0.0, 0.0], "rot": 270},
+           {"model": "town/wall-wood-window-shutters", "scale": 3.0, "pos": [1.5, 0.0, 0.0], "rot": 270},
+           {"model": "town/wall-wood", "scale": 3.0, "pos": [-1.5, 0.0, 0.0], "rot": 180},
+           {"model": "town/wall-wood-window-small", "scale": 3.0, "pos": [1.5, 0.0, 0.0], "rot": 0},
+           {"model": "town/roof-gable", "scale": 3.0, "pos": [-1.5, 3.0, 0.0]},
+           {"model": "town/roof-gable", "scale": 3.0, "pos": [1.5, 3.0, 0.0]},
+           {"model": "town/chimney", "scale": 3.0, "pos": [1.0, 2.4, 0.0]}
+         ]}
+      ]
+    },
+    {
+      "id": "fogata", "name": "Fogata", "category": "supervivencia",
+      "desc": "Cocina alimentos, hierve agua y fabrica carbón. Su luz mantiene alejadas a las criaturas nocturnas.",
+      "footprint": 1.3, "max_count": 3, "cost": {"madera": 5, "piedra": 5}, "cost_growth": 1.5,
+      "unlock": null, "zone": "any", "station": "fogata", "interact": "craft",
+      "levels": [
+        {"name": "Fogata de piedras", "hp": 80, "light": 9.0, "craft_speed": 1.0,
+         "models": [
+           {"model": "nature/campfire_stones", "scale": 3.0},
+           {"model": "nature/campfire_logs", "scale": 3.0}
+         ]},
+        {"name": "Fogata con asador", "hp": 120, "light": 12.0, "craft_speed": 1.25, "upgrade_cost": {"piedra": 15, "madera": 10},
+         "models": [
+           {"model": "nature/campfire_stones", "scale": 3.0},
+           {"model": "nature/campfire_logs", "scale": 3.0},
+           {"model": "survival/campfire-stand", "scale": 4.0},
+           {"model": "nature/log", "scale": 2.6, "pos": [0.0, 0.0, 1.5], "rot": 90}
+         ]},
+        {"name": "Hogar de ladrillo", "hp": 200, "light": 15.0, "craft_speed": 1.5, "upgrade_cost": {"piedra": 30, "tablas": 8},
+         "models": [
+           {"model": "nature/campfire_bricks", "scale": 3.0},
+           {"model": "nature/campfire_logs", "scale": 3.0},
+           {"model": "survival/campfire-stand", "scale": 4.0},
+           {"model": "nature/log", "scale": 2.6, "pos": [0.0, 0.0, 1.5], "rot": 90},
+           {"model": "nature/log", "scale": 2.6, "pos": [1.5, 0.0, 0.0], "rot": 0},
+           {"model": "nature/pot_small", "scale": 2.4, "pos": [-1.2, 0.0, -0.6]}
+         ]}
+      ]
+    },
+    {
+      "id": "almacen", "name": "Almacén", "category": "supervivencia",
+      "desc": "Amplía la capacidad del almacén compartido de la base. Deposita aquí lo que lleves encima.",
+      "footprint": 1.8, "max_count": 3, "cost": {"madera": 18, "piedra": 8}, "cost_growth": 1.6,
+      "unlock": "con_almacen", "zone": "any", "interact": "storage",
+      "levels": [
+        {"name": "Pila de cajas", "hp": 100, "storage": 120,
+         "models": [
+           {"model": "survival/chest", "scale": 4.5},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.1, 0.0, -0.4]},
+           {"model": "survival/box-large", "scale": 4.5, "pos": [-1.1, 0.0, -0.3], "rot": 20},
+           {"model": "survival/box", "scale": 4.5, "pos": [-1.0, 1.12, -0.3], "rot": 40}
+         ]},
+        {"name": "Cobertizo", "hp": 180, "storage": 300, "upgrade_cost": {"madera": 40, "tablas": 15, "cuerda": 5},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 7.0},
+           {"model": "survival/chest", "scale": 4.5},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.1, 0.0, -0.4]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.1, 0.0, 0.8]},
+           {"model": "survival/box-large", "scale": 4.5, "pos": [-1.1, 0.0, -0.3], "rot": 20},
+           {"model": "survival/box", "scale": 4.5, "pos": [-1.0, 1.12, -0.3], "rot": 40}
+         ]},
+        {"name": "Granero", "hp": 300, "storage": 650, "upgrade_cost": {"tablas": 40, "piedra": 40, "lingote_hierro": 6},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 7.0},
+           {"model": "town/wall-wood", "scale": 3.5, "rot": 90},
+           {"model": "town/wall-wood", "scale": 3.5, "rot": 180},
+           {"model": "survival/chest", "scale": 4.5},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.1, 0.0, -0.4]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.1, 0.0, 0.8]},
+           {"model": "survival/box-large", "scale": 4.5, "pos": [-1.1, 0.0, -0.3], "rot": 20},
+           {"model": "town/cart", "scale": 2.2, "pos": [2.6, 0.0, 1.4], "rot": 30}
+         ]}
+      ]
+    },
+    {
+      "id": "lenador", "name": "Puesto de leñador", "category": "produccion",
+      "desc": "Produce madera de forma automática. Asigna leñadores para acelerar la tala.",
+      "footprint": 2.0, "max_count": 4, "cost": {"madera": 22, "piedra": 8}, "cost_growth": 1.55,
+      "unlock": null, "zone": "any", "worker_type": "lenador",
+      "production": [{"id": "p_madera", "name": "Talar madera", "interval": 30.0, "in": {}, "out": {"madera": 2}}],
+      "levels": [
+        {"name": "Tocón de trabajo", "hp": 100, "workers": 1, "speed": 1.0, "output": 1.0,
+         "models": [
+           {"model": "survival/structure-canvas", "scale": 6.0, "pos": [0.0, 0.0, -0.6]},
+           {"model": "nature/log_stack", "scale": 3.0, "pos": [-1.2, 0.0, 0.6], "rot": 90},
+           {"model": "nature/stump_round", "scale": 3.0, "pos": [1.0, 0.0, 1.0]},
+           {"model": "survival/tool-axe", "scale": 4.0, "pos": [1.0, 0.75, 1.0], "rot": 30}
+         ]},
+        {"name": "Leñera", "hp": 160, "workers": 2, "speed": 1.35, "output": 1.5, "upgrade_cost": {"madera": 45, "piedra": 20, "cuerda": 4},
+         "models": [
+           {"model": "survival/structure-canvas", "scale": 6.0, "pos": [0.0, 0.0, -0.6]},
+           {"model": "nature/log_stackLarge", "scale": 3.0, "pos": [-1.3, 0.0, 0.6], "rot": 90},
+           {"model": "nature/stump_round", "scale": 3.0, "pos": [1.0, 0.0, 1.0]},
+           {"model": "survival/tool-axe", "scale": 4.0, "pos": [1.0, 0.75, 1.0], "rot": 30},
+           {"model": "survival/workbench", "scale": 5.0, "pos": [0.0, 0.0, -0.8]}
+         ]},
+        {"name": "Aserradero manual", "hp": 240, "workers": 3, "speed": 1.7, "output": 2.0, "upgrade_cost": {"madera": 90, "tablas": 25, "lingote_hierro": 3},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.6]},
+           {"model": "nature/log_stackLarge", "scale": 3.0, "pos": [-1.3, 0.0, 0.6], "rot": 90},
+           {"model": "nature/log_stackLarge", "scale": 3.0, "pos": [-1.3, 0.0, -1.2], "rot": 90},
+           {"model": "nature/stump_round", "scale": 3.0, "pos": [1.0, 0.0, 1.0]},
+           {"model": "survival/tool-axe-upgraded", "scale": 4.0, "pos": [1.0, 0.75, 1.0], "rot": 30},
+           {"model": "survival/workbench", "scale": 5.0, "pos": [0.0, 0.0, -0.8]}
+         ]},
+        {"name": "Explotación forestal", "hp": 320, "workers": 3, "speed": 2.1, "output": 2.6, "upgrade_cost": {"tablas": 60, "piezas": 8, "lingote_hierro": 8},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.6]},
+           {"model": "nature/log_stackLarge", "scale": 3.0, "pos": [-1.3, 0.0, 0.6], "rot": 90},
+           {"model": "nature/log_stackLarge", "scale": 3.0, "pos": [-1.3, 0.0, -1.2], "rot": 90},
+           {"model": "nature/stump_round", "scale": 3.0, "pos": [1.0, 0.0, 1.0]},
+           {"model": "survival/tool-axe-upgraded", "scale": 4.0, "pos": [1.0, 0.75, 1.0], "rot": 30},
+           {"model": "survival/workbench-grind", "scale": 5.0, "pos": [0.0, 0.0, -0.8]},
+           {"model": "town/cart", "scale": 2.0, "pos": [1.8, 0.0, -1.2], "rot": 70}
+         ]}
+      ]
+    },
+    {
+      "id": "cantera", "name": "Cantera", "category": "produccion",
+      "desc": "Extrae piedra automáticamente. Los mineros aceleran la extracción.",
+      "footprint": 2.0, "max_count": 4, "cost": {"madera": 25, "piedra": 12}, "cost_growth": 1.55,
+      "unlock": "min_canteria", "zone": "any", "worker_type": "minero",
+      "production": [{"id": "p_piedra", "name": "Extraer piedra", "interval": 30.0, "in": {}, "out": {"piedra": 2}}],
+      "levels": [
+        {"name": "Cantera pequeña", "hp": 140, "workers": 1, "speed": 1.0, "output": 1.0,
+         "models": [
+           {"model": "nature/stone_largeA", "scale": 3.2, "pos": [-0.6, 0.0, -0.6]},
+           {"model": "nature/stone_tallA", "scale": 3.0, "pos": [0.9, 0.0, -0.9]},
+           {"model": "survival/resource-stone-large", "scale": 5.0, "pos": [0.8, 0.0, 0.9]},
+           {"model": "survival/tool-pickaxe", "scale": 4.0, "pos": [0.0, 0.0, 1.0], "rot": 80}
+         ]},
+        {"name": "Cantera", "hp": 200, "workers": 2, "speed": 1.35, "output": 1.5, "upgrade_cost": {"madera": 40, "piedra": 40, "cuerda": 5},
+         "models": [
+           {"model": "nature/stone_largeA", "scale": 3.2, "pos": [-0.6, 0.0, -0.6]},
+           {"model": "nature/stone_tallA", "scale": 3.0, "pos": [0.9, 0.0, -0.9]},
+           {"model": "nature/stone_tallB", "scale": 3.0, "pos": [-1.6, 0.0, -0.2]},
+           {"model": "survival/resource-stone-large", "scale": 5.0, "pos": [0.8, 0.0, 0.9]},
+           {"model": "town/cart", "scale": 2.0, "pos": [-1.2, 0.0, 1.3], "rot": 100}
+         ]},
+        {"name": "Gran cantera", "hp": 300, "workers": 3, "speed": 1.7, "output": 2.0, "upgrade_cost": {"tablas": 30, "piedra": 80, "lingote_hierro": 4},
+         "models": [
+           {"model": "nature/stone_largeA", "scale": 3.2, "pos": [-0.6, 0.0, -0.6]},
+           {"model": "nature/stone_tallA", "scale": 3.0, "pos": [0.9, 0.0, -0.9]},
+           {"model": "nature/stone_tallB", "scale": 3.0, "pos": [-1.6, 0.0, -0.2]},
+           {"model": "survival/resource-stone-large", "scale": 5.0, "pos": [0.8, 0.0, 0.9]},
+           {"model": "survival/resource-stone-large", "scale": 5.0, "pos": [1.6, 0.0, 0.3], "rot": 60},
+           {"model": "town/cart-high", "scale": 2.0, "pos": [-1.2, 0.0, 1.3], "rot": 100},
+           {"model": "survival/structure", "scale": 6.0, "pos": [1.6, 0.0, -1.0]}
+         ]},
+        {"name": "Cantera mecanizada", "hp": 380, "workers": 3, "speed": 2.1, "output": 2.6, "upgrade_cost": {"tablas": 50, "piezas": 8, "lingote_hierro": 8},
+         "models": [
+           {"model": "nature/stone_largeA", "scale": 3.2, "pos": [-0.6, 0.0, -0.6]},
+           {"model": "nature/stone_tallA", "scale": 3.0, "pos": [0.9, 0.0, -0.9]},
+           {"model": "nature/stone_tallB", "scale": 3.0, "pos": [-1.6, 0.0, -0.2]},
+           {"model": "survival/resource-stone-large", "scale": 5.0, "pos": [0.8, 0.0, 0.9]},
+           {"model": "town/cart-high", "scale": 2.0, "pos": [-1.2, 0.0, 1.3], "rot": 100},
+           {"model": "factory/hopper-round", "scale": 1.4, "pos": [1.7, 0.0, -0.6]}
+         ]}
+      ]
+    },
+    {
+      "id": "choza", "name": "Choza de recolección", "category": "produccion",
+      "desc": "Los recolectores reúnen fibra, bayas y hierbas de los alrededores.",
+      "footprint": 1.8, "max_count": 3, "cost": {"madera": 15, "fibra": 15}, "cost_growth": 1.5,
+      "unlock": "rec_choza", "zone": "any", "worker_type": "recolector",
+      "production": [{"id": "p_recoleccion", "name": "Recolectar", "interval": 30.0, "in": {}, "out": {"fibra": 2, "bayas": 1}},
+                     {"id": "p_hierbas", "name": "Buscar hierbas", "interval": 40.0, "in": {}, "out": {"hierbas": 1, "hongo": 1}, "unlock": "sup_medicina"}],
+      "levels": [
+        {"name": "Choza", "hp": 90, "workers": 1, "speed": 1.0, "output": 1.0,
+         "models": [
+           {"model": "survival/tent-canvas", "scale": 6.0, "pos": [0.0, 0.0, -0.5]},
+           {"model": "survival/box-open", "scale": 5.0, "pos": [1.1, 0.0, 0.7]},
+           {"model": "nature/grass_leafs", "scale": 2.4, "pos": [-1.0, 0.0, 0.8]},
+           {"model": "nature/plant_bush", "scale": 2.5, "pos": [-1.6, 0.0, -0.8]}
+         ]},
+        {"name": "Choza grande", "hp": 150, "workers": 2, "speed": 1.35, "output": 1.5, "upgrade_cost": {"madera": 35, "fibra": 30, "cuerda": 5},
+         "models": [
+           {"model": "survival/structure-canvas", "scale": 6.5, "pos": [0.0, 0.0, -0.5]},
+           {"model": "survival/box-open", "scale": 5.0, "pos": [1.1, 0.0, 0.7]},
+           {"model": "survival/box-open", "scale": 5.0, "pos": [1.3, 0.0, -0.4], "rot": 30},
+           {"model": "nature/grass_leafs", "scale": 2.4, "pos": [-1.0, 0.0, 0.8]},
+           {"model": "nature/plant_bush", "scale": 2.5, "pos": [-1.6, 0.0, -0.8]}
+         ]},
+        {"name": "Mercado de la isla", "hp": 220, "workers": 3, "speed": 1.7, "output": 2.0, "upgrade_cost": {"tablas": 30, "cuerda": 12, "madera": 40},
+         "models": [
+           {"model": "town/stall-green", "scale": 2.6, "pos": [0.0, 0.0, -0.4]},
+           {"model": "survival/box-open", "scale": 5.0, "pos": [1.4, 0.0, 0.9]},
+           {"model": "survival/box-open", "scale": 5.0, "pos": [-1.4, 0.0, 0.9], "rot": 30},
+           {"model": "nature/grass_leafs", "scale": 2.4, "pos": [-1.6, 0.0, -0.9]}
+         ]}
+      ]
+    },
+    {
+      "id": "purificador", "name": "Purificador de agua", "category": "produccion",
+      "desc": "Produce agua potable de forma continua.",
+      "footprint": 1.6, "max_count": 3, "cost": {"piedra": 15, "madera": 10, "fibra": 5}, "cost_growth": 1.5,
+      "unlock": "sup_filtrado", "zone": "any", "worker_type": "granjero",
+      "production": [{"id": "p_agua", "name": "Purificar agua", "interval": 24.0, "in": {}, "out": {"agua": 1}}],
+      "levels": [
+        {"name": "Filtro de arena", "hp": 90, "workers": 1, "speed": 1.0, "output": 1.0,
+         "models": [
+           {"model": "survival/barrel-open", "scale": 6.0},
+           {"model": "nature/pot_large", "scale": 2.6, "pos": [1.0, 0.0, 0.3]},
+           {"model": "survival/bucket", "scale": 6.0, "pos": [-0.8, 0.0, 0.6]},
+           {"model": "survival/campfire-pit", "scale": 5.0, "pos": [0.2, 0.0, 1.2]}
+         ]},
+        {"name": "Pozo", "hp": 200, "workers": 2, "speed": 1.4, "output": 1.5, "upgrade_cost": {"piedra": 40, "madera": 20, "cuerda": 6},
+         "models": [
+           {"model": "town/fountain-round", "scale": 1.5},
+           {"model": "town/pillar-wood", "scale": 2.4, "pos": [-1.2, 0.0, 0.0]},
+           {"model": "town/pillar-wood", "scale": 2.4, "pos": [1.2, 0.0, 0.0]},
+           {"model": "town/roof-point", "scale": 2.6, "pos": [0.0, 2.3, 0.0]},
+           {"model": "survival/bucket", "scale": 6.0, "pos": [0.8, 0.0, 1.0]}
+         ]},
+        {"name": "Pozo con filtro", "hp": 300, "workers": 3, "speed": 1.8, "output": 2.0, "upgrade_cost": {"piedra": 60, "tablas": 20, "lingote_hierro": 4},
+         "models": [
+           {"model": "town/fountain-round-detail", "scale": 1.6},
+           {"model": "town/pillar-wood", "scale": 2.4, "pos": [-1.3, 0.0, 0.0]},
+           {"model": "town/pillar-wood", "scale": 2.4, "pos": [1.3, 0.0, 0.0]},
+           {"model": "town/roof-point", "scale": 2.8, "pos": [0.0, 2.3, 0.0]},
+           {"model": "survival/barrel-open", "scale": 6.0, "pos": [1.6, 0.0, 1.2]}
+         ]}
+      ]
+    },
+    {
+      "id": "huerto", "name": "Huerto", "category": "produccion",
+      "desc": "Cultiva verduras. Las plantas crecen a la vista mientras avanza la producción.",
+      "footprint": 2.2, "max_count": 4, "cost": {"madera": 10, "fibra": 10, "piedra": 4}, "cost_growth": 1.45,
+      "unlock": "agr_cultivo", "zone": "any", "worker_type": "granjero", "requires_item": "azada", "visual": "crops",
+      "production": [{"id": "p_zanahoria", "name": "Zanahorias", "interval": 40.0, "in": {}, "out": {"zanahoria": 2}},
+                     {"id": "p_maiz", "name": "Maíz", "interval": 45.0, "in": {}, "out": {"maiz": 2}},
+                     {"id": "p_calabaza", "name": "Calabazas (riego)", "interval": 50.0, "in": {"agua": 1}, "out": {"calabaza": 2}, "unlock": "agr_riego"}],
+      "levels": [
+        {"name": "Bancal", "hp": 80, "workers": 1, "speed": 1.0, "output": 1.0, "crop_rows": 2,
+         "models": [
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, -0.8]},
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, 0.8]}
+         ]},
+        {"name": "Huerto", "hp": 120, "workers": 2, "speed": 1.35, "output": 1.5, "crop_rows": 3, "upgrade_cost": {"madera": 30, "fibra": 20, "agua": 4},
+         "models": [
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, -1.5]},
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, 0.0]},
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, 1.5]},
+           {"model": "survival/bucket", "scale": 5.0, "pos": [1.9, 0.0, 1.6]}
+         ]},
+        {"name": "Huerto vallado", "hp": 180, "workers": 3, "speed": 1.7, "output": 2.0, "crop_rows": 3, "upgrade_cost": {"tablas": 20, "cuerda": 8, "agua": 8},
+         "models": [
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, -1.5]},
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, 0.0]},
+           {"model": "nature/crops_dirtRow", "scale": 3.0, "pos": [0.0, 0.0, 1.5]},
+           {"model": "nature/fence_simple", "scale": 3.0, "pos": [0.0, 0.0, -1.0], "rot": 0},
+           {"model": "nature/fence_simple", "scale": 3.0, "pos": [-1.0, 0.0, 0.0], "rot": 270},
+           {"model": "nature/fence_simple", "scale": 3.0, "pos": [1.0, 0.0, 0.0], "rot": 90},
+           {"model": "survival/bucket", "scale": 5.0, "pos": [1.9, 0.0, 1.9]}
+         ]}
+      ]
+    },
+    {
+      "id": "aserradero", "name": "Aserradero", "category": "procesado",
+      "desc": "Convierte madera en tablas automáticamente.",
+      "footprint": 2.2, "max_count": 3, "cost": {"madera": 30, "piedra": 20, "cuerda": 5}, "cost_growth": 1.6,
+      "unlock": "con_carpinteria", "zone": "any", "worker_type": "lenador", "station": "taller_basico",
+      "production": [{"id": "p_tablas", "name": "Serrar tablas", "interval": 12.0, "in": {"madera": 2}, "out": {"tablas": 1}}],
+      "levels": [
+        {"name": "Banco de sierra", "hp": 140, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "survival/structure-roof", "scale": 6.5, "pos": [0.0, 0.0, -0.3]},
+           {"model": "survival/workbench-grind", "scale": 6.0, "pos": [0.0, 0.0, 0.0]},
+           {"model": "nature/log", "scale": 3.0, "pos": [-1.4, 0.0, 0.9], "rot": 10},
+           {"model": "survival/resource-planks", "scale": 5.0, "pos": [1.3, 0.0, 1.0]}
+         ]},
+        {"name": "Aserradero hidráulico", "hp": 220, "workers": 2, "speed": 1.4, "output": 1.0, "input": 0.85, "upgrade_cost": {"madera": 50, "tablas": 25, "lingote_hierro": 3},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 6.5, "pos": [0.0, 0.0, -0.3]},
+           {"model": "survival/workbench-grind", "scale": 6.0, "pos": [0.0, 0.0, 0.0]},
+           {"model": "nature/log_stack", "scale": 3.0, "pos": [-1.4, 0.0, 0.9], "rot": 10},
+           {"model": "survival/resource-planks", "scale": 5.0, "pos": [1.3, 0.0, 1.0]},
+           {"model": "survival/resource-planks", "scale": 5.0, "pos": [1.3, 0.3, 1.0], "rot": 15}
+         ], "spinner": {"model": "town/watermill", "scale": 1.6, "pos": [2.2, 1.45, -0.3], "axis": "x", "speed": 1.2}},
+        {"name": "Serrería", "hp": 320, "workers": 3, "speed": 1.9, "output": 1.25, "input": 0.75, "upgrade_cost": {"tablas": 50, "piezas": 6, "lingote_hierro": 6},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 6.5, "pos": [0.0, 0.0, -0.3]},
+           {"model": "town/wall-wood", "scale": 3.25, "pos": [0.0, 0.0, -0.3], "rot": 90},
+           {"model": "survival/workbench-grind", "scale": 6.0, "pos": [0.0, 0.0, 0.0]},
+           {"model": "nature/log_stackLarge", "scale": 3.0, "pos": [-1.4, 0.0, 0.9], "rot": 10},
+           {"model": "survival/resource-planks", "scale": 5.0, "pos": [1.3, 0.0, 1.0]},
+           {"model": "survival/resource-planks", "scale": 5.0, "pos": [1.3, 0.3, 1.0], "rot": 15}
+         ], "spinner": {"model": "town/watermill-wide", "scale": 1.6, "pos": [2.3, 1.45, -0.3], "axis": "x", "speed": 1.6}}
+      ]
+    },
+    {
+      "id": "carbonera", "name": "Horno de carbón", "category": "procesado",
+      "desc": "Quema madera lentamente para obtener carbón.",
+      "footprint": 1.6, "max_count": 3, "cost": {"piedra": 25, "madera": 10}, "cost_growth": 1.6,
+      "unlock": "min_carboneras", "zone": "any", "worker_type": "lenador", "smoke": true,
+      "production": [{"id": "p_carbon", "name": "Carbonizar", "interval": 16.0, "in": {"madera": 3}, "out": {"carbon": 1}}],
+      "levels": [
+        {"name": "Horno de barro", "hp": 140, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "nature/campfire_bricks", "scale": 3.4},
+           {"model": "town/chimney-base", "scale": 2.2, "pos": [-0.5, 0.0, 0.0]},
+           {"model": "town/chimney-top", "scale": 2.2, "pos": [-0.5, 2.2, 0.0]},
+           {"model": "nature/log", "scale": 2.6, "pos": [1.2, 0.0, 1.0], "rot": 30}
+         ]},
+        {"name": "Horno de ladrillo", "hp": 220, "workers": 2, "speed": 1.4, "output": 1.0, "input": 0.85, "upgrade_cost": {"piedra": 50, "tablas": 10},
+         "models": [
+           {"model": "nature/campfire_bricks", "scale": 3.8},
+           {"model": "town/chimney-base", "scale": 2.6, "pos": [-0.6, 0.0, 0.0]},
+           {"model": "town/chimney", "scale": 2.6, "pos": [-0.6, 2.6, 0.0]},
+           {"model": "town/chimney-top", "scale": 2.6, "pos": [-0.6, 5.2, 0.0]},
+           {"model": "nature/log_stack", "scale": 2.6, "pos": [1.3, 0.0, 1.0], "rot": 30}
+         ]},
+        {"name": "Carbonera industrial", "hp": 320, "workers": 3, "speed": 1.9, "output": 1.25, "input": 0.75, "upgrade_cost": {"piedra": 80, "lingote_hierro": 5, "tablas": 20},
+         "models": [
+           {"model": "nature/campfire_bricks", "scale": 4.0},
+           {"model": "town/chimney-base", "scale": 2.6, "pos": [-0.6, 0.0, 0.0]},
+           {"model": "town/chimney", "scale": 2.6, "pos": [-0.6, 2.6, 0.0]},
+           {"model": "town/chimney-top", "scale": 2.6, "pos": [-0.6, 5.2, 0.0]},
+           {"model": "factory/hopper-round", "scale": 1.2, "pos": [1.4, 0.0, -0.8]},
+           {"model": "nature/log_stackLarge", "scale": 2.6, "pos": [1.3, 0.0, 1.0], "rot": 30}
+         ]}
+      ]
+    },
+    {
+      "id": "mina", "name": "Mina", "category": "produccion",
+      "desc": "Extrae mineral de hierro y carbón. Debe construirse en la zona rocosa.",
+      "footprint": 2.2, "max_count": 3, "cost": {"madera": 30, "piedra": 30, "cuerda": 8}, "cost_growth": 1.7,
+      "unlock": "min_mineria", "zone": "rocky", "worker_type": "minero",
+      "production": [{"id": "p_hierro", "name": "Mineral de hierro", "interval": 30.0, "in": {}, "out": {"mineral_hierro": 2}},
+                     {"id": "p_carbon_mina", "name": "Carbón mineral", "interval": 30.0, "in": {}, "out": {"carbon": 2}},
+                     {"id": "p_cristal", "name": "Vetas de cristal", "interval": 90.0, "in": {}, "out": {"cristal": 1}, "unlock": "exp_resonancia"}],
+      "levels": [
+        {"name": "Galería", "hp": 220, "workers": 1, "speed": 1.0, "output": 1.0,
+         "models": [
+           {"model": "nature/cliff_blockCave_rock", "scale": 3.6, "pos": [0.0, 0.0, -0.8]},
+           {"model": "town/pillar-wood", "scale": 2.6, "pos": [-1.3, 0.0, 1.0]},
+           {"model": "town/pillar-wood", "scale": 2.6, "pos": [1.3, 0.0, 1.0]},
+           {"model": "town/planks", "scale": 2.8, "pos": [0.0, 2.6, 1.0]},
+           {"model": "town/cart", "scale": 2.0, "pos": [1.9, 0.0, 1.9], "rot": 80}
+         ]},
+        {"name": "Mina", "hp": 320, "workers": 2, "speed": 1.4, "output": 1.5, "upgrade_cost": {"tablas": 30, "piedra": 40, "lingote_hierro": 4},
+         "models": [
+           {"model": "nature/cliff_blockCave_rock", "scale": 3.6, "pos": [0.0, 0.0, -0.8]},
+           {"model": "town/pillar-wood", "scale": 2.6, "pos": [-1.3, 0.0, 1.0]},
+           {"model": "town/pillar-wood", "scale": 2.6, "pos": [1.3, 0.0, 1.0]},
+           {"model": "town/planks", "scale": 2.8, "pos": [0.0, 2.6, 1.0]},
+           {"model": "town/cart-high", "scale": 2.0, "pos": [1.9, 0.0, 1.9], "rot": 80},
+           {"model": "factory/hopper-round", "scale": 1.4, "pos": [-2.1, 0.0, 1.4]}
+         ]},
+        {"name": "Mina profunda", "hp": 450, "workers": 3, "speed": 1.9, "output": 2.0, "upgrade_cost": {"tablas": 50, "piezas": 10, "acero": 4},
+         "models": [
+           {"model": "nature/cliff_blockCave_rock", "scale": 3.6, "pos": [0.0, 0.0, -0.8]},
+           {"model": "town/pillar-wood", "scale": 2.6, "pos": [-1.3, 0.0, 1.0]},
+           {"model": "town/pillar-wood", "scale": 2.6, "pos": [1.3, 0.0, 1.0]},
+           {"model": "town/planks", "scale": 2.8, "pos": [0.0, 2.6, 1.0]},
+           {"model": "town/cart-high", "scale": 2.0, "pos": [1.9, 0.0, 1.9], "rot": 80},
+           {"model": "factory/hopper-round", "scale": 1.4, "pos": [-2.1, 0.0, 1.4]},
+           {"model": "factory/crane", "scale": 1.0, "pos": [-2.2, 0.0, -0.6], "rot": 90}
+         ]}
+      ]
+    },
+    {
+      "id": "fundicion", "name": "Fundición", "category": "procesado",
+      "desc": "Funde mineral de hierro con carbón para obtener lingotes; con la tecnología adecuada, también acero. Estación de fundición.",
+      "footprint": 2.0, "max_count": 3, "cost": {"piedra": 40, "tablas": 10, "mineral_hierro": 5}, "cost_growth": 1.7,
+      "unlock": "min_metalurgia", "zone": "any", "worker_type": "minero", "station": "fundicion", "smoke": true,
+      "production": [{"id": "p_lingote", "name": "Lingotes de hierro", "interval": 16.0, "in": {"mineral_hierro": 2, "carbon": 1}, "out": {"lingote_hierro": 1}},
+                     {"id": "p_acero", "name": "Acero", "interval": 24.0, "in": {"lingote_hierro": 2, "carbon": 2}, "out": {"acero": 1}, "unlock": "min_acero"}],
+      "levels": [
+        {"name": "Horno de fundición", "hp": 220, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "nature/campfire_bricks", "scale": 3.4, "pos": [-0.5, 0.0, -0.4]},
+           {"model": "town/chimney-base", "scale": 2.4, "pos": [-1.0, 0.0, -0.4]},
+           {"model": "town/chimney-top", "scale": 2.4, "pos": [-1.0, 2.4, -0.4]},
+           {"model": "survival/workbench-anvil", "scale": 5.0, "pos": [1.1, 0.0, 0.6]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.4, 0.0, -0.9]}
+         ]},
+        {"name": "Fundición", "hp": 320, "workers": 2, "speed": 1.4, "output": 1.0, "input": 0.85, "upgrade_cost": {"piedra": 60, "lingote_hierro": 8, "tablas": 15},
+         "models": [
+           {"model": "factory/hopper-high-round", "scale": 1.5, "pos": [-0.6, 0.0, -0.4]},
+           {"model": "town/chimney-base", "scale": 2.4, "pos": [-1.3, 0.0, -0.4]},
+           {"model": "town/chimney", "scale": 2.4, "pos": [-1.3, 2.4, -0.4]},
+           {"model": "town/chimney-top", "scale": 2.4, "pos": [-1.3, 4.8, -0.4]},
+           {"model": "survival/workbench-anvil", "scale": 5.0, "pos": [1.1, 0.0, 0.6]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.4, 0.0, -0.9]}
+         ]},
+        {"name": "Alto horno", "hp": 450, "workers": 3, "speed": 1.9, "output": 1.25, "input": 0.75, "upgrade_cost": {"acero": 6, "piezas": 10, "piedra": 80},
+         "models": [
+           {"model": "factory/machine-fortified", "scale": 1.7, "pos": [-0.5, 0.0, -0.3]},
+           {"model": "town/chimney-base", "scale": 2.4, "pos": [-1.4, 0.0, -0.4]},
+           {"model": "town/chimney", "scale": 2.4, "pos": [-1.4, 2.4, -0.4]},
+           {"model": "town/chimney-top", "scale": 2.4, "pos": [-1.4, 4.8, -0.4]},
+           {"model": "survival/workbench-anvil", "scale": 5.0, "pos": [1.2, 0.0, 0.8]},
+           {"model": "factory/pipe-large", "scale": 0.8, "pos": [0.9, 0.0, -0.9]}
+         ]}
+      ]
+    },
+    {
+      "id": "taller", "name": "Taller", "category": "procesado",
+      "desc": "Estación de fabricación avanzada. Produce cuerda y piezas mecánicas automáticamente.",
+      "footprint": 2.2, "max_count": 2, "cost": {"tablas": 20, "piedra": 20, "madera": 20}, "cost_growth": 1.8,
+      "unlock": "fab_taller", "zone": "any", "worker_type": "artesano", "station": "taller", "interact": "craft",
+      "production": [{"id": "p_cuerda", "name": "Trenzar cuerda", "interval": 10.0, "in": {"fibra": 3}, "out": {"cuerda": 1}},
+                     {"id": "p_piezas", "name": "Piezas mecánicas", "interval": 18.0, "in": {"lingote_hierro": 1, "tablas": 1}, "out": {"piezas": 2}}],
+      "levels": [
+        {"name": "Taller de campaña", "hp": 200, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0, "craft_speed": 1.0,
+         "models": [
+           {"model": "survival/structure-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.4]},
+           {"model": "survival/workbench", "scale": 6.0, "pos": [-0.5, 0.0, -0.4]},
+           {"model": "survival/workbench-anvil", "scale": 5.0, "pos": [1.0, 0.0, 0.4]},
+           {"model": "survival/tool-hammer", "scale": 4.0, "pos": [-0.5, 1.75, -0.4], "rot": 40}
+         ]},
+        {"name": "Taller", "hp": 300, "workers": 2, "speed": 1.4, "output": 1.0, "input": 0.9, "craft_speed": 1.3, "upgrade_cost": {"tablas": 40, "lingote_hierro": 8, "cuerda": 10},
+         "models": [
+           {"model": "survival/structure-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.4]},
+           {"model": "town/wall-wood", "scale": 3.5, "pos": [0.0, 0.0, -0.4], "rot": 90},
+           {"model": "town/wall-wood", "scale": 3.5, "pos": [0.0, 0.0, -0.4], "rot": 180},
+           {"model": "survival/workbench", "scale": 6.0, "pos": [-0.5, 0.0, -0.4]},
+           {"model": "survival/workbench-anvil", "scale": 5.0, "pos": [1.0, 0.0, 0.4]},
+           {"model": "survival/workbench-grind", "scale": 5.0, "pos": [1.1, 0.0, -1.0]}
+         ]},
+        {"name": "Taller mecánico", "hp": 420, "workers": 3, "speed": 1.9, "output": 1.25, "input": 0.8, "craft_speed": 1.6, "upgrade_cost": {"acero": 6, "piezas": 12, "tablas": 30},
+         "models": [
+           {"model": "survival/structure-metal-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.4]},
+           {"model": "survival/structure-metal-wall", "scale": 7.0, "pos": [0.0, 0.0, -0.4], "rot": 0},
+           {"model": "survival/workbench", "scale": 6.0, "pos": [-0.5, 0.0, -0.4]},
+           {"model": "survival/workbench-anvil", "scale": 5.0, "pos": [1.0, 0.0, 0.4]},
+           {"model": "factory/machine", "scale": 1.0, "pos": [1.2, 0.0, -1.0]}
+         ]}
+      ]
+    },
+    {
+      "id": "granja", "name": "Granja de animales", "category": "produccion",
+      "desc": "Cría animales que producen huevos y carne. Consume bayas o maíz como alimento.",
+      "footprint": 3.0, "max_count": 2, "cost": {"tablas": 20, "cuerda": 8, "madera": 20}, "cost_growth": 1.7,
+      "unlock": "agr_ganaderia", "zone": "any", "worker_type": "granjero", "visual": "animals",
+      "production": [{"id": "p_huevos", "name": "Huevos (bayas)", "interval": 40.0, "in": {"bayas": 2}, "out": {"huevo": 2}},
+                     {"id": "p_carne", "name": "Carne (maíz)", "interval": 60.0, "in": {"maiz": 2}, "out": {"carne_cruda": 2, "cuero": 1}}],
+      "levels": [
+        {"name": "Corral", "hp": 160, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0, "animals": ["animal-chick", "animal-chick"],
+         "models": [
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [0.0, 0.0, -0.2], "rot": 0},
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [0.0, 0.0, 0.2], "rot": 180},
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [-0.2, 0.0, 0.0], "rot": 270},
+           {"model": "nature/fence_gate", "scale": 5.0, "pos": [0.2, 0.0, 0.0], "rot": 90},
+           {"model": "graveyard/hay-bale", "scale": 1.8, "pos": [-1.5, 0.0, -1.5]}
+         ]},
+        {"name": "Granja", "hp": 240, "workers": 2, "speed": 1.35, "output": 1.5, "input": 1.0, "upgrade_cost": {"tablas": 35, "cuerda": 10, "maiz": 10}, "animals": ["animal-chick", "animal-chick", "animal-pig"],
+         "models": [
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [0.0, 0.0, -0.2], "rot": 0},
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [0.0, 0.0, 0.2], "rot": 180},
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [-0.2, 0.0, 0.0], "rot": 270},
+           {"model": "nature/fence_gate", "scale": 5.0, "pos": [0.2, 0.0, 0.0], "rot": 90},
+           {"model": "graveyard/hay-bale", "scale": 1.8, "pos": [-1.5, 0.0, -1.5]},
+           {"model": "graveyard/hay-bale-bundled", "scale": 1.8, "pos": [1.5, 0.0, -1.6]},
+           {"model": "town/stall-bench", "scale": 3.0, "pos": [0.0, 0.0, -1.8], "rot": 90}
+         ]},
+        {"name": "Rancho", "hp": 360, "workers": 3, "speed": 1.7, "output": 2.0, "input": 1.0, "upgrade_cost": {"tablas": 60, "lingote_hierro": 6, "maiz": 20}, "animals": ["animal-chick", "animal-chick", "animal-pig", "animal-cow"],
+         "models": [
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [0.0, 0.0, -0.2], "rot": 0},
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [0.0, 0.0, 0.2], "rot": 180},
+           {"model": "nature/fence_simple", "scale": 5.0, "pos": [-0.2, 0.0, 0.0], "rot": 270},
+           {"model": "nature/fence_gate", "scale": 5.0, "pos": [0.2, 0.0, 0.0], "rot": 90},
+           {"model": "survival/structure-roof", "scale": 5.0, "pos": [-1.2, 0.0, -1.2]},
+           {"model": "graveyard/hay-bale-bundled", "scale": 1.8, "pos": [1.5, 0.0, -1.6]},
+           {"model": "town/stall-bench", "scale": 3.0, "pos": [0.0, 0.0, -1.8], "rot": 90}
+         ]}
+      ]
+    },
+    {
+      "id": "laboratorio", "name": "Laboratorio de investigación", "category": "avanzado",
+      "desc": "Genera puntos de tecnología a partir de materiales. Los artesanos aceleran la investigación.",
+      "footprint": 2.2, "max_count": 2, "cost": {"tablas": 30, "lingote_hierro": 8, "piedra": 30}, "cost_growth": 2.0,
+      "unlock": "aut_ciencia", "zone": "any", "worker_type": "artesano",
+      "production": [{"id": "p_investigar", "name": "Investigar", "interval": 60.0, "in": {"tablas": 2, "hierbas": 1}, "out": {"@investigacion": 1}},
+                     {"id": "p_investigar_cristal", "name": "Investigación avanzada", "interval": 60.0, "in": {"cristal": 1, "piezas": 1}, "out": {"@investigacion": 3}, "unlock": "fab_electronica"}],
+      "levels": [
+        {"name": "Mesa de estudio", "hp": 200, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "survival/structure-metal-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.3]},
+           {"model": "station/table-display", "scale": 2.2, "pos": [0.0, 0.66, -0.3]},
+           {"model": "station/container-tall", "scale": 2.4, "pos": [1.3, 0.0, -1.0]},
+           {"model": "crystals/detail-crystal", "scale": 1.6, "pos": [0.0, 1.3, -0.3]}
+         ]},
+        {"name": "Laboratorio", "hp": 300, "workers": 2, "speed": 1.4, "output": 1.0, "input": 0.9, "upgrade_cost": {"tablas": 40, "piezas": 8, "lingote_hierro": 10},
+         "models": [
+           {"model": "survival/structure-metal-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.3]},
+           {"model": "survival/structure-metal-wall", "scale": 7.0, "pos": [0.0, 0.0, -0.3], "rot": 90},
+           {"model": "station/table-display", "scale": 2.2, "pos": [0.0, 0.66, -0.3]},
+           {"model": "station/computer-screen", "scale": 2.0, "pos": [-1.1, 0.0, -0.9]},
+           {"model": "station/container-tall", "scale": 2.4, "pos": [1.3, 0.0, -1.0]},
+           {"model": "crystals/detail-crystal", "scale": 1.6, "pos": [0.0, 1.3, -0.3]}
+         ]},
+        {"name": "Centro de investigación", "hp": 420, "workers": 3, "speed": 1.9, "output": 1.25, "input": 0.8, "upgrade_cost": {"acero": 8, "electronica": 4, "piezas": 12},
+         "models": [
+           {"model": "survival/structure-metal-roof", "scale": 7.0, "pos": [0.0, 0.0, -0.3]},
+           {"model": "survival/structure-metal-wall", "scale": 7.0, "pos": [0.0, 0.0, -0.3], "rot": 90},
+           {"model": "station/table-display", "scale": 2.2, "pos": [0.0, 0.66, -0.3]},
+           {"model": "station/computer-system", "scale": 2.0, "pos": [-1.1, 0.0, -0.9]},
+           {"model": "factory/scanner-low", "scale": 1.2, "pos": [1.4, 0.0, 0.2]},
+           {"model": "crystals/detail-crystal-large", "scale": 1.6, "pos": [0.0, 1.3, -0.3]}
+         ]}
+      ]
+    },
+    {
+      "id": "generador", "name": "Generador de energía", "category": "avanzado",
+      "desc": "Quema carbón (o combustible) para producir energía. Las máquinas avanzadas la necesitan.",
+      "footprint": 2.0, "max_count": 4, "cost": {"lingote_hierro": 15, "piezas": 8, "piedra": 30}, "cost_growth": 1.6,
+      "unlock": "aut_energia", "zone": "any", "worker_type": "artesano", "smoke": true,
+      "production": [{"id": "p_energia_carbon", "name": "Quemar carbón", "interval": 20.0, "in": {"carbon": 1}, "out": {}, "energy": 10},
+                     {"id": "p_energia_combustible", "name": "Quemar combustible", "interval": 45.0, "in": {"combustible": 1}, "out": {}, "energy": 14, "unlock": "fab_combustibles"},
+                     {"id": "p_energia_cristal", "name": "Resonancia de cristal", "interval": 120.0, "in": {"cristal": 1}, "out": {}, "energy": 25, "unlock": "exp_resonancia"}],
+      "levels": [
+        {"name": "Caldera", "hp": 260, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "factory/machine", "scale": 1.7, "pos": [0.0, 0.0, -0.2]},
+           {"model": "factory/pipe-large", "scale": 0.8, "pos": [-1.3, 0.0, 0.0]},
+           {"model": "town/chimney", "scale": 2.4, "pos": [-1.7, 0.8, 0.0]}
+         ], "spinner": {"model": "factory/cog-a", "scale": 1.2, "pos": [1.15, 1.2, 0.0], "axis": "x", "speed": 2.0}},
+        {"name": "Generador eólico-vapor", "hp": 380, "workers": 2, "speed": 1.0, "output": 1.6, "input": 1.0, "upgrade_cost": {"lingote_hierro": 15, "piezas": 12, "tablas": 20},
+         "models": [
+           {"model": "factory/machine", "scale": 1.7, "pos": [0.0, 0.0, -0.2]},
+           {"model": "factory/pipe-large", "scale": 0.8, "pos": [-1.3, 0.0, 0.0]},
+           {"model": "town/chimney", "scale": 2.4, "pos": [-1.7, 0.8, 0.0]},
+           {"model": "town/pillar-wood", "scale": 4.5, "pos": [1.5, 0.0, -1.2]}
+         ], "spinner": {"model": "town/windmill", "scale": 1.3, "pos": [1.5, 4.4, -0.85], "axis": "z", "speed": 0.9}},
+        {"name": "Resonador", "hp": 520, "workers": 3, "speed": 1.0, "output": 2.4, "input": 1.0, "upgrade_cost": {"acero": 10, "electronica": 6, "cristal": 6},
+         "models": [
+           {"model": "factory/machine-window", "scale": 1.7, "pos": [0.0, 0.0, -0.2]},
+           {"model": "factory/pipe-large", "scale": 0.8, "pos": [-1.3, 0.0, 0.0]},
+           {"model": "town/pillar-wood", "scale": 4.5, "pos": [1.5, 0.0, -1.2]},
+           {"model": "crystals/tower-round-crystals", "scale": 1.8, "pos": [-1.4, 0.0, 1.2]}
+         ], "spinner": {"model": "town/windmill", "scale": 1.3, "pos": [1.5, 4.4, -0.85], "axis": "z", "speed": 1.2}}
+      ]
+    },
+    {
+      "id": "refineria", "name": "Refinería", "category": "avanzado",
+      "desc": "Produce combustible a partir de carbón y agua. Consume energía.",
+      "footprint": 2.0, "max_count": 2, "cost": {"lingote_hierro": 20, "piezas": 10, "tablas": 20}, "cost_growth": 1.8,
+      "unlock": "fab_combustibles", "zone": "any", "worker_type": "artesano", "smoke": true,
+      "production": [{"id": "p_combustible", "name": "Refinar combustible", "interval": 25.0, "in": {"carbon": 2, "agua": 1}, "out": {"combustible": 1}, "energy": -5}],
+      "levels": [
+        {"name": "Destilería", "hp": 260, "workers": 1, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "factory/hopper-high-round", "scale": 1.5, "pos": [-0.6, 0.0, -0.3]},
+           {"model": "factory/pipe-large-bend", "scale": 0.8, "pos": [0.5, 0.0, -0.3]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.2, 0.0, 0.9]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [0.6, 0.0, 1.2]}
+         ]},
+        {"name": "Refinería", "hp": 380, "workers": 2, "speed": 1.4, "output": 1.0, "input": 0.85, "upgrade_cost": {"acero": 6, "piezas": 10},
+         "models": [
+           {"model": "factory/hopper-high-round", "scale": 1.5, "pos": [-0.6, 0.0, -0.3]},
+           {"model": "factory/hopper-high-round", "scale": 1.2, "pos": [-1.6, 0.0, 0.6]},
+           {"model": "factory/pipe-large-bend", "scale": 0.8, "pos": [0.5, 0.0, -0.3]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [1.2, 0.0, 0.9]},
+           {"model": "survival/barrel", "scale": 5.0, "pos": [0.6, 0.0, 1.2]}
+         ]}
+      ]
+    },
+    {
+      "id": "fabrica", "name": "Fábrica avanzada", "category": "avanzado",
+      "desc": "Cadena de producción automatizada: electrónica y acero. Requiere energía.",
+      "footprint": 2.8, "max_count": 2, "cost": {"acero": 12, "piezas": 20, "lingote_hierro": 20}, "cost_growth": 2.0,
+      "unlock": "aut_fabrica", "zone": "any", "worker_type": "artesano",
+      "production": [{"id": "p_electronica", "name": "Electrónica", "interval": 30.0, "in": {"piezas": 2, "cristal": 1}, "out": {"electronica": 1}, "energy": -10},
+                     {"id": "p_acero_fab", "name": "Acero", "interval": 20.0, "in": {"lingote_hierro": 2, "carbon": 1}, "out": {"acero": 1}, "energy": -8},
+                     {"id": "p_piezas_fab", "name": "Piezas en serie", "interval": 12.0, "in": {"lingote_hierro": 1, "tablas": 1}, "out": {"piezas": 3}, "energy": -6}],
+      "levels": [
+        {"name": "Línea de montaje", "hp": 400, "workers": 2, "speed": 1.0, "output": 1.0, "input": 1.0,
+         "models": [
+           {"model": "survival/structure-metal-roof", "scale": 9.0, "pos": [0.0, 0.0, -0.2]},
+           {"model": "factory/machine-window", "scale": 1.6, "pos": [-1.2, 0.0, -0.4]},
+           {"model": "factory/conveyor-long", "scale": 1.4, "pos": [0.9, 0.0, -0.4]},
+           {"model": "factory/hopper-round", "scale": 1.2, "pos": [1.6, 0.0, 1.3]},
+           {"model": "factory/box-small", "scale": 1.4, "pos": [-1.5, 0.0, 1.4]}
+         ], "spinner": {"model": "factory/robot-arm-a", "scale": 0.9, "pos": [0.6, 0.0, 0.7], "axis": "y", "speed": 1.4}},
+        {"name": "Fábrica automatizada", "hp": 600, "workers": 3, "speed": 1.5, "output": 1.0, "input": 0.85, "upgrade_cost": {"acero": 20, "electronica": 8, "piezas": 20},
+         "models": [
+           {"model": "survival/structure-metal-roof", "scale": 9.0, "pos": [0.0, 0.0, -0.2]},
+           {"model": "factory/machine-window", "scale": 1.6, "pos": [-1.2, 0.0, -0.4]},
+           {"model": "factory/conveyor-long", "scale": 1.4, "pos": [0.9, 0.0, -0.4]},
+           {"model": "factory/conveyor-long", "scale": 1.4, "pos": [0.9, 0.0, 0.6]},
+           {"model": "factory/hopper-round", "scale": 1.2, "pos": [1.6, 0.0, 1.3]},
+           {"model": "factory/screen-wide", "scale": 1.2, "pos": [-1.6, 0.0, 1.2]}
+         ], "spinner": {"model": "factory/robot-arm-a", "scale": 0.9, "pos": [0.6, 0.0, 0.7], "axis": "y", "speed": 2.0}}
+      ]
+    },
+    {
+      "id": "antorcha", "name": "Antorcha", "category": "defensa",
+      "desc": "Ilumina los alrededores. Las criaturas nocturnas evitan la luz.",
+      "footprint": 0.5, "max_count": 24, "cost": {"madera": 3, "fibra": 2, "carbon": 1}, "cost_growth": 1.05,
+      "unlock": "exp_antorchas", "zone": "any",
+      "levels": [
+        {"name": "Farol", "hp": 40, "light": 6.5, "models": [{"model": "town/lantern", "scale": 1.6}]},
+        {"name": "Brasero", "hp": 80, "light": 9.0, "upgrade_cost": {"piedra": 6, "carbon": 2}, "models": [{"model": "graveyard/fire-basket", "scale": 2.6}]}
+      ]
+    },
+    {
+      "id": "torre", "name": "Torre de defensa", "category": "defensa",
+      "desc": "Dispara automáticamente a los enemigos cercanos.",
+      "footprint": 1.6, "max_count": 4, "cost": {"tablas": 25, "piedra": 30, "cuerda": 8, "lingote_hierro": 3}, "cost_growth": 1.6,
+      "unlock": "con_defensas", "zone": "any", "defense": true,
+      "levels": [
+        {"name": "Torre de vigía", "hp": 300, "light": 5.0, "tower_range": 14.0, "tower_damage": 14, "tower_rate": 1.8,
+         "models": [
+           {"model": "town/pillar-wood", "scale": 3.4, "pos": [-0.9, 0.0, -0.9]},
+           {"model": "town/pillar-wood", "scale": 3.4, "pos": [0.9, 0.0, -0.9]},
+           {"model": "town/pillar-wood", "scale": 3.4, "pos": [-0.9, 0.0, 0.9]},
+           {"model": "town/pillar-wood", "scale": 3.4, "pos": [0.9, 0.0, 0.9]},
+           {"model": "pirate/structure-platform", "scale": 0.9, "pos": [0.0, 3.0, 0.0]},
+           {"model": "pirate/flag", "scale": 0.8, "pos": [0.8, 3.6, 0.8]}
+         ]},
+        {"name": "Torre reforzada", "hp": 500, "light": 7.0, "tower_range": 18.0, "tower_damage": 22, "tower_rate": 1.4, "upgrade_cost": {"tablas": 30, "lingote_hierro": 8, "piedra": 40},
+         "models": [
+           {"model": "pirate/tower-watch", "scale": 1.3},
+           {"model": "pirate/flag", "scale": 0.9, "pos": [0.0, 3.6, 0.0]}
+         ]}
+      ]
+    },
+    {
+      "id": "cabana", "name": "Cabaña de trabajadores", "category": "supervivencia",
+      "desc": "Aloja a más trabajadores en la base.",
+      "footprint": 2.0, "max_count": 4, "cost": {"madera": 25, "fibra": 10, "piedra": 10}, "cost_growth": 1.6,
+      "unlock": "aut_organizacion", "zone": "any",
+      "levels": [
+        {"name": "Tienda grande", "hp": 120, "housing": 2,
+         "models": [{"model": "survival/tent-canvas", "scale": 7.0}, {"model": "survival/bedroll", "scale": 4.2, "pos": [0.0, 0.05, 0.0]}]},
+        {"name": "Barracón", "hp": 220, "housing": 4, "upgrade_cost": {"madera": 40, "tablas": 20, "cuerda": 6},
+         "models": [
+           {"model": "survival/floor", "scale": 6.0},
+           {"model": "survival/structure-canvas", "scale": 6.0},
+           {"model": "town/wall-wood", "scale": 3.0, "rot": 90},
+           {"model": "survival/bedroll", "scale": 4.0, "pos": [-0.6, 0.1, 0.0]},
+           {"model": "survival/bedroll", "scale": 4.0, "pos": [0.6, 0.1, 0.0]}
+         ]},
+        {"name": "Casa comunal", "hp": 360, "housing": 6, "upgrade_cost": {"tablas": 40, "piedra": 30, "lingote_hierro": 4},
+         "models": [
+           {"model": "town/planks", "scale": 3.0},
+           {"model": "town/wall-wood", "scale": 3.0, "rot": 90},
+           {"model": "town/wall-wood-door", "scale": 3.0, "rot": 270},
+           {"model": "town/wall-wood-window-shutters", "scale": 3.0, "rot": 180},
+           {"model": "town/wall-wood-window-shutters", "scale": 3.0, "rot": 0},
+           {"model": "town/roof-gable", "scale": 3.0, "pos": [0.0, 3.0, 0.0]}
+         ]}
+      ]
+    }
+  ]
+}

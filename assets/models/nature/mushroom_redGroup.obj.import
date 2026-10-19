@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://drci62e3n4iok"
+path="res://.godot/imported/mushroom_redGroup.obj-84998b5cd95dd173f5a8502771f00bed.mesh"
+
+[deps]
+
+files=["res://.godot/imported/mushroom_redGroup.obj-84998b5cd95dd173f5a8502771f00bed.mesh"]
+
+source_file="res://assets/models/nature/mushroom_redGroup.obj"
+dest_files=["res://.godot/imported/mushroom_redGroup.obj-84998b5cd95dd173f5a8502771f00bed.mesh", "res://.godot/imported/mushroom_redGroup.obj-84998b5cd95dd173f5a8502771f00bed.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

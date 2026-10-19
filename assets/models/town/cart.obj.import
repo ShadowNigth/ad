@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ckdec7bgdlrqa"
+path="res://.godot/imported/cart.obj-6c3cb2c9aa03d234dfe16ed03a9b23fa.mesh"
+
+[deps]
+
+files=["res://.godot/imported/cart.obj-6c3cb2c9aa03d234dfe16ed03a9b23fa.mesh"]
+
+source_file="res://assets/models/town/cart.obj"
+dest_files=["res://.godot/imported/cart.obj-6c3cb2c9aa03d234dfe16ed03a9b23fa.mesh", "res://.godot/imported/cart.obj-6c3cb2c9aa03d234dfe16ed03a9b23fa.mesh"]
+
+[params]
+
+generate_tangents=false
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
