@@ -20,6 +20,11 @@ import soundfile as sf
 from scipy.signal import resample_poly
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SOURCES: list = []  # registro destino -> origen (lo usa tools/generate_credits.py)
+
+
+def record(dst: str, src: str, note: str = "") -> None:
+    SOURCES.append({"file": dst.replace(ROOT + os.sep, "").replace(os.sep, "/"), "src": src, "note": note})
 RAW = os.path.join(ROOT, ".asset_cache", "raw")
 SND = os.path.join(ROOT, "assets", "sounds")
 MUS = os.path.join(ROOT, "assets", "music")
@@ -32,6 +37,7 @@ def out(path: str) -> str:
 
 def copy(src_rel: str, dst_rel: str) -> None:
     shutil.copyfile(os.path.join(RAW, src_rel), out(os.path.join(SND, dst_rel)))
+    record(os.path.join(SND, dst_rel), src_rel)
 
 
 def to_mono(x: np.ndarray) -> np.ndarray:
@@ -112,6 +118,7 @@ def split_sprite(name: str, dst_prefix: str, slices: dict, pick: list[int] | Non
         seg = x[int(st * sr):int((st + du) * sr)]
         seg = fade(peak_normalize(seg, peak), sr)
         write_ogg(os.path.join(SND, f"{dst_prefix}_{k}.ogg"), seg, sr, quality)
+        record(os.path.join(SND, f"{dst_prefix}_{k}.ogg"), f"stn/{name}.ogg", f"toma {i + 1} de {len(cuts)}")
     return len(idx)
 
 
@@ -119,6 +126,7 @@ def wav_to_ogg(src_rel: str, dst_rel: str, peak: float = 0.89, quality: float = 
     x, sr = sf.read(os.path.join(RAW, src_rel), dtype="float32")
     x = fade(peak_normalize(to_mono(x), peak), sr)
     write_ogg(os.path.join(SND, dst_rel), x, sr, quality)
+    record(os.path.join(SND, dst_rel), src_rel, "convertido de WAV a OGG")
 
 
 def main() -> None:
@@ -241,6 +249,7 @@ def main() -> None:
                       ("stg_death", "stinger_death")):
         x, sr = sf.read(os.path.join(RAW, "stn", name + ".ogg"), dtype="float32")
         write_ogg(os.path.join(SND, f"events/{dst}.ogg"), fade(peak_normalize(to_mono(x), 0.8), sr, 0.005, 0.4), sr, 0.4)
+        record(os.path.join(SND, f"events/{dst}.ogg"), f"stn/{name}.ogg", "mono, normalizado")
     # ---------------- Máquinas (bucles) -----------------
     for n, dst in (("computerNoise_000", "computer_loop"), ("engineCircular_000", "engine_loop"),
                    ("forceField_000", "force_field_loop"), ("spaceEngineLow_000", "factory_loop"),
@@ -250,6 +259,7 @@ def main() -> None:
     x, sr = sf.read(os.path.join(RAW, "stn", "fire_loop.ogg"), dtype="float32")
     write_ogg(os.path.join(SND, "ambient/fire_loop.ogg"),
               rms_normalize(loop_crossfade(to_mono(x), sr, 0.0, 24.0, 2.0), 0.12), sr, 0.35)
+    record(os.path.join(SND, "ambient/fire_loop.ogg"), "stn/fire_loop.ogg", "bucle de 24 s con fundido cíclico")
     split_sprite("owl_horned", "ambient/owl", slices, [0, 2], quality=0.35, peak=0.6)
     split_sprite("tree_creak", "ambient/tree_creak", slices, [6, 7], quality=0.35, peak=0.6)
     amb = {  # archivo: (inicio, duración, fundido, rms)
@@ -264,16 +274,19 @@ def main() -> None:
         y = resample(to_mono(x), sr, 32000)
         y = rms_normalize(loop_crossfade(y, 32000, st, du, xf), rms)
         write_ogg(os.path.join(SND, dst), y, 32000, 0.25)
+        record(os.path.join(SND, dst), f"omarchy/{name}.ogg", f"recorte de {du:.0f} s en bucle, mono 32 kHz")
     # ---------------- Música -----------------
     for src, dst in (("freepd/Connecting Rainbows.mp3", "day_connecting_rainbows.ogg"),
                      ("freepd/Midnight in the Green House.mp3", "night_midnight_green_house.ogg")):
         x, sr = sf.read(os.path.join(RAW, src), dtype="float32")
         x = fade(rms_normalize(x, 0.12), sr, 0.01, 2.5)
         write_ogg(os.path.join(MUS, dst), x, sr, 0.3)
+        record(os.path.join(MUS, dst), src, "convertido de MP3 a OGG")
     for src, dst in (("Night at the Beach", "night_at_the_beach.ogg"), ("Farm Frolics", "day_farm_frolics.ogg"),
                      ("Flowing Rocks", "day_flowing_rocks.ogg"), ("Infinite Descent", "danger_infinite_descent.ogg"),
                      ("Mishief Stroll", "day_mischief_stroll.ogg")):
         shutil.copyfile(os.path.join(RAW, "kenney/Music Loops", src + ".ogg"), out(os.path.join(MUS, dst)))
+        record(os.path.join(MUS, dst), f"kenney/Music Loops/{src}.ogg")
     # Licencias de los packs de audio de Kenney
     for pack in ("Impact Sounds", "RPG Audio", "Foley Sounds", "Interface Sounds", "Digital Audio", "Sci-Fi Sounds",
                  "Music Jingles", "Music Loops"):
@@ -282,6 +295,9 @@ def main() -> None:
     shutil.copyfile(os.path.join(RAW, "stn", "CREDITS.md"), out(os.path.join(SND, "licenses", "freesound_survive-the-night_CREDITS.md")))
     shutil.copyfile(os.path.join(RAW, "omarchy", "CREDITS.md"), out(os.path.join(SND, "licenses", "freesound_omarchy-ambient_CREDITS.md")))
     shutil.copyfile(os.path.join(RAW, "oga", "CREDITS.md"), out(os.path.join(SND, "licenses", "opengameart_renethack_CREDITS.md")))
+    import json
+    with open(out(os.path.join(SND, "licenses", "audio_sources.json")), "w", encoding="utf-8") as fh:
+        json.dump(SOURCES, fh, ensure_ascii=False, indent=1)
     total = 0
     count = 0
     for base in (SND, MUS):

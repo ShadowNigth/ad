@@ -80,7 +80,7 @@ func rebuild() -> void:
 	var lvl := level_data()
 	var parts: Array = lvl.get("models", [])
 	_mesh_inst = MeshInstance3D.new()
-	_mesh_inst.mesh = ModelLibrary.merged(parts, "%s_%d" % [type_id, _level_built])
+	_mesh_inst.mesh = ModelLibrary.baked_merged(parts, "%s_%d" % [type_id, _level_built])
 	add_child(_mesh_inst)
 	aabb = ModelLibrary.parts_aabb(parts)
 	var bd := data()

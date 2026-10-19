@@ -25,7 +25,7 @@ func _build() -> void:
 	body.add_child(hb)
 	var sc := ScrollContainer.new()
 	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.size_flags_stretch_ratio = 2.2
+	sc.size_flags_stretch_ratio = 2.7
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	hb.add_child(sc)
 	matrix = GridContainer.new()
@@ -36,7 +36,7 @@ func _build() -> void:
 	var dp := PanelContainer.new()
 	dp.add_theme_stylebox_override("panel", UITheme.box("panel_brown_dark", 20, 14))
 	dp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dp.custom_minimum_size = Vector2(320, 0)
+	dp.custom_minimum_size = Vector2(290, 0)
 	hb.add_child(dp)
 	var dsc := ScrollContainer.new()
 	dsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -55,15 +55,15 @@ func refresh() -> void:
 	UIPanel.clear_children(matrix)
 	matrix.add_child(UITheme.label("", 14))
 	for br in GameData.branches:
-		var l := UITheme.label(br.name, 15, Color(br.color).darkened(0.35), true)
-		l.custom_minimum_size = Vector2(118, 0)
+		var l := UITheme.label(br.name, 13, Color(br.color).darkened(0.35), true)
+		l.custom_minimum_size = Vector2(92, 0)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		matrix.add_child(l)
 	var ages: Array = GameData.b("progression.age_names", [])
 	for age in ages.size():
-		var al := UITheme.label(str(ages[age]), 14, UITheme.BROWN_LIGHT, true)
-		al.custom_minimum_size = Vector2(96, 0)
+		var al := UITheme.label(str(ages[age]), 13, UITheme.BROWN_LIGHT, true)
+		al.custom_minimum_size = Vector2(78, 0)
 		al.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		matrix.add_child(al)
 		for br in GameData.branches:
@@ -84,10 +84,10 @@ func refresh() -> void:
 func _tech_button(t: Dictionary, br: Dictionary) -> Button:
 	var b := Button.new()
 	b.text = t.name
-	b.custom_minimum_size = Vector2(118, 48)
+	b.custom_minimum_size = Vector2(92, 54)
 	b.focus_mode = Control.FOCUS_NONE
-	b.clip_text = true
-	b.add_theme_font_size_override("font_size", 14)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.add_theme_font_size_override("font_size", 13)
 	var col := Color(br.color)
 	var state := "locked"
 	if TechTree.is_researched(t.id):
@@ -102,7 +102,7 @@ func _tech_button(t: Dictionary, br: Dictionary) -> Button:
 	b.add_theme_stylebox_override("hover", sb)
 	b.add_theme_stylebox_override("pressed", sb)
 	b.add_theme_color_override("font_color", Color.WHITE if state == "done" else UITheme.BROWN)
-	b.text = ("✓ " if state == "done" else "") + str(t.name)
+	b.text = str(t.name)
 	b.tooltip_text = str(t.get("desc", ""))
 	b.pressed.connect(func():
 		selected = t.id
@@ -144,13 +144,13 @@ func _refresh_detail() -> void:
 	if not req.is_empty():
 		var names: Array[String] = []
 		for r in req:
-			names.append(("✓ " if TechTree.is_researched(r) else "✗ ") + str(GameData.tech(r).get("name", r)))
+			names.append(("[hecho] " if TechTree.is_researched(r) else "[falta] ") + str(GameData.tech(r).get("name", r)))
 		detail.add_child(UITheme.label("Requisitos:\n" + "\n".join(names), 16, Color(0.95, 0.9, 0.8)))
 	detail.add_child(UITheme.label("Coste: %d PT" % int(t.get("cost", 0)), 19, Color(1, 0.9, 0.5), true))
 	if not t.get("items", {}).is_empty():
 		detail.add_child(UITheme.cost_row(t.items, 30, 17))
 	if TechTree.is_researched(selected):
-		detail.add_child(UITheme.label("✓ Investigada", 20, Color(0.6, 1.0, 0.6), true))
+		detail.add_child(UITheme.label("Investigada", 20, Color(0.6, 1.0, 0.6), true))
 		return
 	var check := TechTree.can_research(selected)
 	var b := UITheme.button("Investigar", func():

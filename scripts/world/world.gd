@@ -109,6 +109,7 @@ func _build_environment() -> void:
 func _build_terrain() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
 	mat.roughness = 1.0
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	for chunk in gen.build_chunks(32):

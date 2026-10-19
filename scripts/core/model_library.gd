@@ -150,6 +150,132 @@ func merged(parts: Array, cache_key: String = "") -> ArrayMesh:
 	return out
 
 
+## ------------------------------------------------------------------
+## Mallas "horneadas": el color de cada vértice se toma de la textura de paleta
+## (colormap) o del color del material, y todas usan UN único material con
+## color de vértice. Así una malla combinada o un MultiMesh = 1 llamada de dibujo.
+var _baked_arrays: Dictionary = {}
+var _baked_meshes: Dictionary = {}
+var _tex_images: Dictionary = {}
+var _vc_material: StandardMaterial3D
+
+
+func vertex_color_material() -> StandardMaterial3D:
+	if _vc_material == null:
+		_vc_material = StandardMaterial3D.new()
+		_vc_material.vertex_color_use_as_albedo = true
+		_vc_material.vertex_color_is_srgb = true
+		_vc_material.roughness = 1.0
+		_vc_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	return _vc_material
+
+
+func _texture_image(tex: Texture2D) -> Image:
+	if tex == null:
+		return null
+	var key := tex.resource_path
+	if not _tex_images.has(key):
+		var img := tex.get_image()
+		if img and img.is_compressed():
+			img.decompress()
+		_tex_images[key] = img
+	return _tex_images[key]
+
+
+## Triángulos (sin índices) con posición, normal y color de vértice.
+func baked_arrays(model_id: String, tint: Color = Color.WHITE) -> Dictionary:
+	var key := "%s#%s" % [model_id, tint.to_html()]
+	if _baked_arrays.has(key):
+		return _baked_arrays[key]
+	var out := {"v": PackedVector3Array(), "n": PackedVector3Array(), "c": PackedColorArray()}
+	var m := mesh(model_id)
+	if m == null:
+		_baked_arrays[key] = out
+		return out
+	for s in m.get_surface_count():
+		var arr := m.surface_get_arrays(s)
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var norms: PackedVector3Array = arr[Mesh.ARRAY_NORMAL] if arr[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+		var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV] if arr[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		var mat := m.surface_get_material(s) as StandardMaterial3D
+		var albedo := mat.albedo_color if mat else Color.WHITE
+		var img := _texture_image(mat.albedo_texture) if mat else null
+		var base := Color(albedo.r * tint.r, albedo.g * tint.g, albedo.b * tint.b, 1.0)
+		var vcols := PackedColorArray()
+		vcols.resize(verts.size())
+		for k in verts.size():
+			var c := base
+			if img and not uvs.is_empty():
+				var uv := uvs[k]
+				var px := clampi(int(fposmod(uv.x, 1.0) * img.get_width()), 0, img.get_width() - 1)
+				var py := clampi(int(fposmod(uv.y, 1.0) * img.get_height()), 0, img.get_height() - 1)
+				var t := img.get_pixel(px, py)
+				c = Color(t.r * base.r, t.g * base.g, t.b * base.b, 1.0)
+			vcols[k] = c
+		if idx.is_empty():
+			out.v.append_array(verts)
+			out.n.append_array(norms)
+			out.c.append_array(vcols)
+		else:
+			for i in idx:
+				out.v.append(verts[i])
+				out.n.append(norms[i] if not norms.is_empty() else Vector3.UP)
+				out.c.append(vcols[i])
+	_baked_arrays[key] = out
+	return out
+
+
+func _arrays_to_mesh(v: PackedVector3Array, n: PackedVector3Array, c: PackedColorArray) -> ArrayMesh:
+	var am := ArrayMesh.new()
+	if v.is_empty():
+		return am
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = v
+	arrays[Mesh.ARRAY_NORMAL] = n
+	arrays[Mesh.ARRAY_COLOR] = c
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	am.surface_set_material(0, vertex_color_material())
+	return am
+
+
+## Malla de un solo material (color de vértice) para MultiMesh.
+func baked_mesh(model_id: String, tint: Color = Color.WHITE) -> ArrayMesh:
+	var key := "%s#%s" % [model_id, tint.to_html()]
+	if _baked_meshes.has(key):
+		return _baked_meshes[key]
+	var a := baked_arrays(model_id, tint)
+	var am := _arrays_to_mesh(a.v, a.n, a.c)
+	_baked_meshes[key] = am
+	return am
+
+
+## Combina piezas en una sola malla de un único material (1 llamada de dibujo).
+func baked_merged(parts: Array, cache_key: String = "") -> ArrayMesh:
+	if cache_key != "" and _merged.has("B:" + cache_key):
+		return _merged["B:" + cache_key]
+	var v := PackedVector3Array()
+	var n := PackedVector3Array()
+	var c := PackedColorArray()
+	for part in parts:
+		var tint := Color.WHITE
+		if part.has("tint"):
+			var t: Array = part.tint
+			tint = Color(t[0], t[1], t[2])
+		var a := baked_arrays(part.model, tint)
+		if a.v.is_empty():
+			continue
+		var xf: Transform3D = part.get("xform", part_transform(part))
+		v.append_array(xf * (a.v as PackedVector3Array))
+		n.append_array(Transform3D(xf.basis, Vector3.ZERO) * (a.n as PackedVector3Array))
+		c.append_array(a.c)
+	var am := _arrays_to_mesh(v, n, c)
+	if cache_key != "":
+		_merged["B:" + cache_key] = am
+	return am
+
+
 ## Caja que envuelve una lista de piezas (para colisiones y selección).
 func parts_aabb(parts: Array) -> AABB:
 	var result := AABB()

@@ -42,13 +42,13 @@ func _build() -> void:
 
 func refresh() -> void:
 	map_rect.texture = hud.world.map_texture
-	var lines: Array[String] = ["▲ Tú", "■ Edificios"]
+	var lines: Array[String] = ["Flecha blanca: tú", "Cuadros dorados: edificios"]
 	if TechTree.mod("map_markers") > 0.0:
-		lines.append("● Lugares de interés")
+		lines.append("Puntos rojos: lugares de interés")
 	else:
 		lines.append("(Investiga «Cartografía» para ver los lugares de interés)")
 	if not GameState.lost_backpack.is_empty():
-		lines.append("◆ Mochila perdida")
+		lines.append("Rombo amarillo: mochila perdida")
 	var regions: Array[String] = []
 	for r in ["jungla", "cueva"]:
 		regions.append("%s: %s" % ["Jungla de las ruinas" if r == "jungla" else "Cueva de cristal", "abierta" if GameState.is_region_unlocked(r) else "bloqueada"])

@@ -177,7 +177,7 @@ func _build_top() -> void:
 	var menu := HBoxContainer.new()
 	menu.anchor_left = 1.0
 	menu.anchor_right = 1.0
-	menu.offset_left = -560
+	menu.offset_left = -486
 	menu.offset_right = -12
 	menu.offset_top = 10
 	menu.alignment = BoxContainer.ALIGNMENT_END
@@ -192,7 +192,7 @@ func _build_top() -> void:
 		var ic: Texture2D = UITheme.icon(e[1])
 		if ic == null:
 			ic = UITheme.ctrl("icon_menu")
-		var b := UITheme.round_button(ic, open_panel.bind(e[0]), 60.0)
+		var b := UITheme.round_button(ic, open_panel.bind(e[0]), 54.0)
 		b.tooltip_text = e[2]
 		b.name = "Btn_" + e[0]
 		menu.add_child(b)
@@ -202,7 +202,7 @@ func _build_top() -> void:
 	info.anchor_right = 1.0
 	info.offset_left = -640
 	info.offset_right = -14
-	info.offset_top = 78
+	info.offset_top = 72
 	info.alignment = BoxContainer.ALIGNMENT_END
 	info.add_theme_constant_override("separation", 12)
 	root.add_child(info)
@@ -227,7 +227,14 @@ func _build_top() -> void:
 	points_label.tooltip_text = "Puntos de tecnología"
 	info.add_child(points_label)
 	fps_label = UITheme.hud_label("", 14)
-	fps_label.position = Vector2(16, 200)
+	fps_label.anchor_left = 0.5
+	fps_label.anchor_right = 0.5
+	fps_label.anchor_top = 1.0
+	fps_label.anchor_bottom = 1.0
+	fps_label.offset_left = -120
+	fps_label.offset_right = 120
+	fps_label.offset_top = -28
+	fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(fps_label)
 	save_icon = TextureRect.new()
 	save_icon.texture = UITheme.icon("save")
@@ -299,21 +306,25 @@ func _build_actions() -> void:
 	interact_icon = interact_btn.get_node("Icon")
 	interact_label = UITheme.hud_label("", 16)
 	interact_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	interact_label.position = Vector2(110, 140)
-	interact_label.custom_minimum_size = Vector2(320, 0)
+	interact_label.position = Vector2(96, 36)
+	interact_label.custom_minimum_size = Vector2(260, 0)
+	interact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	interact_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	action_box.add_child(interact_label)
 	var attack := UITheme.round_button(UITheme.ctrl("icon_sword"), func(): player.attack(), 100.0)
+	attack.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	attack.name = "BtnAtacar"
 	attack.tooltip_text = "Atacar (F)"
 	attack.position = Vector2(84, 214)
 	action_box.add_child(attack)
 	var jump := UITheme.round_button(UITheme.ctrl("icon_jump"), func(): player.jump(), 84.0)
+	jump.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	jump.name = "BtnSaltar"
 	jump.tooltip_text = "Saltar (Espacio)"
 	jump.position = Vector2(232, 72)
 	action_box.add_child(jump)
 	var dodge := UITheme.round_button(UITheme.ctrl("icon_arrow_curved"), func(): player.dodge(), 80.0)
+	dodge.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	dodge.name = "BtnEsquivar"
 	dodge.tooltip_text = "Esquivar (Q)"
 	dodge.position = Vector2(110, 110)
@@ -371,7 +382,7 @@ func _build_toasts() -> void:
 	toast_box.anchor_right = 0.5
 	toast_box.offset_left = -330
 	toast_box.offset_right = 330
-	toast_box.offset_top = 92
+	toast_box.offset_top = 176
 	toast_box.add_theme_constant_override("separation", 6)
 	toast_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(toast_box)
@@ -384,7 +395,7 @@ func _build_boss() -> void:
 	boss_box.anchor_right = 0.5
 	boss_box.offset_left = -240
 	boss_box.offset_right = 240
-	boss_box.offset_top = 86
+	boss_box.offset_top = 118
 	boss_box.visible = false
 	boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(boss_box)
@@ -436,7 +447,7 @@ func _connect() -> void:
 	EventBus.settings_changed.connect(func(): fps_label.visible = bool(Settings.get_value("show_fps")))
 	player.target_changed.connect(_on_target)
 	world.build_mode.validity_changed.connect(func(ok, reason):
-		build_reason.text = ("✓ " + GameData.building(world.build_mode.type_id).get("name", "")) if ok else reason
+		build_reason.text = ("Lugar válido: " + str(GameData.building(world.build_mode.type_id).get("name", ""))) if ok else reason
 		build_reason.add_theme_color_override("font_color", Color(0.7, 1.0, 0.6) if ok else Color(1.0, 0.6, 0.5)))
 	fps_label.visible = bool(Settings.get_value("show_fps"))
 
@@ -491,7 +502,8 @@ func _refresh_clock() -> void:
 	var h := int(GameState.hour)
 	var m := int((GameState.hour - h) * 60.0)
 	var night: bool = world.day_night.is_night()
-	clock_label.text = "%s Día %d · %02d:%02d" % ["☾" if night else "☀", GameState.day, h, m]
+	clock_label.text = "Día %d · %02d:%02d" % [GameState.day, h, m]
+	clock_label.add_theme_color_override("font_color", Color(0.7, 0.82, 1.0) if night else Color(1.0, 0.96, 0.78))
 	age_label.text = TechTree.age_name()
 
 

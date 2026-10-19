@@ -53,7 +53,7 @@ func start(t: String) -> void:
 	type_id = t
 	active = true
 	var lvl := GameData.building_level(t, 1)
-	_ghost.mesh = ModelLibrary.merged(lvl.models, "%s_1" % t)
+	_ghost.mesh = ModelLibrary.baked_merged(lvl.models, "%s_1" % t)
 	_ghost.material_override = _mat_ok
 	_ghost.visible = true
 	_ring.visible = true

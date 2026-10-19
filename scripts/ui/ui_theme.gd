@@ -182,7 +182,7 @@ static func button(text: String, callback: Callable, min_size: Vector2 = Vector2
 
 ## Botón redondo con icono (barra de menús y acciones táctiles).
 static func round_button(icon_tex: Texture2D, callback: Callable, size: float = 72.0, base: String = "round_brown") -> TextureButton:
-	var b := TextureButton.new()
+	var b := TouchButton.new()
 	b.texture_normal = tex(base)
 	b.ignore_texture_size = true
 	b.stretch_mode = TextureButton.STRETCH_SCALE

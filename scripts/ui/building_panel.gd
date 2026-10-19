@@ -131,7 +131,7 @@ func _production_section(rec: Dictionary, bd: Dictionary) -> void:
 		for i in prods.size():
 			var p: Dictionary = prods[i]
 			var unlocked := TechTree.is_unlocked(p.get("unlock"))
-			var b := UITheme.button(("✓ " if int(rec.recipe) == i else "") + str(p.name), func():
+			var b := UITheme.button(("» " if int(rec.recipe) == i else "") + str(p.name), func():
 				Economy.set_recipe(uid, i)
 				refresh(), Vector2(0, 48))
 			b.disabled = not unlocked
@@ -148,16 +148,16 @@ func _production_section(rec: Dictionary, bd: Dictionary) -> void:
 		for id in ins:
 			line.add_child(UITheme.item_icon(id, 28))
 			line.add_child(UITheme.label("%s" % UITheme.fmt_num(float(ins[id])), 17))
-		line.add_child(UITheme.label("  →  ", 17))
+		line.add_child(UITheme.label("  »  ", 17))
 	line.add_child(UITheme.label("Produce:", 17))
 	var outs := Economy.outputs_for(rec)
 	for id in outs:
 		line.add_child(UITheme.item_icon(id, 28))
 		line.add_child(UITheme.label("%s" % UITheme.fmt_num(float(outs[id])), 17))
 	if float(p.get("energy", 0)) > 0:
-		line.add_child(UITheme.label("⚡ +%s energía" % UITheme.fmt_num(Economy.energy_of(rec)), 17, UITheme.GOOD))
+		line.add_child(UITheme.label("Energía +%s" % UITheme.fmt_num(Economy.energy_of(rec)), 17, UITheme.GOOD))
 	elif float(p.get("energy", 0)) < 0:
-		line.add_child(UITheme.label("⚡ %s energía" % UITheme.fmt_num(float(p.energy)), 17, UITheme.WARN))
+		line.add_child(UITheme.label("Energía %s" % UITheme.fmt_num(float(p.energy)), 17, UITheme.WARN))
 	vb.add_child(line)
 	var ct := Economy.cycle_time(rec)
 	var rate := Economy.building_rate(rec)
@@ -211,16 +211,16 @@ func _upgrade_section(rec: Dictionary, bd: Dictionary) -> void:
 	var nxt := GameData.building_level(rec.type, int(rec.level) + 1)
 	vb.add_child(UITheme.label(str(nxt.get("name", "")), 18, UITheme.BROWN, true))
 	var cmp: Array[String] = []
-	for key in [["speed", "Velocidad ×%.2f → ×%.2f"], ["output", "Producción ×%.2f → ×%.2f"], ["input", "Consumo ×%.2f → ×%.2f"]]:
+	for key in [["speed", "Velocidad ×%.2f » ×%.2f"], ["output", "Producción ×%.2f » ×%.2f"], ["input", "Consumo ×%.2f » ×%.2f"]]:
 		if not bd.get("production", []).is_empty() and absf(float(cur.get(key[0], 1.0)) - float(nxt.get(key[0], 1.0))) > 0.001:
 			cmp.append(key[1] % [float(cur.get(key[0], 1.0)), float(nxt.get(key[0], 1.0))])
-	for key in [["workers", "Trabajadores %d → %d"], ["storage", "Almacén +%d → +%d"], ["housing", "Alojamiento %d → %d"], ["hp", "Integridad %d → %d"]]:
+	for key in [["workers", "Trabajadores %d » %d"], ["storage", "Almacén +%d » +%d"], ["housing", "Alojamiento %d » %d"], ["hp", "Integridad %d » %d"]]:
 		if int(cur.get(key[0], 0)) != int(nxt.get(key[0], 0)):
 			cmp.append(key[1] % [int(cur.get(key[0], 0)), int(nxt.get(key[0], 0))])
 	if float(cur.get("light", 0)) != float(nxt.get("light", 0)):
-		cmp.append("Luz %.0f → %.0f m" % [float(cur.get("light", 0)), float(nxt.get("light", 0))])
+		cmp.append("Luz %.0f » %.0f m" % [float(cur.get("light", 0)), float(nxt.get("light", 0))])
 	if float(cur.get("craft_speed", 1)) != float(nxt.get("craft_speed", 1)):
-		cmp.append("Fabricación ×%.2f → ×%.2f" % [float(cur.get("craft_speed", 1)), float(nxt.get("craft_speed", 1))])
+		cmp.append("Fabricación ×%.2f » ×%.2f" % [float(cur.get("craft_speed", 1)), float(nxt.get("craft_speed", 1))])
 	var cmp_l := UITheme.label("\n".join(cmp), 16, UITheme.GOOD)
 	vb.add_child(cmp_l)
 	vb.add_child(UITheme.cost_row(Economy.upgrade_cost(uid), 30, 17))

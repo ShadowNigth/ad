@@ -160,13 +160,13 @@ func _build_multimeshes() -> void:
 		var first: Dictionary = list[0]
 		var mesh: Mesh
 		if first.has("fruit_of"):
-			mesh = ModelLibrary.mesh(GameData.nodes[first.fruit_of.type].fruit)
+			mesh = ModelLibrary.baked_mesh(GameData.nodes[first.fruit_of.type].fruit)
 		else:
 			var nd: Dictionary = GameData.nodes[first.type]
 			var tint := Color.WHITE
 			if nd.has("tint"):
 				tint = Color(nd.tint[0], nd.tint[1], nd.tint[2])
-			mesh = ModelLibrary.tinted_mesh(first.model, tint)
+			mesh = ModelLibrary.baked_mesh(first.model, tint)
 		if mesh == null:
 			continue
 		var mm := MultiMesh.new()
@@ -356,7 +356,7 @@ func _deplete(rec: Dictionary, hitter_pos: Vector3) -> void:
 		_spawn_falling(rec, hitter_pos)
 	if nd.has("stump"):
 		var st := MeshInstance3D.new()
-		st.mesh = ModelLibrary.mesh(nd.stump)
+		st.mesh = ModelLibrary.baked_mesh(nd.stump)
 		var width := maxf(ModelLibrary.aabb(nd.stump).size.x, 0.05)
 		var ss := float(nd.get("radius", 0.4)) * 2.6 / width
 		st.transform = Transform3D(Basis(Vector3.UP, rec.rot).scaled(Vector3(ss, ss, ss)), rec.pos)

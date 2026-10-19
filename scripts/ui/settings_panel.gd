@@ -95,7 +95,7 @@ func _options(text: String, key: String, opts: Array) -> void:
 		var cur: Variant = Settings.get_value(key)
 		if (typeof(o[0]) == TYPE_STRING and str(cur) == o[0]) or (typeof(o[0]) != TYPE_STRING and absf(float(cur) - float(o[0])) < 0.001):
 			b.add_theme_stylebox_override("normal", UITheme.box("button_brown", 14, 12, Color(0.75, 1.0, 0.7)))
-			b.text = "✓ " + b.text
+			b.text = "» " + b.text + " «"
 		hb.add_child(b)
 
 

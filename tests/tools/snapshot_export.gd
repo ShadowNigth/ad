@@ -27,6 +27,11 @@ func _ready() -> void:
 		_prepare_base(world)
 		for i in 90:
 			await get_tree().process_frame
+	if scenario in ["enemies", "unlock"]:
+		GameState.unlock_region("jungla")
+		GameState.unlock_region("cueva")
+		for i in 5:
+			await get_tree().process_frame
 	var p: Node3D = world.player
 	focus = p.global_position
 	if args.size() >= 2:
@@ -34,8 +39,14 @@ func _ready() -> void:
 		focus.y = world.height_at(focus.x, focus.z)
 	if args.size() >= 3:
 		radius = float(args[2])
-	if scenario == "player":
+	if scenario in ["player", "enemies", "unlock", "base"]:
 		p.global_position = focus + Vector3(0, 0.1, 0)
+	if scenario == "enemies":
+		var k := 0
+		for t in ["cangrejo", "jabali", "esqueleto", "zombi", "fantasma", "tigre", "ciervo"]:
+			var a := TAU * k / 7.0
+			world.enemies._spawn(t, focus + Vector3(cos(a) * 5.0, 0.5, sin(a) * 5.0))
+			k += 1
 	for i in 10:
 		await get_tree().process_frame
 	_walk(world)
@@ -58,6 +69,11 @@ func _prepare_base(world: Node) -> void:
 		var pos: Vector3 = c + e[1]
 		pos.y = world.height_at(pos.x, pos.z)
 		Economy.place_building(e[0], pos, float(e[2]), true)
+	TechTree.researched["aut_organizacion"] = true
+	TechTree._recalc()
+	GameState.inventory.add("bayas", 50)
+	GameState.inventory.add("madera", 200)
+	Workers.hire("lenador")
 
 
 func _mesh_id(m: Mesh) -> String:
@@ -145,6 +161,8 @@ func _walk(n: Node) -> void:
 					_mat_info(mi.material_override, info)
 					item["override"] = info
 				items.append(item)
+	elif n is MeshInstance3D and n.has_meta("parts") and false:
+		pass
 	elif n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh:
 		var mmi := n as MultiMeshInstance3D
 		var mm := mmi.multimesh

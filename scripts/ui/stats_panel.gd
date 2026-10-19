@@ -73,7 +73,7 @@ func _resources() -> void:
 		var p := float(prod.get(id, 0.0))
 		var c := float(cons.get(id, 0.0))
 		var net := p - c
-		var icon: Control = UITheme.item_icon(id, 36) if not str(id).begins_with("@") else UITheme.label("★", 20)
+		var icon: Control = UITheme.item_icon(id, 36) if not str(id).begins_with("@") else UITheme.label("PT", 18)
 		var stored := "—" if str(id).begins_with("@") else "%d/%d" % [Economy.stored(id), Economy.capacity()]
 		content.add_child(_row([icon, GameData.item_name(id), UITheme.fmt_num(p), UITheme.fmt_num(c), ("+" if net >= 0 else "") + UITheme.fmt_num(net), stored], widths,
 			UITheme.GOOD if net > 0.01 else (UITheme.BAD if net < -0.01 else UITheme.BROWN)))

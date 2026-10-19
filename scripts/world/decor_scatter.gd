@@ -1,21 +1,23 @@
 class_name DecorScatter
 extends Node3D
 ## Vegetación decorativa no interactiva (hierba, flores, rocas pequeñas).
-## Se dibuja con MultiMesh por bloque y modelo; la densidad visible depende
-## de la calidad gráfica elegida.
+## Todas las piezas de cada bloque de 64 m se combinan en UNA malla con color
+## de vértice (1 llamada de dibujo por bloque). La densidad visible depende de
+## la calidad gráfica y se reconstruye al cambiarla.
 
-const CHUNK := 128.0
+const CHUNK := 64.0
 
 var gen: IslandGenerator
-var _instances: Array = []   # MultiMeshInstance3D
-var _full_counts: Array = []
+var _chunks: Dictionary = {}       # Vector2i -> Array de partes {model, xform}
+var _instances: Dictionary = {}    # Vector2i -> MeshInstance3D
+var _density := -1.0
+var _view := 60.0
 
 
 func setup(generator: IslandGenerator, exclusions: Array) -> void:
 	gen = generator
 	var rng := RandomNumberGenerator.new()
 	rng.seed = gen.seed_value + 202
-	var groups := {}
 	var area := gen.cell * gen.cell
 	for rule in GameData.world.get("decor", []):
 		var models: Array = rule.models
@@ -44,47 +46,60 @@ func setup(generator: IslandGenerator, exclusions: Array) -> void:
 				var s := rng.randf_range(float(sc[0]), float(sc[1]))
 				if by_model.has(model):
 					s *= float(by_model[model]) / maxf(float(sc[1]), 0.01)
-				var key := "%s|%d|%d" % [model, floori((x + gen.half) / CHUNK), floori((z + gen.half) / CHUNK)]
-				if not groups.has(key):
-					groups[key] = {"model": model, "xf": []}
-				groups[key].xf.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, h - 0.02, z)))
-	for key in groups:
-		var g: Dictionary = groups[key]
-		var mesh := ModelLibrary.mesh(g.model)
-		if mesh == null:
+				var key := Vector2i(floori((x + gen.half) / CHUNK), floori((z + gen.half) / CHUNK))
+				if not _chunks.has(key):
+					_chunks[key] = []
+				var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, h - 0.02, z))
+				_chunks[key].append({"model": model, "xform": xf})
+	# Orden aleatorio dentro de cada bloque: reducir la densidad aclara de forma uniforme.
+	for key in _chunks:
+		var list: Array = _chunks[key]
+		for k in list.size():
+			var r := rng.randi_range(k, list.size() - 1)
+			var tmp: Variant = list[k]
+			list[k] = list[r]
+			list[r] = tmp
+	apply_quality(1.0, 100.0)
+
+
+func _rebuild() -> void:
+	for key in _instances:
+		(_instances[key] as Node).queue_free()
+	_instances.clear()
+	for key in _chunks:
+		var list: Array = _chunks[key]
+		var count := int(list.size() * clampf(_density, 0.1, 1.0))
+		if count <= 0:
 			continue
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = mesh
-		mm.instance_count = g.xf.size()
-		# Orden aleatorio para que reducir visible_instance_count aclare de forma uniforme.
-		var xfs: Array = g.xf
-		for k in xfs.size():
-			var r := rng.randi_range(k, xfs.size() - 1)
-			var tmp: Transform3D = xfs[k]
-			xfs[k] = xfs[r]
-			xfs[r] = tmp
-			mm.set_instance_transform(k, xfs[k])
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.set_meta("xforms", xfs)
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.visibility_range_end = 60.0
-		mmi.visibility_range_end_margin = 6.0
-		add_child(mmi)
-		_instances.append(mmi)
-		_full_counts.append(xfs.size())
+		var mi := MeshInstance3D.new()
+		mi.name = "Decor_%d_%d" % [key.x, key.y]
+		mi.mesh = ModelLibrary.baked_merged(list.slice(0, count))
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = _view
+		mi.visibility_range_end_margin = 8.0
+		add_child(mi)
+		mi.set_meta("parts", list.slice(0, count))
+		_instances[key] = mi
 
 
 func apply_quality(density: float, view_distance: float) -> void:
-	for k in _instances.size():
-		var mmi: MultiMeshInstance3D = _instances[k]
-		mmi.multimesh.visible_instance_count = int(_full_counts[k] * clampf(density, 0.1, 1.0))
-		mmi.visibility_range_end = minf(view_distance * 0.6, 70.0)
+	_view = minf(view_distance * 0.7, 80.0)
+	if absf(density - _density) > 0.01:
+		_density = density
+		_rebuild()
+	for key in _instances:
+		(_instances[key] as MeshInstance3D).visibility_range_end = _view
 
 
 func instance_total() -> int:
 	var t := 0
-	for c in _full_counts:
-		t += int(c)
+	for key in _chunks:
+		t += (_chunks[key] as Array).size()
+	return t
+
+
+func visible_total() -> int:
+	var t := 0
+	for key in _instances:
+		t += ((_instances[key] as Node).get_meta("parts", []) as Array).size()
 	return t

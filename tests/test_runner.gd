@@ -350,6 +350,23 @@ func _test_touch_movement() -> void:
 	drag.position = press.position + Vector2(0, -80)
 	joy._gui_input(drag)
 	check(joy.value.length() > 0.5, "El joystick produce un vector de movimiento (%.2f)" % joy.value.length())
+	# Segundo dedo sobre el botón de saltar mientras el primero mueve el joystick.
+	var jump_btn: TouchButton = hud.action_box.get_node("BtnSaltar")
+	var jumped := [false]
+	var cb := func(): jumped[0] = true
+	jump_btn.button_down.connect(cb)
+	var t2 := InputEventScreenTouch.new()
+	t2.index = 1
+	t2.pressed = true
+	t2.position = jump_btn.size * 0.5
+	jump_btn._gui_input(t2)
+	var t2r := InputEventScreenTouch.new()
+	t2r.index = 1
+	t2r.pressed = false
+	jump_btn._gui_input(t2r)
+	jump_btn.button_down.disconnect(cb)
+	check(jumped[0], "Multitáctil: se puede pulsar un botón de acción mientras se usa el joystick")
+	check(joy.value.length() > 0.5, "El joystick sigue activo durante el segundo toque")
 	await physics_frames(60)
 	var moved := p.global_position.distance_to(start)
 	check(moved > 1.0, "El jugador se mueve con el joystick (%.1f m en 1 s)" % moved)

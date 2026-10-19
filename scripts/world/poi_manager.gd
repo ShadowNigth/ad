@@ -64,6 +64,7 @@ func setup(w: World) -> void:
 				_build_cave(p)
 			"lookout":
 				_build_lookout(p)
+		_flush_batch(str(p.id))
 		map_markers.append({"id": p.id, "name": p.name, "pos": p.world_pos, "type": p.type})
 	EventBus.region_unlocked.connect(_on_region_unlocked)
 
@@ -72,7 +73,25 @@ func _ground(x: float, z: float) -> Vector3:
 	return Vector3(x, gen.height_at(x, z), z)
 
 
-func _prop(model: String, pos: Vector3, rot_deg: float = 0.0, scale: float = 1.0, collide: bool = false, tint: Color = Color.WHITE) -> MeshInstance3D:
+## Piezas estáticas pendientes de combinar en una sola malla por lugar de interés.
+var _batch: Array = []
+var _batch_origin := Vector3.ZERO
+
+
+## Coloca una pieza decorativa. Por defecto se agrupa (batch) con el resto de
+## piezas del mismo lugar en una única malla para ahorrar llamadas de dibujo.
+func _prop(model: String, pos: Vector3, rot_deg: float = 0.0, scale: float = 1.0, collide: bool = false, tint: Color = Color.WHITE, batch: bool = true) -> MeshInstance3D:
+	if batch:
+		if _batch.is_empty():
+			_batch_origin = pos
+		var rel := pos - _batch_origin
+		var part := {"model": model, "scale": scale, "pos": [rel.x, rel.y, rel.z], "rot": rot_deg}
+		if tint != Color.WHITE:
+			part["tint"] = [tint.r, tint.g, tint.b]
+		_batch.append(part)
+		if collide:
+			_make_prop_body(model, pos, rot_deg, scale)
+		return null
 	var mi := MeshInstance3D.new()
 	mi.mesh = ModelLibrary.tinted_mesh(model, tint)
 	mi.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(rot_deg)).scaled(Vector3.ONE * scale), pos)
@@ -91,6 +110,33 @@ func _prop(model: String, pos: Vector3, rot_deg: float = 0.0, scale: float = 1.0
 		mi.add_child(body)
 		body.scale = Vector3.ONE / scale
 	return mi
+
+
+func _make_prop_body(model: String, pos: Vector3, rot_deg: float, scale: float) -> void:
+	var aabb := ModelLibrary.aabb(model)
+	var body := StaticBody3D.new()
+	body.collision_layer = 1 << 5
+	body.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(maxf(aabb.size.x * scale * 0.85, 0.3), maxf(aabb.size.y * scale, 0.3), maxf(aabb.size.z * scale * 0.85, 0.3))
+	cs.shape = box
+	cs.position = aabb.get_center() * scale
+	body.add_child(cs)
+	body.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(rot_deg)), pos)
+	add_child(body)
+
+
+## Combina las piezas acumuladas del lugar de interés actual en una malla.
+func _flush_batch(label: String) -> void:
+	if _batch.is_empty():
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "POI_" + label
+	mi.mesh = ModelLibrary.baked_merged(_batch)
+	mi.position = _batch_origin
+	add_child(mi)
+	_batch.clear()
 
 
 # ------------------------------------------------------------------ construcción
@@ -129,13 +175,9 @@ func _build_shipwreck(p: Dictionary) -> void:
 
 func _build_chest(p: Dictionary) -> void:
 	var opened := bool(GameState.flags.get("poi_" + p.id, false))
-	var mi := _prop("pirate/chest", p.world_pos, float(p.get("rot", 0.0)), 0.6, true)
-	mi.name = "Cofre_" + p.id
+	_prop("pirate/chest", p.world_pos, float(p.get("rot", 0.0)), 0.6, true)
 	if not opened:
 		interactables.append({"id": p.id, "type": "chest", "pos": p.world_pos, "label": "Abrir " + str(p.name).to_lower()})
-	else:
-		mi.scale = Vector3.ONE * 0.6
-		mi.rotation_degrees.x = 0.0
 
 
 func _build_camp(p: Dictionary) -> void:
@@ -215,7 +257,7 @@ func _make_bridge_deck(p: Dictionary) -> void:
 	for k in segments:
 		var t := (k + 0.5) / segments - 0.5
 		var q := c + across * t * length
-		var mi := _prop("nature/bridge_wood", Vector3(q.x, deck_y - 0.6, q.y), rad_to_deg(float(p.yaw)) + 90.0, 3.0)
+		var mi := _prop("nature/bridge_wood", Vector3(q.x, deck_y - 0.6, q.y), rad_to_deg(float(p.yaw)) + 90.0, 3.0, false, Color.WHITE, false)
 		_bridge_nodes.append(mi)
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
@@ -268,9 +310,9 @@ func _build_cave_gate(p: Dictionary) -> void:
 	_prop("cave/gate-rock", pos + Vector3(0, -0.2, 0), rot, 1.3)
 	var unlocked := GameState.is_region_unlocked(str(p.get("region", "")))
 	if not unlocked:
-		var blocker := _prop("pirate/rocks-b", pos + Vector3(0, -0.4, 0), rot + 20.0, 1.05, true)
+		var blocker := _prop("pirate/rocks-b", pos + Vector3(0, -0.4, 0), rot + 20.0, 1.05, true, Color.WHITE, false)
 		_gate_blockers.append(blocker)
-		var blocker2 := _prop("pirate/rocks-a", pos + Vector3(0, -0.6, 0), rot - 30.0, 0.8, true)
+		var blocker2 := _prop("pirate/rocks-a", pos + Vector3(0, -0.6, 0), rot - 30.0, 0.8, true, Color.WHITE, false)
 		_gate_blockers.append(blocker2)
 		var dir := Vector3(sin(deg_to_rad(rot)), 0, cos(deg_to_rad(rot)))
 		interactables.append({"id": p.id, "type": "cave_gate", "pos": pos - dir * 3.0, "label": "Volar el derrumbe"})

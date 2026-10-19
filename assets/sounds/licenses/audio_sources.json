@@ -1,0 +1,1187 @@
+[
+ {
+  "file": "assets/sounds/footsteps/grass_0.ogg",
+  "src": "kenney/Impact Sounds/footstep_grass_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/stone_0.ogg",
+  "src": "kenney/Impact Sounds/footstep_concrete_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/wood_0.ogg",
+  "src": "kenney/Impact Sounds/footstep_wood_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/sand_0.ogg",
+  "src": "kenney/Impact Sounds/footstep_snow_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/dirt_0.ogg",
+  "src": "kenney/RPG Audio/footstep00.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/grass_1.ogg",
+  "src": "kenney/Impact Sounds/footstep_grass_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/stone_1.ogg",
+  "src": "kenney/Impact Sounds/footstep_concrete_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/wood_1.ogg",
+  "src": "kenney/Impact Sounds/footstep_wood_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/sand_1.ogg",
+  "src": "kenney/Impact Sounds/footstep_snow_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/dirt_1.ogg",
+  "src": "kenney/RPG Audio/footstep01.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/grass_2.ogg",
+  "src": "kenney/Impact Sounds/footstep_grass_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/stone_2.ogg",
+  "src": "kenney/Impact Sounds/footstep_concrete_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/wood_2.ogg",
+  "src": "kenney/Impact Sounds/footstep_wood_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/sand_2.ogg",
+  "src": "kenney/Impact Sounds/footstep_snow_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/dirt_2.ogg",
+  "src": "kenney/RPG Audio/footstep02.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/grass_3.ogg",
+  "src": "kenney/Impact Sounds/footstep_grass_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/stone_3.ogg",
+  "src": "kenney/Impact Sounds/footstep_concrete_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/wood_3.ogg",
+  "src": "kenney/Impact Sounds/footstep_wood_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/sand_3.ogg",
+  "src": "kenney/Impact Sounds/footstep_snow_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/dirt_3.ogg",
+  "src": "kenney/RPG Audio/footstep03.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/grass_4.ogg",
+  "src": "kenney/Impact Sounds/footstep_grass_004.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/stone_4.ogg",
+  "src": "kenney/Impact Sounds/footstep_concrete_004.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/wood_4.ogg",
+  "src": "kenney/Impact Sounds/footstep_wood_004.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/sand_4.ogg",
+  "src": "kenney/Impact Sounds/footstep_snow_004.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/footsteps/dirt_4.ogg",
+  "src": "kenney/RPG Audio/footstep04.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/chop_0.ogg",
+  "src": "kenney/RPG Audio/chop.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/wood_hit_0.ogg",
+  "src": "kenney/Impact Sounds/impactWood_heavy_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/wood_hit_1.ogg",
+  "src": "kenney/Impact Sounds/impactWood_heavy_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/wood_hit_2.ogg",
+  "src": "kenney/Impact Sounds/impactWood_heavy_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/wood_light_0.ogg",
+  "src": "kenney/Impact Sounds/impactWood_medium_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/wood_light_1.ogg",
+  "src": "kenney/Impact Sounds/impactWood_medium_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/mining_0.ogg",
+  "src": "kenney/Impact Sounds/impactMining_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/mining_1.ogg",
+  "src": "kenney/Impact Sounds/impactMining_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/mining_2.ogg",
+  "src": "kenney/Impact Sounds/impactMining_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/mining_3.ogg",
+  "src": "kenney/Impact Sounds/impactMining_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/mining_4.ogg",
+  "src": "kenney/Impact Sounds/impactMining_004.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/stone_hit_0.ogg",
+  "src": "kenney/Foley Sounds/stoneHit1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/stone_hit_1.ogg",
+  "src": "kenney/Foley Sounds/stoneHit2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/stone_hit_2.ogg",
+  "src": "kenney/Foley Sounds/stoneHit3.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/rock_break_0.ogg",
+  "src": "kenney/Foley Sounds/rockHit1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/rock_break_1.ogg",
+  "src": "kenney/Foley Sounds/rockHit2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/rock_break_2.ogg",
+  "src": "kenney/Foley Sounds/stonesHit1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/ore_hit_0.ogg",
+  "src": "kenney/Foley Sounds/swordStone1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/ore_hit_1.ogg",
+  "src": "kenney/Foley Sounds/swordStone2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/pickup_0.ogg",
+  "src": "kenney/RPG Audio/handleSmallLeather.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/pickup_1.ogg",
+  "src": "kenney/RPG Audio/handleSmallLeather2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/gather/bush_rustle_0.ogg",
+  "src": "stn/bush_rustle.ogg",
+  "note": "toma 1 de 8"
+ },
+ {
+  "file": "assets/sounds/gather/bush_rustle_1.ogg",
+  "src": "stn/bush_rustle.ogg",
+  "note": "toma 3 de 8"
+ },
+ {
+  "file": "assets/sounds/gather/bush_rustle_2.ogg",
+  "src": "stn/bush_rustle.ogg",
+  "note": "toma 6 de 8"
+ },
+ {
+  "file": "assets/sounds/gather/branch_snap_0.ogg",
+  "src": "stn/branch_snap.ogg",
+  "note": "toma 1 de 14"
+ },
+ {
+  "file": "assets/sounds/gather/branch_snap_1.ogg",
+  "src": "stn/branch_snap.ogg",
+  "note": "toma 2 de 14"
+ },
+ {
+  "file": "assets/sounds/gather/branch_snap_2.ogg",
+  "src": "stn/branch_snap.ogg",
+  "note": "toma 3 de 14"
+ },
+ {
+  "file": "assets/sounds/gather/branch_snap_3.ogg",
+  "src": "stn/branch_snap.ogg",
+  "note": "toma 5 de 14"
+ },
+ {
+  "file": "assets/sounds/gather/tree_fall_0.ogg",
+  "src": "stn/tree_fall.ogg",
+  "note": "toma 2 de 2"
+ },
+ {
+  "file": "assets/sounds/gather/sticks_0.ogg",
+  "src": "stn/sticks.ogg",
+  "note": "toma 3 de 8"
+ },
+ {
+  "file": "assets/sounds/gather/sticks_1.ogg",
+  "src": "stn/sticks.ogg",
+  "note": "toma 4 de 8"
+ },
+ {
+  "file": "assets/sounds/combat/punch_heavy_0.ogg",
+  "src": "kenney/Impact Sounds/impactPunch_heavy_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/punch_medium_0.ogg",
+  "src": "kenney/Impact Sounds/impactPunch_medium_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/soft_hit_0.ogg",
+  "src": "kenney/Impact Sounds/impactSoft_heavy_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/draw_0.ogg",
+  "src": "kenney/RPG Audio/drawKnife1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/punch_heavy_1.ogg",
+  "src": "kenney/Impact Sounds/impactPunch_heavy_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/punch_medium_1.ogg",
+  "src": "kenney/Impact Sounds/impactPunch_medium_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/soft_hit_1.ogg",
+  "src": "kenney/Impact Sounds/impactSoft_heavy_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/draw_1.ogg",
+  "src": "kenney/RPG Audio/drawKnife2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/woosh_0.ogg",
+  "src": "kenney/Foley Sounds/woosh1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/woosh_1.ogg",
+  "src": "kenney/Foley Sounds/woosh2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/woosh_2.ogg",
+  "src": "kenney/Foley Sounds/woosh3.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/woosh_3.ogg",
+  "src": "kenney/Foley Sounds/woosh4.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/combat/swing_0.ogg",
+  "src": "stn/swing.ogg",
+  "note": "toma 1 de 4"
+ },
+ {
+  "file": "assets/sounds/combat/swing_1.ogg",
+  "src": "stn/swing.ogg",
+  "note": "toma 2 de 4"
+ },
+ {
+  "file": "assets/sounds/combat/swing_2.ogg",
+  "src": "stn/swing.ogg",
+  "note": "toma 3 de 4"
+ },
+ {
+  "file": "assets/sounds/combat/swing_3.ogg",
+  "src": "stn/swing.ogg",
+  "note": "toma 4 de 4"
+ },
+ {
+  "file": "assets/sounds/combat/hit_flesh_0.ogg",
+  "src": "stn/hit_flesh.ogg",
+  "note": "toma 2 de 5"
+ },
+ {
+  "file": "assets/sounds/combat/hit_flesh_1.ogg",
+  "src": "stn/hit_flesh.ogg",
+  "note": "toma 4 de 5"
+ },
+ {
+  "file": "assets/sounds/combat/body_fall_0.ogg",
+  "src": "stn/imp_body.ogg",
+  "note": "toma 1 de 2"
+ },
+ {
+  "file": "assets/sounds/combat/player_hurt_0.ogg",
+  "src": "stn/pv_hurt.ogg",
+  "note": "toma 1 de 14"
+ },
+ {
+  "file": "assets/sounds/combat/player_hurt_1.ogg",
+  "src": "stn/pv_hurt.ogg",
+  "note": "toma 3 de 14"
+ },
+ {
+  "file": "assets/sounds/combat/player_hurt_2.ogg",
+  "src": "stn/pv_hurt.ogg",
+  "note": "toma 5 de 14"
+ },
+ {
+  "file": "assets/sounds/combat/player_hurt_3.ogg",
+  "src": "stn/pv_hurt.ogg",
+  "note": "toma 8 de 14"
+ },
+ {
+  "file": "assets/sounds/combat/player_hurt_4.ogg",
+  "src": "stn/pv_hurt.ogg",
+  "note": "toma 10 de 14"
+ },
+ {
+  "file": "assets/sounds/combat/player_death_0.ogg",
+  "src": "stn/pv_death.ogg",
+  "note": "toma 1 de 6"
+ },
+ {
+  "file": "assets/sounds/combat/creature_growl_0.ogg",
+  "src": "stn/zv_growl.ogg",
+  "note": "toma 1 de 12"
+ },
+ {
+  "file": "assets/sounds/combat/creature_growl_1.ogg",
+  "src": "stn/zv_growl.ogg",
+  "note": "toma 3 de 12"
+ },
+ {
+  "file": "assets/sounds/combat/creature_growl_2.ogg",
+  "src": "stn/zv_growl.ogg",
+  "note": "toma 5 de 12"
+ },
+ {
+  "file": "assets/sounds/combat/creature_attack_0.ogg",
+  "src": "stn/zv_attack.ogg",
+  "note": "toma 1 de 15"
+ },
+ {
+  "file": "assets/sounds/combat/creature_attack_1.ogg",
+  "src": "stn/zv_attack.ogg",
+  "note": "toma 4 de 15"
+ },
+ {
+  "file": "assets/sounds/combat/creature_attack_2.ogg",
+  "src": "stn/zv_attack.ogg",
+  "note": "toma 7 de 15"
+ },
+ {
+  "file": "assets/sounds/combat/creature_pain_0.ogg",
+  "src": "stn/zv_pain.ogg",
+  "note": "toma 2 de 7"
+ },
+ {
+  "file": "assets/sounds/combat/creature_pain_1.ogg",
+  "src": "stn/zv_pain.ogg",
+  "note": "toma 4 de 7"
+ },
+ {
+  "file": "assets/sounds/combat/creature_death_0.ogg",
+  "src": "stn/zv_death.ogg",
+  "note": "toma 1 de 5"
+ },
+ {
+  "file": "assets/sounds/combat/creature_death_1.ogg",
+  "src": "stn/zv_death.ogg",
+  "note": "toma 2 de 5"
+ },
+ {
+  "file": "assets/sounds/combat/animal_snarl_0.ogg",
+  "src": "stn/dog_snarl.ogg",
+  "note": "toma 1 de 7"
+ },
+ {
+  "file": "assets/sounds/combat/animal_snarl_1.ogg",
+  "src": "stn/dog_snarl.ogg",
+  "note": "toma 3 de 7"
+ },
+ {
+  "file": "assets/sounds/combat/animal_snarl_2.ogg",
+  "src": "stn/dog_snarl.ogg",
+  "note": "toma 5 de 7"
+ },
+ {
+  "file": "assets/sounds/events/wolf_howl_0.ogg",
+  "src": "stn/wolf_howl.ogg",
+  "note": "toma 2 de 4"
+ },
+ {
+  "file": "assets/sounds/build/hammer_0.ogg",
+  "src": "stn/hammer.ogg",
+  "note": "toma 1 de 9"
+ },
+ {
+  "file": "assets/sounds/build/hammer_1.ogg",
+  "src": "stn/hammer.ogg",
+  "note": "toma 2 de 9"
+ },
+ {
+  "file": "assets/sounds/build/hammer_2.ogg",
+  "src": "stn/hammer.ogg",
+  "note": "toma 3 de 9"
+ },
+ {
+  "file": "assets/sounds/build/hammer_3.ogg",
+  "src": "stn/hammer.ogg",
+  "note": "toma 5 de 9"
+ },
+ {
+  "file": "assets/sounds/build/plank_0.ogg",
+  "src": "kenney/Impact Sounds/impactPlank_medium_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/plank_1.ogg",
+  "src": "kenney/Impact Sounds/impactPlank_medium_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/plank_2.ogg",
+  "src": "kenney/Impact Sounds/impactPlank_medium_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/creak_0.ogg",
+  "src": "kenney/RPG Audio/creak1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/creak_1.ogg",
+  "src": "kenney/RPG Audio/creak2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/place_0.ogg",
+  "src": "kenney/Impact Sounds/impactGeneric_light_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/place_1.ogg",
+  "src": "kenney/Impact Sounds/impactGeneric_light_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/metal_0.ogg",
+  "src": "kenney/Impact Sounds/impactMetal_light_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/metal_1.ogg",
+  "src": "kenney/Impact Sounds/impactMetal_light_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/anvil_0.ogg",
+  "src": "kenney/Impact Sounds/impactMetal_medium_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/wood_break_0.ogg",
+  "src": "stn/imp_wood_break.ogg",
+  "note": "toma 2 de 4"
+ },
+ {
+  "file": "assets/sounds/build/wood_break_1.ogg",
+  "src": "stn/imp_wood_break.ogg",
+  "note": "toma 3 de 4"
+ },
+ {
+  "file": "assets/sounds/ui/click_0.ogg",
+  "src": "kenney/Interface Sounds/click_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/click_1.ogg",
+  "src": "kenney/Interface Sounds/click_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/click_2.ogg",
+  "src": "kenney/Interface Sounds/click_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/confirm_0.ogg",
+  "src": "kenney/Interface Sounds/confirmation_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/confirm_1.ogg",
+  "src": "kenney/Interface Sounds/confirmation_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/confirm_2.ogg",
+  "src": "kenney/Interface Sounds/confirmation_003.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/error_0.ogg",
+  "src": "kenney/Interface Sounds/error_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/error_1.ogg",
+  "src": "kenney/Interface Sounds/error_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/error_2.ogg",
+  "src": "kenney/Interface Sounds/error_004.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/open_0.ogg",
+  "src": "kenney/Interface Sounds/open_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/open_1.ogg",
+  "src": "kenney/Interface Sounds/open_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/close_0.ogg",
+  "src": "kenney/Interface Sounds/close_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/close_1.ogg",
+  "src": "kenney/Interface Sounds/close_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/select_0.ogg",
+  "src": "kenney/Interface Sounds/select_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/select_1.ogg",
+  "src": "kenney/Interface Sounds/select_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/switch_0.ogg",
+  "src": "kenney/Interface Sounds/switch_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/switch_1.ogg",
+  "src": "kenney/Interface Sounds/switch_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/toggle_0.ogg",
+  "src": "kenney/Interface Sounds/toggle_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/drop_0.ogg",
+  "src": "kenney/Interface Sounds/drop_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/drop_1.ogg",
+  "src": "kenney/Interface Sounds/drop_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/bong_0.ogg",
+  "src": "kenney/Interface Sounds/bong_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/glass_0.ogg",
+  "src": "kenney/Interface Sounds/glass_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/pluck_0.ogg",
+  "src": "kenney/Interface Sounds/pluck_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/pluck_1.ogg",
+  "src": "kenney/Interface Sounds/pluck_002.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/maximize_0.ogg",
+  "src": "kenney/Interface Sounds/maximize_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/minimize_0.ogg",
+  "src": "kenney/Interface Sounds/minimize_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/question_0.ogg",
+  "src": "kenney/Interface Sounds/question_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/tick_0.ogg",
+  "src": "kenney/Interface Sounds/tick_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/back_0.ogg",
+  "src": "kenney/Interface Sounds/back_001.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/cloth_0.ogg",
+  "src": "kenney/RPG Audio/cloth1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/cloth_1.ogg",
+  "src": "kenney/RPG Audio/cloth2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/cloth_2.ogg",
+  "src": "kenney/RPG Audio/cloth3.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/book_flip_0.ogg",
+  "src": "kenney/RPG Audio/bookFlip1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/book_flip_1.ogg",
+  "src": "kenney/RPG Audio/bookFlip2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/book_open_0.ogg",
+  "src": "kenney/RPG Audio/bookOpen.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/book_close_0.ogg",
+  "src": "kenney/RPG Audio/bookClose.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/coins_0.ogg",
+  "src": "kenney/RPG Audio/handleCoins.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/coins_1.ogg",
+  "src": "kenney/RPG Audio/handleCoins2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/latch_0.ogg",
+  "src": "kenney/RPG Audio/metalLatch.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/metal_click_0.ogg",
+  "src": "kenney/RPG Audio/metalClick.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/equip_0.ogg",
+  "src": "kenney/RPG Audio/beltHandle1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ui/drop_item_0.ogg",
+  "src": "kenney/RPG Audio/dropLeather.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/door_open_0.ogg",
+  "src": "kenney/RPG Audio/doorOpen_1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/build/door_close_0.ogg",
+  "src": "kenney/RPG Audio/doorClose_1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/eat_0.ogg",
+  "src": "oga/starninjas__crunch__crunch_2.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/eat_1.ogg",
+  "src": "oga/starninjas__crunch__crunch_3.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/eat_2.ogg",
+  "src": "oga/starninjas__crunch__crunch_4.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/drink_0.ogg",
+  "src": "oga/owlishmedia__drink__Drink_02.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/drink_1.ogg",
+  "src": "oga/owlishmedia__drink__Drink_03.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/drink_2.ogg",
+  "src": "oga/owlishmedia__drink__Drink_04.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/splash_0.ogg",
+  "src": "oga/rubberduck__water__splash_02.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/splash_1.ogg",
+  "src": "oga/rubberduck__water__splash_03.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/bubble_0.ogg",
+  "src": "oga/rubberduck__water__bubble_02.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/events/bell_0.ogg",
+  "src": "oga/springspring__pleasing-bell.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/flame_0.ogg",
+  "src": "oga/themightyglider__flame_0.wav",
+  "note": "convertido de WAV a OGG"
+ },
+ {
+  "file": "assets/sounds/survival/water_fill_0.ogg",
+  "src": "kenney/Foley Sounds/sinkWater1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/water_fill_1.ogg",
+  "src": "kenney/Foley Sounds/sinkWater2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/drip_0.ogg",
+  "src": "kenney/Foley Sounds/drip1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/drip_1.ogg",
+  "src": "kenney/Foley Sounds/drip2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/drip_2.ogg",
+  "src": "kenney/Foley Sounds/drip3.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/cook_0.ogg",
+  "src": "kenney/RPG Audio/metalPot1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/cook_1.ogg",
+  "src": "kenney/RPG Audio/metalPot2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/slice_0.ogg",
+  "src": "kenney/RPG Audio/knifeSlice.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/slice_1.ogg",
+  "src": "kenney/RPG Audio/knifeSlice2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/heal_0.ogg",
+  "src": "kenney/Digital Audio/highUp.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/survival/fire_ignite_0.ogg",
+  "src": "stn/fire_ignite.ogg",
+  "note": "toma 1 de 2"
+ },
+ {
+  "file": "assets/sounds/survival/fire_ignite_1.ogg",
+  "src": "stn/fire_ignite.ogg",
+  "note": "toma 2 de 2"
+ },
+ {
+  "file": "assets/sounds/footsteps/water_0.ogg",
+  "src": "stn/fs_water.ogg",
+  "note": "toma 1 de 14"
+ },
+ {
+  "file": "assets/sounds/footsteps/water_1.ogg",
+  "src": "stn/fs_water.ogg",
+  "note": "toma 3 de 14"
+ },
+ {
+  "file": "assets/sounds/footsteps/water_2.ogg",
+  "src": "stn/fs_water.ogg",
+  "note": "toma 5 de 14"
+ },
+ {
+  "file": "assets/sounds/footsteps/water_3.ogg",
+  "src": "stn/fs_water.ogg",
+  "note": "toma 9 de 14"
+ },
+ {
+  "file": "assets/sounds/events/level_up_0.ogg",
+  "src": "kenney/Digital Audio/powerUp7.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/unlock_0.ogg",
+  "src": "kenney/Digital Audio/zapThreeToneUp.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/quest_complete_0.ogg",
+  "src": "kenney/Digital Audio/threeTone1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/research_0.ogg",
+  "src": "kenney/Digital Audio/phaserUp1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/death_0.ogg",
+  "src": "kenney/Digital Audio/lowDown.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/reward_0.ogg",
+  "src": "kenney/Digital Audio/powerUp2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/upgrade_0.ogg",
+  "src": "kenney/Digital Audio/powerUp5.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/achievement_0.ogg",
+  "src": "kenney/Digital Audio/threeTone2.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/worker_0.ogg",
+  "src": "kenney/Digital Audio/twoTone1.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/power_on_0.ogg",
+  "src": "kenney/Digital Audio/phaserUp3.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/boost_0.ogg",
+  "src": "kenney/Digital Audio/powerUp11.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_00.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_00.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_01.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_01.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_02.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_02.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_03.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_03.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_04.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_04.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_05.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_05.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_06.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_06.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_07.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_07.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_08.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_08.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_09.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_09.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_10.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_10.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_11.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_11.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_12.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_12.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_13.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_13.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_14.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_14.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_15.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_15.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/jingle_16.ogg",
+  "src": "kenney/Music Jingles/jingles-steel_16.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/events/stinger_night.ogg",
+  "src": "stn/stg_night.ogg",
+  "note": "mono, normalizado"
+ },
+ {
+  "file": "assets/sounds/events/stinger_dawn.ogg",
+  "src": "stn/stg_dawn.ogg",
+  "note": "mono, normalizado"
+ },
+ {
+  "file": "assets/sounds/events/stinger_victory.ogg",
+  "src": "stn/stg_victory.ogg",
+  "note": "mono, normalizado"
+ },
+ {
+  "file": "assets/sounds/events/stinger_death.ogg",
+  "src": "stn/stg_death.ogg",
+  "note": "mono, normalizado"
+ },
+ {
+  "file": "assets/sounds/machines/computer_loop.ogg",
+  "src": "kenney/Sci-Fi Sounds/computerNoise_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/machines/engine_loop.ogg",
+  "src": "kenney/Sci-Fi Sounds/engineCircular_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/machines/force_field_loop.ogg",
+  "src": "kenney/Sci-Fi Sounds/forceField_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/machines/factory_loop.ogg",
+  "src": "kenney/Sci-Fi Sounds/spaceEngineLow_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/machines/generator_loop.ogg",
+  "src": "kenney/Sci-Fi Sounds/spaceEngine_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/machines/machine_door.ogg",
+  "src": "kenney/Sci-Fi Sounds/doorOpen_000.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/sounds/ambient/fire_loop.ogg",
+  "src": "stn/fire_loop.ogg",
+  "note": "bucle de 24 s con fundido cíclico"
+ },
+ {
+  "file": "assets/sounds/ambient/owl_0.ogg",
+  "src": "stn/owl_horned.ogg",
+  "note": "toma 1 de 8"
+ },
+ {
+  "file": "assets/sounds/ambient/owl_1.ogg",
+  "src": "stn/owl_horned.ogg",
+  "note": "toma 3 de 8"
+ },
+ {
+  "file": "assets/sounds/ambient/tree_creak_0.ogg",
+  "src": "stn/tree_creak.ogg",
+  "note": "toma 7 de 9"
+ },
+ {
+  "file": "assets/sounds/ambient/tree_creak_1.ogg",
+  "src": "stn/tree_creak.ogg",
+  "note": "toma 8 de 9"
+ },
+ {
+  "file": "assets/sounds/ambient/day_birds.ogg",
+  "src": "omarchy/birds.ogg",
+  "note": "recorte de 46 s en bucle, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/night_crickets.ogg",
+  "src": "omarchy/crickets.ogg",
+  "note": "recorte de 46 s en bucle, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/beach_waves.ogg",
+  "src": "omarchy/waves.ogg",
+  "note": "recorte de 40 s en bucle, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/river_stream.ogg",
+  "src": "omarchy/stream.ogg",
+  "note": "recorte de 30 s en bucle, mono 32 kHz"
+ },
+ {
+  "file": "assets/sounds/ambient/wind.ogg",
+  "src": "omarchy/wind.ogg",
+  "note": "recorte de 36 s en bucle, mono 32 kHz"
+ },
+ {
+  "file": "assets/music/day_connecting_rainbows.ogg",
+  "src": "freepd/Connecting Rainbows.mp3",
+  "note": "convertido de MP3 a OGG"
+ },
+ {
+  "file": "assets/music/night_midnight_green_house.ogg",
+  "src": "freepd/Midnight in the Green House.mp3",
+  "note": "convertido de MP3 a OGG"
+ },
+ {
+  "file": "assets/music/night_at_the_beach.ogg",
+  "src": "kenney/Music Loops/Night at the Beach.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/music/day_farm_frolics.ogg",
+  "src": "kenney/Music Loops/Farm Frolics.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/music/day_flowing_rocks.ogg",
+  "src": "kenney/Music Loops/Flowing Rocks.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/music/danger_infinite_descent.ogg",
+  "src": "kenney/Music Loops/Infinite Descent.ogg",
+  "note": ""
+ },
+ {
+  "file": "assets/music/day_mischief_stroll.ogg",
+  "src": "kenney/Music Loops/Mishief Stroll.ogg",
+  "note": ""
+ }
+]

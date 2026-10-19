@@ -119,7 +119,7 @@ func _refresh_rows() -> void:
 		(e.b5 as Button).disabled = not check.ok
 		(e.row as Control).modulate = Color.WHITE if unlocked else Color(0.7, 0.7, 0.7)
 		if not unlocked:
-			e.status.text = "🔒 Requiere tecnología: %s" % GameData.tech(r.unlock).get("name", r.unlock)
+			e.status.text = "Bloqueado: requiere la tecnología «%s»" % GameData.tech(r.unlock).get("name", r.unlock)
 			e.status.add_theme_color_override("font_color", UITheme.BAD)
 		elif not check.ok:
 			e.status.text = check.reason
