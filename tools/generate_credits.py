@@ -158,6 +158,12 @@ def main() -> None:
     w("")
     w("- `icon.svg` (icono de la aplicación), `assets/shaders/*.gdshader` (agua y barras), el terreno, el agua y la")
     w("  disposición de la isla se generan con el código de este proyecto (sin recursos de terceros).")
+    app_dir = os.path.join(A, "icons", "app")
+    if os.path.isdir(app_dir):
+        app_files = sorted(f for f in os.listdir(app_dir) if f.endswith(".png"))
+        w("- `assets/icons/app/` — iconos del lanzador (Android adaptable y Windows), rasterizados desde `icon.svg` con")
+        w("  `Image.load_svg_from_string` de Godot: " + ", ".join(f"`{f}`" for f in app_files) + ".")
+    w("- `tools/android/isla_salvaje_publica.keystore` — clave de firma generada con `tools/create_android_keystore.py`.")
     w("")
     # ------------------------------------------------------------ audio
     w("## 3. Efectos de sonido, ambiente y música")

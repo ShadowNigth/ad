@@ -135,6 +135,9 @@ Espejo de descarga: https://github.com/Tiddybub/3d-assets (commit 11ff708) (los 
 
 - `icon.svg` (icono de la aplicación), `assets/shaders/*.gdshader` (agua y barras), el terreno, el agua y la
   disposición de la isla se generan con el código de este proyecto (sin recursos de terceros).
+- `assets/icons/app/` — iconos del lanzador (Android adaptable y Windows), rasterizados desde `icon.svg` con
+  `Image.load_svg_from_string` de Godot: `adaptive_background_432.png`, `adaptive_foreground_432.png`, `icon_192.png`, `icon_512.png`.
+- `tools/android/isla_salvaje_publica.keystore` — clave de firma generada con `tools/create_android_keystore.py`.
 
 ## 3. Efectos de sonido, ambiente y música
 

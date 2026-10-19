@@ -126,10 +126,10 @@ func _update_placement(validate: bool) -> void:
 	_ring.global_position = target + Vector3(0, 0.08, 0)
 	if validate:
 		var res: Dictionary = world.buildings.placement_valid(type_id, target, rot_deg)
-		var was := valid
 		valid = res.ok
 		reason = res.reason
 		_ghost.material_override = _mat_ok if valid else _mat_bad
 		_ring.material_override = _mat_ok if valid else _mat_bad
-		if was != valid or true:
-			validity_changed.emit(valid, reason)
+		# Se emite en cada validación (no sólo al cambiar) porque el motivo del
+		# rechazo puede cambiar sin que cambie la validez (p. ej. de «agua» a «pendiente»).
+		validity_changed.emit(valid, reason)
