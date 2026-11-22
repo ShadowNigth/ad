@@ -58,6 +58,11 @@ see [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md) for that format. Per-mo
 by gates, not by eye: see [`pipeline/qa/README.md`](pipeline/qa/README.md) for the measured residuals
 and what each script fails on.
 
+Sweeping the gates over every built pack (41 of them, each on its own longest clip) gives
+`pose_residual` 0 failures at a worst residual of 0.061 deg / 0.0000 in, and `arms_contact` two packs
+where a single rigid offset measurably does not reach (`v_mach_negev`, `v_eq_incendiarygrenade`) -- see
+[`pipeline/qa/README.md`](pipeline/qa/README.md).
+
 The arms conform is solved per weapon and refused when it is not a conform: it has to improve the
 frames it never saw, which the knife fails (its blade rides an attach bone the sleeve does not), so
 those packs ship the arms as authored with `arms_grip_fit.skipped` in the manifest.
