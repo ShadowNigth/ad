@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import sys
 from pathlib import Path
@@ -39,6 +40,8 @@ for _cand in (str(HERE.parent / "vendor"), "/tmp/bl-addons",
         sys.path.insert(0, _cand)
         break
 
+MAIN_CHAIN = re.compile(r"Bip01_(L|R)_(UpperArm|Forearm|Hand|Chest|Spine|Foot|Calf|Thigh)")
+BASE_DISAGREE_FRAC = 0.25   # a base anim disagreeing on this share of bones = mis-decode
 MAX_STEP_DEG = 95.0          # 30 fps hand animation: >95 deg between frames means mis-decode
 UNIT_TOL = 2e-3              # values are stored as float32 after decode
 BIND_TOL_DEG = 1.0           # base-anim constant rotation vs mstudiobone_t.quat
@@ -97,14 +100,38 @@ def check_model(mdl_path: Path, ani_path: Path | None):
             rep["problems"].append(f"{name}: |q|-1 = {bad:.4f} (bone {names[i] if i < len(names) else i})")
         if not np.all(np.isfinite(pos)):
             rep["problems"].append(f"{name}: {int((~np.isfinite(pos)).sum())} non-finite positions")
-        if n > 1:
+        if n > 2:
+            # |dot| so that q and -q count as the same rotation -- without the abs, a sign flip
+            # (which is not a motion) reads as a 180 deg step and every clip with a delta seam
+            # looks corrupt.  A *real* 180 deg step is what this catches.
             step = np.degrees(2 * np.arccos(np.clip(np.abs((rot[:-1] * rot[1:]).sum(-1)), -1, 1)))
             mx = float(step.max())
             entry["max_step_deg"] = round(mx, 2)
-            if mx > MAX_STEP_DEG:
-                k = int(np.argmax(step.max(axis=0)))
-                rep["problems"].append(f"{name}: {mx:.1f} deg rotation step (bone "
-                                       f"{names[k] if k < len(names) else k})")
+            # Isolated spikes only.  A grenade throw really does whip `Bip01_R_ForeTwist` past 100
+            # deg in one frame, and a pin popping off turns 128 deg between two frames -- sustained
+            # fast motion is animation, while a single frame that jumps and comes back is a
+            # mis-read stride.  Flagging the former buried the latter.
+            nb = step.shape[1]
+            hi = step > MAX_STEP_DEG
+            prev = np.vstack([np.zeros((1, nb)), step[:-1]])
+            nxt = np.vstack([step[1:], np.zeros((1, nb))])
+            spikes = hi & (prev < MAX_STEP_DEG / 3.0) & (nxt < MAX_STEP_DEG / 3.0)
+            if spikes.any():
+                f, k = np.unravel_index(int(np.argmax(spikes)), spikes.shape)
+                bone = names[k] if k < len(names) else str(k)
+                # Only a spike on the arm/spine chain is evidence of a mis-read: those bones carry
+                # smooth motion in every clip here, so one frame jumping 100+ deg and back is a
+                # stride error.  On a prop it is the animation: `v_weapon_lighter_flame1` billboards
+                # (136.7 deg in one frame is a flip to face the camera), and a lighter flick or a
+                # pin leaving is authored as a snap.
+                if MAIN_CHAIN.search(bone):
+                    rep["problems"].append(f"{name}: isolated {mx:.1f} deg rotation spike at "
+                                           f"frame {f} on {bone}")
+                else:
+                    rep["notes"].append(f"{name}: {mx:.1f} deg snap at frame {f} on {bone} "
+                                        f"(prop bone -- plausible, not a decode failure)")
+            elif mx > MAX_STEP_DEG:
+                entry["fast_frames"] = int(hi.any(axis=1).sum())
         # 3. base animation == bind pose
         if name.startswith("a_") and n == 1:
             qa = rot[0]
@@ -114,12 +141,31 @@ def check_model(mdl_path: Path, ani_path: Path | None):
             touched |= (np.abs(ang) > 1e-6)
             worst_a = float(ang[touched].max()) if touched.any() else 0.0
             worst_p = float(np.linalg.norm(pos[0] - base_pos, axis=-1)[touched].max()) if touched.any() else 0.0
+            dp = np.linalg.norm(pos[0] - base_pos, axis=-1)
+            off = touched & ((ang > BIND_TOL_DEG) | (dp > BIND_TOL_IN))
+            frac = float(off.sum()) / max(1, int(touched.sum()))
             entry["bind_residual_deg"] = round(worst_a, 4)
             entry["bind_residual_in"] = round(worst_p, 5)
-            if worst_a > BIND_TOL_DEG or worst_p > BIND_TOL_IN:
-                rep["problems"].append(f"{name}: base anim differs from mstudiobone_t by "
-                                       f"{worst_a:.2f} deg / {worst_p:.3f} in")
+            entry["base_pose_bones"] = int(off.sum())
+            # Judge the *share* of bones that disagree, not the worst one.  A mis-decoded space
+            # convention is wrong everywhere at once -- this is how the missing authoring twist
+            # showed up on the ak47 (90.00 deg and 44.03 in on essentially every position-carrying
+            # bone) -- whereas `a_base`/`a_idle` legitimately carries the author's base pose for a
+            # slide or a hand: 19 models here disagree on one or two bones only, up to 90 deg, with
+            # the median bone at 0.02 deg.  Those are notes.
+            if frac > BASE_DISAGREE_FRAC:
+                rep["problems"].append(
+                    f"{name}: base anim differs from mstudiobone_t on {int(off.sum())}/"
+                    f"{int(touched.sum())} bones ({frac:.0%}), {worst_a:.2f} deg / "
+                    f"{worst_p:.3f} in worst")
+            elif off.sum():
+                rep["notes"].append(f"{name}: base anim poses {int(off.sum())} bone(s) off bind "
+                                    f"(worst {worst_a:.2f} deg / {worst_p:.3f} in)")
         rep["anims"][name] = entry
+    # `unsupported` is derived, not accumulated: "this model needs the legacy RLE reader" and
+    # "the decoder produced nonsense" are different sentences, and a model can show both.  Anything
+    # other than the legacy note means the decode itself is suspect and has to fail the build.
+    rep["unsupported"] = bool(rep["problems"]) and all("legacy RLE" in p for p in rep["problems"])
     return rep
 
 
