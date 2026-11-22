@@ -57,20 +57,29 @@ def main():
     blend = Path(a.blend).resolve()
     if not blend.is_file():
         raise SystemExit(f"no such .blend: {blend}")
-    # build_pack writes one manifest at the --out root, so it sits beside the pack directory
-    # (`<out>/manifest.json`) rather than inside it (`<out>/<pack>/`).
-    man = Path(a.manifest) if a.manifest else next(
-        (x for x in (blend.parent / "manifest.json", blend.parent.parent / "manifest.json")
-         if x.is_file()), None)
+    # Two manifests exist and either is enough: `<out>/<pack>/manifest.json`, which travels with the
+    # pack (`{"build": {...}}`), and the aggregate at the `--out` root (`{"built": [...]}`).  Prefer
+    # the pack's own -- it needs the build tree not to be around any more.
     mdl = Path(a.mdl) if a.mdl else None
-    if mdl is None and man and man.is_file():
+    man = Path(a.manifest) if a.manifest else None
+    cands = [man] if man else [blend.parent / "manifest.json",
+                               blend.parent.parent / "manifest.json"]
+    for x in cands:
+        if mdl is not None or not x or not x.is_file():
+            continue
         import json
-        doc = json.loads(man.read_text())
-        rec = next((r for r in doc.get("built", [])
-                    if Path(blend.parent, r.get("weapon", "") + ".blend").is_file()
-                    or r.get("model", "").endswith(blend.stem + ".mdl")),
-                   (doc.get("built") or [{}])[0])
-        rel = rec.get("mdl_abs") or str(Path(doc.get("src", "")) / rec.get("model", ""))
+        doc = json.loads(x.read_text())
+        recs = [doc["build"]] if "build" in doc else list(doc.get("built", []))
+        if not recs:
+            continue
+        rec = next((r for r in recs
+                    if r.get("model", "").endswith(blend.stem + ".mdl")
+                    or Path(blend.parent, r.get("weapon", "") + ".blend").is_file()
+                    or Path(blend.parent.parent, r.get("weapon", ""), blend.name).is_file()),
+                   recs[0])
+        rel = rec.get("mdl_abs") or ""
+        if not (rel and Path(rel).is_file()):
+            rel = str(Path(doc.get("src", ".")) / rec.get("model", "")) if rec.get("model") else ""
         mdl = Path(rel) if rel else None
     if mdl is None or not Path(mdl).is_file():
         raise SystemExit("could not locate the source .mdl; pass --mdl")

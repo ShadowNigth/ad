@@ -33,10 +33,65 @@ from __future__ import annotations
 
 import numpy as np
 
-# Scored frames: chosen across clips, not inside one, so the offset has to be a real alignment.
+# Only used as a fallback and in the docs: the real clip names differ per weapon (`@ak47_reload`
+# vs `a_reload`), so `pick_frames` reads them out of the file instead.
 DEFAULT_SCORE = (("ak47_idle", 1), ("ak47_reload", 37), ("ak47_fire1", 12))
-# Never shown to the fit; if these do not improve too, the offset was fitted to the wrong thing.
 DEFAULT_HOLDOUT = (("ak47_draw", 15), ("ak47_reload", 70), ("lookat01", 69))
+
+# Which clips to score, by name, in order: an idle frame, a reload mid-frame and a firing frame are
+# three genuinely different hand placements, which is what makes a single translation over-determined.
+SCORE_KEYS = (("idle", "base"), ("reload",), ("fire", "shoot", "priming"))
+# Held back from the fit.  If these do not improve too, the offset is real and not fitted to
+# whichever three frames it saw.
+HOLDOUT_KEYS = (("draw", "deploy", "finish"), ("lookat", "bullet", "inspect", "he"), ("idle",))
+
+
+def pick_frames(score=True, holdout=False):
+    """`(score_frames, holdout_frames)` chosen from the actions actually in the file.
+
+    Hardcoding `ak47_*` names was wrong for every other weapon: the sampler silently kept the
+    previously active action and re-used it at three arbitrary frames, so the "over-determined"
+    fit was in fact fitted to one pose.  Names are matched here, and a weapon with none of them
+    still gets the longest clips it has.
+    """
+    import bpy
+    acts = sorted(((a.name, int(round(a.frame_range[1]))) for a in bpy.data.actions
+                   if "_empty" not in a.name.lower() and a.frame_range[1] >= 1),
+                  key=lambda x: (-x[1], x[0]))
+    if not acts:
+        return [], []
+    name_by_key = {}
+    for nm, fr in acts:
+        name_by_key.setdefault(nm.lower(), (nm, fr))
+    taken, score_out, hold_out = set(), [], []
+
+    def grab(keys, mid=True):
+        for k in keys:
+            for nm, fr in acts:
+                low = nm.lower()
+                if nm in taken or k not in low:
+                    continue
+                taken.add(nm)
+                return (nm, 1 if not mid else max(1, fr // 2))
+        return None
+
+    if score:
+        for keys in SCORE_KEYS:
+            hit = grab(keys, mid=(keys != SCORE_KEYS[0]))
+            if hit:
+                score_out.append(hit)
+    if holdout:
+        for keys in HOLDOUT_KEYS:
+            hit = grab(keys)
+            if hit:
+                hold_out.append(hit)
+    leftover = [(nm, max(1, fr // 2)) for nm, fr in acts if nm not in taken]
+    if score and not score_out:
+        score_out = leftover[:3]
+    if holdout and not hold_out:
+        hold_out = (leftover[len(score_out):len(score_out) + 2] if score
+                    else leftover[:2])
+    return (score_out or None), (hold_out or None)
 
 
 def world_verts(ob, subsample=700):
@@ -78,6 +133,9 @@ class Sample:
     """One (action, frame) pose: the weapon's surface and every arms mesh, in world space."""
 
     def __init__(self, arm, meshes, gun, act_name, frame, subsample=400):
+        """`gun` is one mesh or the whole weapon: the arms have to reach the *weapon*, and a model
+        routinely splits its body across meshes (`ump45_cs2_new.smd` + `blank` + the mag-window
+        shells), so picking the densest one would align the hands to a piece of it."""
         import bpy
         act = (bpy.data.actions.get(act_name) or bpy.data.actions.get("@" + str(act_name))
                if act_name else None)
@@ -90,7 +148,10 @@ class Sample:
         bpy.context.scene.frame_set(int(frame))
         bpy.context.view_layer.update()
         self.label = f"{act_name or 'rest'} f{frame}"
-        self.gun = world_verts(gun, subsample * 2)
+        guns = gun if isinstance(gun, (list, tuple)) else [gun]
+        self.gun = (np.concatenate([world_verts(g, subsample * 2) for g in guns
+                                    if len(g.data.vertices)]) if len(guns) > 1
+                    else world_verts(guns[0], subsample * 2))
         self.parts = [(world_verts(ob, subsample), ob.name) for ob in meshes]
 
     def score(self, off_world, pct=2.0, clearance=0.5):
@@ -118,8 +179,8 @@ class Sample:
         return [(name, nearest_low(P + off_world, self.gun, pct)) for P, name in self.parts]
 
 
-def fit(blend=None, frames=DEFAULT_SCORE, holdout=DEFAULT_HOLDOUT, verbose=True,
-        coarse=5.0, subsample=400, pct=2.0, clearance=0.5, log=None, meshes=None):
+def fit(blend=None, frames=None, holdout=None, verbose=True,
+        coarse=5.0, subsample=400, pct=2.0, clearance=0.5, log=None, meshes=None, guns=None):
     """Returns (offset_world, before, after, (hold_before, hold_after))."""
     import bpy
     if blend is not None:
@@ -127,15 +188,22 @@ def fit(blend=None, frames=DEFAULT_SCORE, holdout=DEFAULT_HOLDOUT, verbose=True,
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     all_meshes = [o for o in bpy.data.objects if o.type == "MESH"]
     if meshes is None:
-        gun = max(all_meshes, key=lambda o: len(o.data.vertices))
-        meshes = [o for o in all_meshes if o is not gun]
-    else:
-        gun = next(o for o in all_meshes if o not in meshes)
+        meshes = [o for o in all_meshes if "arms" in o.name.lower() or "glove" in o.name.lower()]
+    arms_names = {o.name for o in meshes}
+    guns = [o for o in (guns or []) if o.name not in arms_names] or \
+        [o for o in all_meshes if o.name not in arms_names]
     if not meshes:
         raise RuntimeError("no arms meshes to fit -- was the pack built with arms?")
+    if not guns:
+        raise RuntimeError("no weapon mesh to fit against")
+    frames_d, holdout_d = pick_frames(score=frames is None, holdout=holdout is None)
+    frames = frames or frames_d or DEFAULT_SCORE
+    holdout = holdout if holdout is not None else (holdout_d or [])
+    if not frames:
+        raise RuntimeError("no baked actions in this file, so there is nothing to score against")
     say = log or ((lambda *a: print("[arm_fit]", *a)) if verbose else (lambda *a: None))
-    scored = [Sample(arm, meshes, gun, a, f, subsample) for a, f in frames]
-    held = [Sample(arm, meshes, gun, a, f, subsample) for a, f in (holdout or ())]
+    scored = [Sample(arm, meshes, guns, a, f, subsample) for a, f in frames]
+    held = [Sample(arm, meshes, guns, a, f, subsample) for a, f in (holdout or [])]
 
     def sc(off, s):
         # Worst frame, not the mean: a shift that nails idle and misses the reload is exactly the
@@ -148,7 +216,7 @@ def fit(blend=None, frames=DEFAULT_SCORE, holdout=DEFAULT_HOLDOUT, verbose=True,
 
     off, best = np.zeros(3), sc(np.zeros(3), scored)
     per_before = [x.per_part(np.zeros(3), pct) for x in scored]
-    say(f"{len(meshes)} arms mesh(es) vs {gun.name}: gap {best:.3f} in over "
+    say(f"{len(meshes)} arms mesh(es) vs {len(guns)} weapon mesh(es): gap {best:.3f} in over "
         f"{', '.join(x.label for x in scored)}")
     step = coarse
     for it in range(60):
@@ -174,7 +242,7 @@ def fit(blend=None, frames=DEFAULT_SCORE, holdout=DEFAULT_HOLDOUT, verbose=True,
         f"{g0:.2f} -> {g1:.2f} in"
         + (f"; unseen frames {hold_res[0]:.2f} -> {hold_res[1]:.2f} in" if hold_res else "")
         + f" (hinge residual {best:.3f})")
-    return off, (g0, g1), hold_res, meshes, gun
+    return off, (g0, g1), hold_res, meshes, guns
 
 
 def shift_meshes(objs, off_world):
@@ -204,10 +272,11 @@ def shift_meshes(objs, off_world):
     bpy.context.view_layer.update()
 
 
-def measure_gap(objs, gun, frames=DEFAULT_SCORE, subsample=400, pct=2.0, off=None):
+def measure_gap(objs, gun, frames=None, subsample=400, pct=2.0, off=None):
     """The plain mean gap with the meshes as they are now (or shifted by `off`)."""
     import bpy
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
+    frames = frames or (pick_frames(score=True)[0] or DEFAULT_SCORE)
     s = [Sample(arm, objs, gun, a, f, subsample) for a, f in frames]
     z = np.zeros(3) if off is None else np.asarray(off, dtype=np.float64)
     return float(np.mean([np.mean([nearest_low(P + z, x.gun, pct) for P, _ in x.parts])
@@ -230,8 +299,8 @@ def main():
     sys.argv[0] = "blender"
     import bpy
     blend = Path(a.blend).resolve()
-    off, (before, after), hold, meshes, gun = fit(blend=blend, pct=a.pct, subsample=a.subsample,
-                                                   clearance=a.clearance)
+    off, (before, after), hold, meshes, guns = fit(blend=blend, pct=a.pct,
+                                                     subsample=a.subsample, clearance=a.clearance)
     if not a.write:
         print("[arm_fit] dry run (pass --write to store it)")
         raise SystemExit(0)
@@ -240,7 +309,8 @@ def main():
     # mattered more than it does, this is where it shows up.
     resid = None
     shift_meshes(meshes, off)
-    resid = measure_gap(meshes, gun, DEFAULT_SCORE, a.subsample, a.pct)
+    resid = measure_gap(meshes, guns, pick_frames(score=True)[0] or DEFAULT_SCORE,
+                        a.subsample, a.pct)
     print(f"[arm_fit] re-measured after applying: {resid:.3f} in "
           f"(world-space prediction {after:.3f}, before {before:.3f})")
     if resid > before:

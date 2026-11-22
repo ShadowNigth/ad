@@ -8,14 +8,23 @@ they need. `arms_bind.py` is pure numpy and needs no Blender at all.
 
 ```sh
 LD_LIBRARY_PATH=/tmp/stubs /tmp/venv/bin/python pipeline/qa/pose_residual.py \
-    --blend /tmp/dist/m_cs2_ak47/v_rif_ak47.blend --anim ak47_reload --frame 37
+    --blend dist/m_cs2_ak47/v_rif_ak47.blend --anim ak47_reload --frame 37
+LD_LIBRARY_PATH=/tmp/stubs /tmp/venv/bin/python pipeline/qa/arms_contact.py \
+    --blend dist/m_cs2_ump45/v_smg_ump45.blend --min-in 3
 ```
+
+None of them takes a weapon name. `pose_residual.py` finds the source `.mdl` in the manifest --
+`<pack>/manifest.json`, which travels with a built pack, or the aggregate `<out>/manifest.json` --
+and `arms_contact.py` samples the clips *this file* has (`--frames auto` picks its idle,
+reload/fire and draw frames the same way `arm_fit` picks the frames to score), since the ak47's
+`@ak47_reload` is the ump45's `a_reload` and a hardcoded name silently degrades a gate into a
+report about the rest pose.
 
 | script | claim it proves | fails when |
 | --- | --- | --- |
 | `pose_residual.py` | the baked action reproduces the `.mdl` bone chain in Blender's own evaluator | `pb.matrix` is off by > 0.5 deg / 0.05 in, or a bone without a position channel changed length |
 | `arms_bind.py` | the re-bound arms mesh is not torn | the longest posed edge of a part grows past its rest edge (default mode `rigid`) |
-| `arms_contact.py` | the arms are actually on the weapon | the arms never come within `--min-in` of the weapon mesh at any sampled frame |
+| `arms_contact.py` | the arms are actually on the weapon | the arms never come within `--min-in` of the weapon at any sampled frame. Pass `--min-in 3` to make it a gate: the default `0` only prints, because "the closest vertex is touching" is also what a welded glove reports, and the interesting number is the *distribution* |
 
 `python -m pipeline.arm_fit --blend ... [--write]` is not a gate but the fix the contact gate exists
 to justify: it solves the one transform the arms SMDs do not carry (see its docstring).
@@ -58,3 +67,27 @@ expectations, and are cheap enough to run on every build.
 
 Before `arm_fit` the gloves sat 6.16 in from the weapon in *every* clip -- the number that made the
 offset diagnosis possible, since a pose error would not be constant across clips.
+
+## Two numbers that look like bugs and are not
+
+**The glove line repeats across clips.** On the ump45, `Ct_Arms_g2` reports
+`min 0.19 p10 2.40 median 5.88` for its idle, reload and firing frames alike -- the ak47 block above
+repeats the same way -- even though the mesh's world bounding box moves a dozen inches between them. The distances are *to the weapon*, and in a
+viewmodel animation the weapon rides on the hand bones -- so a rigidly bound glove keeps exactly its
+authored distance to the gun through those clips, by construction. It does change under
+`lookat01` (0.05 / 1.85 / 5.06), the one clip that sways the weapon against the arm. A *sleeve*,
+being skinned further up the chain, has no such invariance and its line differs every frame. Read
+the sleeve lines to judge placement, and the glove line to judge whether the offset was applied.
+
+**`--min-in` defaults to 0** so that a pack whose arms are merely far away still prints its
+distribution instead of exiting 1 before you have seen it. The gate is opt-in on purpose.
+
+## On other weapons
+
+Measured the same way on the ump45 (`a_reload` f52, 70 bones, 4 weapon meshes against the ak47's 1):
+worst as-baked `0.022 deg / 0.0000 in`, `0 broken` lengths, PASS; grip fit
+`offset [11.05 -13.75 -2.58] -> worst-frame gap 12.37 -> 0.82 in, unseen 14.59 -> 4.09 in`. That
+fit is only possible because `arm_fit.pick_frames` derives its frames from the file: on the ak47 it
+independently arrives at `idle f1 / reload f37 / fire1 f12` and reproduces the hand-tuned offset to
+the last digit (`[12.7344 -10.0 -1.25]`, `2.699 in`), which is the check that the generalisation did
+not change the tuned case.

@@ -17,7 +17,7 @@ For each weapon `m_cs2_<name>` in the staged content tree this writes:
     <out>/<weapon>/animations/*.glb       one animation per file (for engines that want that)
     <out>/<weapon>/textures/*.png         every VTF the model uses, packed to PNG
     <out>/<weapon>/sounds/*.wav           the weapon's sounds, plus game_sounds_*.txt
-    <out>/manifest.json                   what was built, frame counts, fps, checksums
+    <out>/manifest.json                   the whole run; `<pack>/manifest.json` travels with a pack
 
 Run inside headless bpy (see headless_blender_stubs.py):
     LD_LIBRARY_PATH=/tmp/stubs /tmp/venv/bin/python pipeline/build_pack.py --only ak47
@@ -539,12 +539,13 @@ def fit_arms_grip(arm, arm_objects, log, clearance=0.5):
     before = (arm.animation_data.action.name if arm.animation_data.action else "",
               bpy.context.scene.frame_current)
     try:
-        off, (gap0, gap1), hold, _meshes, gun = arm_fit.fit(meshes=objs, verbose=False,
-                                                             clearance=clearance)
+        off, (gap0, gap1), hold, _meshes, guns = arm_fit.fit(
+            meshes=objs, verbose=False, clearance=clearance)
         arm_fit.shift_meshes(objs, off)
         # Re-measured on the applied meshes: the fit scores a world-space shift, the mesh carries a
         # bone-relative one, and the deliverable has to be judged on what is actually in the file.
-        applied = arm_fit.measure_gap(objs, gun, arm_fit.DEFAULT_SCORE)
+        # same meshes, same frame-picking rule, offset now inside the mesh data
+        applied = arm_fit.measure_gap(objs, guns, None)
         if applied > gap0:                                # worse than not fitting at all
             arm_fit.shift_meshes(objs, -off)
             log(f"  arms grip fit: skipped, applying it would worsen the gap "
@@ -554,8 +555,10 @@ def fit_arms_grip(arm, arm_objects, log, clearance=0.5):
         rec = {"offset": [round(float(x), 4) for x in off],
                "gap_before": round(float(gap0), 3), "gap_after": round(float(gap1), 3),
                "gap_applied": round(float(applied), 3),
-               "gun_mesh": gun.name,
-               "scored_frames": [f"{a} f{f}" for a, f in arm_fit.DEFAULT_SCORE]}
+               "weapon_meshes": [g.name for g in guns],
+               "score_frames_note": "frames are picked from this model's own clips by "
+                                    "arm_fit.pick_frames",
+               }
         if hold:
             rec["gap_unscored_before"], rec["gap_unscored_after"] = (round(float(hold[0]), 3),
                                                                      round(float(hold[1]), 3))
@@ -786,7 +789,24 @@ def build_one(weapon_dir: Path, mdl: Path, arms_dirs, out_dir: Path, opts):
     if not rec["arms_meshes"]:
         rec["problems"].append("no arms mesh bound (SMD bone names did not match the rig)")
     rec["ok"] = not rec["problems"]
+    # One manifest per pack, beside the .blend.  The aggregate at `<out>/manifest.json` describes a
+    # build run; a pack gets copied into a project on its own and has to say what it is, which
+    # textures were dropped, what the arms bind did, and where its .mdl came from.  The QA gates read
+    # it to find the source model, so a built pack is checkable without the content root.
+    (pack / "manifest.json").write_text(json.dumps(
+        {"weapon": rec["weapon"], "options": _options_dict(opts), "build": rec},
+        indent=1, default=str))
     return rec
+
+
+def _options_dict(opts):
+    """The knob values that change the output, for the per-pack and aggregate manifests."""
+    return {"scale": opts.scale, "smoothing": opts.smoothing, "only": opts.only,
+            "twist_position_bones": not opts.no_twist_fix,
+            "arms_bind": opts.arms_bind, "arms_grip_fit": opts.arms_grip_fit,
+            "arms_grip_clearance": opts.arms_grip_clearance, "all_arms": opts.all_arms,
+            "textures": not opts.no_textures, "texture_size": opts.texture_size,
+            "per_animation_glb": opts.per_anim}
 
 
 def main():
@@ -880,13 +900,9 @@ def main():
         + (", ".join(str(d.relative_to(archi)) for d in arms_dirs) if arms_dirs else "none")
         + (f" ({sum(len(list(d.glob('*.smd'))) for d in arms_dirs)} smd)" if arms_dirs else ""))
 
-    manifest = {"built": [], "src": str(build),
+    manifest = {"built": [], "src": str(build), "run_options": _options_dict(opts),
                 "arms": [str(d.relative_to(archi)) for d in arms_dirs] if archi else [],
-                "options": {"scale": opts.scale, "smoothing": opts.smoothing,
-                            "twist_position_bones": not opts.no_twist_fix,
-                            "arms_bind": opts.arms_bind,
-                            "arms_grip_fit": opts.arms_grip_fit,
-                            "per_animation_glb": opts.per_anim}}
+                "note": "each pack also writes <pack>/manifest.json, which travels with the pack"}
     t_start = time.time()
     for d in weapon_dirs:
         cand = sorted((d / "models" / "weapons").glob("v_*.mdl")) or sorted(d.rglob("v_*.mdl"))
