@@ -539,26 +539,41 @@ def fit_arms_grip(arm, arm_objects, log, clearance=0.5):
     before = (arm.animation_data.action.name if arm.animation_data.action else "",
               bpy.context.scene.frame_current)
     try:
-        off, (gap0, gap1), hold, _meshes, guns = arm_fit.fit(
+        off, (gap0, gap1), hold, _meshes, guns, used = arm_fit.fit(
             meshes=objs, verbose=False, clearance=clearance)
         arm_fit.shift_meshes(objs, off)
         # Re-measured on the applied meshes: the fit scores a world-space shift, the mesh carries a
         # bone-relative one, and the deliverable has to be judged on what is actually in the file.
         # same meshes, same frame-picking rule, offset now inside the mesh data
         applied = arm_fit.measure_gap(objs, guns, None)
-        if applied > gap0:                                # worse than not fitting at all
+        # Two ways this offset is a fiction: applying it does not help the frames it was fitted to,
+        # or it *hurts* the frames it never saw.  The second is what a knife reports -- the blade
+        # rides `weapon_hand_r` while the sleeve follows the arm chain, so an attack swing moves the
+        # weapon against the hand and no constant translation can hold; the fit that nails
+        # `light_hit1` pushes `lookat01` 2 in further away.  Refuse both and leave the arms authored.
+        worse_holdout = bool(hold) and hold[1] > hold[0]
+        if applied > gap0 or worse_holdout:
             arm_fit.shift_meshes(objs, -off)
-            log(f"  arms grip fit: skipped, applying it would worsen the gap "
-                f"({gap0:.2f} -> {applied:.2f} in)")
-            return {"offset": [round(float(x), 4) for x in off], "skipped": "would not improve",
-                    "gap_before": round(float(gap0), 3)}
+            why = (f"applying it worsens the gap it was fitted to ({gap0:.2f} -> {applied:.2f} in)"
+                   if applied > gap0 else
+                   f"it worsens the frames it never saw ({hold[0]:.2f} -> {hold[1]:.2f} in)")
+            log(f"  arms grip fit: skipped -- {why}; leaving the arms as authored")
+            # Not a failure of the fit -- for a weapon whose hands and blade part company between
+            # clips (the knife: `light_hit1` needs 22.8 in of shift and `lookat01` needs -4) no
+            # single translation reaches, so leaving the arms as authored beats welding them to
+            # whatever clip was scored.  The holdout numbers say that out loud.
+            return {"offset": [round(float(x), 4) for x in off],
+                    "skipped": "no single translation reaches across this model's clips",
+                    "gap_before": round(float(gap0), 3),
+                    "gap_after_would_be": round(float(gap1), 3),
+                    "applied_would_worsen_to": round(float(applied), 3),
+                    "holdout_would_worsen_to": [round(float(x), 3) for x in hold] if hold else None,
+                    "scored_frames": used}
         rec = {"offset": [round(float(x), 4) for x in off],
                "gap_before": round(float(gap0), 3), "gap_after": round(float(gap1), 3),
                "gap_applied": round(float(applied), 3),
-               "weapon_meshes": [g.name for g in guns],
-               "score_frames_note": "frames are picked from this model's own clips by "
-                                    "arm_fit.pick_frames",
-               }
+               "weapon_meshes": [g.name for g in guns], "scored_frames": used,
+               "score_frames_note": "picked from this model's own clips by arm_fit.pick_frames"}
         if hold:
             rec["gap_unscored_before"], rec["gap_unscored_after"] = (round(float(hold[0]), 3),
                                                                      round(float(hold[1]), 3))

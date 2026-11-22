@@ -9,25 +9,39 @@ not in this pack, so the transform that maps one space onto the other cannot be 
 
 But it can be solved, because the animation over-determines it: the hands are on the weapon in every
 frame of every clip, so exactly one translation makes that true for all of them at once.  This fits
-it by coordinate descent on a shrinking step, scored over several clips so it cannot latch onto one
-convenient pose, and validated on frames it never saw.  Measured on the ak47 pack: 6.37 -> 0.42 in
-on the scored frames, 5.28 -> 0.55 in on unseen ones.
+it by coordinate descent on a shrinking step.  The score is the mean, over the arms parts, of
+`max(0, nearest_gap - clearance)` at a frame, and the *worst* frame counts -- averaging over frames
+lets one clip be fixed by breaking another, and `min` over the whole assembly is trivially achieved by
+the sleeve elbow sliding the gloves off.  `clearance` (0.5 in) is the hinge, not 0: fitted "as close
+as possible" buries the gloves inside the rifle and every contact report still reads PASS.
 
-Rotation is deliberately not fitted: the meshes are skinned per bone, so a fitted rotation would be
-applied on top of whatever orientation the bone already carries.  A translation is the one degree of
-freedom that is invariant to the pose.
+Frames come from `pick_frames`, i.e. from the model's own clips (three: a reload mid-frame, a
+fire/attack mid-frame, and the longest remaining clip), and three more are held back as a check that
+the offset is a conform rather than a fit to what it saw.  Ak47 pack: 12.32 -> 2.54 in over the
+scored frames, 11.72 -> 2.49 in over the unseen ones, `offset [11.60 -11.21 -0.04] in`.
 
-The offset is applied as a translation of the arms objects, i.e. a constant shift in *armature*
-space.  That is the space the missing conform lives in (the assembly's root in the arms file versus
-the model's root), it is frame-invariant because the armature itself never animates, and it survives
-the .glb export as a node translation.  Editing the mesh data instead would be wrong: a mesh-local
-offset is dragged around by every bone's own rotation, so it would only be right at the frame it was
-fitted on.
+Where a weapon's hands and its prop genuinely separate between clips, no translation reaches and
+that is the answer -- the kukri's blade rides `weapon_hand_r` while the sleeve follows the arm chain,
+so its best offset (`25.57 -> 11.79 in` scored) *worsens* the frames it never saw (20.23 -> 22.41),
+and `build_pack` refuses to apply it.  Rotation is never fitted for the same reason in miniature: the
+meshes are skinned per bone, so a fitted rotation would stack on top of whatever orientation the bone
+already carries.  A translation is the one degree of freedom invariant to the pose.
+
+Application is into the **mesh data** (`shift_meshes`), each offset rotated by the inverse world
+rotation of its own mesh so it stays rigid against the bone the part is bound to -- right at every
+frame, not just the fitted one.  It is not a `object.location`, and that is not a style choice: the
+glTF exporter drops `translation` on any node carrying a `skin`, so an object-level shift looks correct
+in the .blend (and in a Workbench render of it) and silently vanishes from the .glb.  Measured, not
+assumed: the .blend kept `location [12.734 -10.0 -1.25]` while the exported node had
+`translation: None`, which is how this bug was found.
 
 Run inside headless Blender:
 
-    LD_LIBRARY_PATH=/tmp/stubs /tmp/venv/bin/python -m pipeline.arm_fit \\
-        --blend /tmp/dist/m_cs2_ak47/v_rif_ak47.blend [--write]
+    LD_LIBRARY_PATH=/tmp/stubs /tmp/venv/bin/python pipeline/arm_fit.py \\
+        --blend dist/m_cs2_ak47/v_rif_ak47.blend [--write]
+
+`--write` re-measures the applied mesh and refuses to save if the file did not get better, so a dry
+run and a written run cannot disagree.
 """
 from __future__ import annotations
 
@@ -46,53 +60,94 @@ SCORE_KEYS = (("idle", "base"), ("reload",), ("fire", "shoot", "priming"))
 HOLDOUT_KEYS = (("draw", "deploy", "finish"), ("lookat", "bullet", "inspect", "he"), ("idle",))
 
 
+def _file_clips():
+    """`[(name, n_frames)]` for the real baked actions in the open file, longest first."""
+    import bpy
+    return sorted(((a.name, int(round(a.frame_range[1]))) for a in bpy.data.actions
+                   if "_empty" not in a.name.lower() and a.frame_range[1] >= 1),
+                  key=lambda x: (-x[1], x[0]))
+
+
+# Roles, in order.  A reload and a firing pose put the hands somewhere genuinely different, which
+# is what makes one translation over-determined; `attack`/`hit`/`miss` are the knife's, `deploy`
+# the grenade's.  Static 1-3 frame clips are excluded from *clip* selection below, because fitting
+# to one of those is fitting to a single pose.
+ROLE_KEYS = (("reload", "mag", "clip"), ("fire", "shoot", "attack", "hit", "miss", "priming"),
+             ("idle", "lookat", "base", "deploy", "draw"))
+
+
 def pick_frames(score=True, holdout=False):
     """`(score_frames, holdout_frames)` chosen from the actions actually in the file.
 
     Hardcoding `ak47_*` names was wrong for every other weapon: the sampler silently kept the
     previously active action and re-used it at three arbitrary frames, so the "over-determined"
-    fit was in fact fitted to one pose.  Names are matched here, and a weapon with none of them
-    still gets the longest clips it has.
+    fit was fitted to one pose.  Matching names alone was not enough either -- the kukri has no
+    `reload`/`fire` clip and only a 1-frame `idle1`, so it scored exactly one frame and the offset
+    that nails `idle1` pushes the gloves 20 in off in `lookat01` (the holdout said so, and
+    `build_pack`'s re-measure refused to apply it).
+
+    So the rule is about *frames*, not clips: three pairs, spread over as many distinct clips as the
+    file has and over its timeline when it has only one.  Scored pairs come from role-matched clips
+    where possible; holdout pairs are always a clip or a frame region the score did not touch.
     """
-    import bpy
-    acts = sorted(((a.name, int(round(a.frame_range[1]))) for a in bpy.data.actions
-                   if "_empty" not in a.name.lower() and a.frame_range[1] >= 1),
-                  key=lambda x: (-x[1], x[0]))
-    if not acts:
+    clips = _file_clips()
+    if not clips:
         return [], []
-    name_by_key = {}
-    for nm, fr in acts:
-        name_by_key.setdefault(nm.lower(), (nm, fr))
-    taken, score_out, hold_out = set(), [], []
+    moving = [(nm, fr) for nm, fr in clips if fr >= 4]
+    pool = moving or clips
 
-    def grab(keys, mid=True):
-        for k in keys:
-            for nm, fr in acts:
-                low = nm.lower()
-                if nm in taken or k not in low:
-                    continue
-                taken.add(nm)
-                return (nm, 1 if not mid else max(1, fr // 2))
-        return None
+    def spread(fr, k):
+        """`k` frame numbers inside a clip: 1 + the 1/4, 1/2, 3/4, last marks it has room for."""
+        marks = [max(1, fr // 2), max(1, fr // 4), max(1, (3 * fr) // 4), 1, max(1, fr - 1)]
+        out = []
+        for f in marks:
+            if f not in out:
+                out.append(f)
+        return out[:max(1, k)]
 
+    # up to 3 clips, role-matched longest-first, then topped up by length
+    chosen, used = [], set()
+    for keys in ROLE_KEYS:
+        for nm, fr in pool:
+            if nm in used:
+                continue
+            if any(k in nm.lower() for k in keys):
+                chosen.append((nm, fr))
+                used.add(nm)
+                break
+        if len(chosen) >= 3:
+            break
+    for nm, fr in pool:
+        if len(chosen) >= 3:
+            break
+        if nm not in used:
+            chosen.append((nm, fr))
+            used.add(nm)
+
+    score_out, hold_out = [], []
     if score:
-        for keys in SCORE_KEYS:
-            hit = grab(keys, mid=(keys != SCORE_KEYS[0]))
-            if hit:
-                score_out.append(hit)
+        # one frame from each of up to 3 clips; if that is fewer than 3 pairs, take more frames of
+        # the longest clip rather than scoring one pose
+        score_out = [(nm, spread(fr, 1)[0]) for nm, fr in chosen[:3]]
+        if len(score_out) < 3 and chosen:
+            nm, fr = chosen[0]
+            for f in spread(fr, 4)[1:4]:
+                if len(score_out) >= 3:
+                    break
+                score_out.append((nm, f))
     if holdout:
-        for keys in HOLDOUT_KEYS:
-            hit = grab(keys)
-            if hit:
-                hold_out.append(hit)
-    leftover = [(nm, max(1, fr // 2)) for nm, fr in acts if nm not in taken]
-    if score and not score_out:
-        score_out = leftover[:3]
-    if holdout and not hold_out:
-        hold_out = (leftover[len(score_out):len(score_out) + 2] if score
-                    else leftover[:2])
+        held = {(a, f) for a, f in score_out}
+        for nm, fr in clips:
+            if len(hold_out) >= 3:
+                break
+            for f in spread(fr, 3):
+                if (nm, f) not in held and all(nm != a for a, _ in hold_out):
+                    hold_out.append((nm, f))
+                    break
+        if not hold_out:            # single-clip file: different frames of the same clip
+            nm, fr = chosen[0]
+            hold_out = [(nm, f) for f in spread(fr, 4)[1:4] if (nm, f) not in held][:2]
     return (score_out or None), (hold_out or None)
-
 
 def world_verts(ob, subsample=700):
     """Posed (modifier-applied) world-space vertices, strided down to `subsample`."""
@@ -242,7 +297,9 @@ def fit(blend=None, frames=None, holdout=None, verbose=True,
         f"{g0:.2f} -> {g1:.2f} in"
         + (f"; unseen frames {hold_res[0]:.2f} -> {hold_res[1]:.2f} in" if hold_res else "")
         + f" (hinge residual {best:.3f})")
-    return off, (g0, g1), hold_res, meshes, guns
+    # the frames actually scored, so a manifest can record its own provenance: which
+    # clips judged the offset is the first thing to know when the result looks wrong
+    return off, (g0, g1), hold_res, meshes, guns, [x.label for x in scored]
 
 
 def shift_meshes(objs, off_world):
@@ -299,8 +356,9 @@ def main():
     sys.argv[0] = "blender"
     import bpy
     blend = Path(a.blend).resolve()
-    off, (before, after), hold, meshes, guns = fit(blend=blend, pct=a.pct,
-                                                     subsample=a.subsample, clearance=a.clearance)
+    off, (before, after), hold, meshes, guns, used = fit(blend=blend, pct=a.pct,
+                                                          subsample=a.subsample,
+                                                          clearance=a.clearance)
     if not a.write:
         print("[arm_fit] dry run (pass --write to store it)")
         raise SystemExit(0)
@@ -309,8 +367,7 @@ def main():
     # mattered more than it does, this is where it shows up.
     resid = None
     shift_meshes(meshes, off)
-    resid = measure_gap(meshes, guns, pick_frames(score=True)[0] or DEFAULT_SCORE,
-                        a.subsample, a.pct)
+    resid = measure_gap(meshes, guns, None, a.subsample, a.pct)
     print(f"[arm_fit] re-measured after applying: {resid:.3f} in "
           f"(world-space prediction {after:.3f}, before {before:.3f})")
     if resid > before:

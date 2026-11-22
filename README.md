@@ -26,6 +26,7 @@ out during import, because it asserts on v49 frame-anim blocks.
 | `pipeline/validate_assets.py` | decodes every model and reports per-clip sanity (`build/decode_report.json`) |
 | `pipeline/render_qa.py`, `pipeline/qa/` | rendering QA harness and the numeric gates — see [`pipeline/qa/README.md`](pipeline/qa/README.md) |
 | `docs/reference-sources.md` | the third-party files the format was reverse engineered against, with hashes |
+| `docs/legacy-rle-anim.md` | the pre-`ANIM_FLAG_FRAMEANIM` sequence format: layout, run walk and verification plan — the recipe for the one part of the decoder not written |
 
 ## Running it
 
@@ -46,11 +47,18 @@ known 90° bug, never a shipping setting). Every knob is explained by `--help`.
 
 ## Status
 
-41 of the pack's 182 models decode fully; the other 141 use the pre-`ANIM_FLAG_FRAMEANIM` RLE
-sequence format and are reported as unsupported rather than failed (`v_*` inspect clips, every `w_*`
-world model, shell/ejection-port variants). Per-model claims are checked by gates, not by eye:
-see [`pipeline/qa/README.md`](pipeline/qa/README.md) for the measured residuals and what each script
-fails on.
+All 47 weapon directories in the dump build end to end (`dist/<pack>/manifest.json` per pack, plus
+one aggregate `dist/manifest.json` for the run: options, frame counts, arms provenance, and what the
+grip fit solved). 41 of the pack's 182 models decode fully; the other 141 use the
+pre-`ANIM_FLAG_FRAMEANIM` RLE sequence format and are reported as unsupported rather than failed
+(`v_*` inspect clips, every `w_*` world model, shell/ejection-port variants) —
+see [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md) for that format. Per-model claims are checked
+by gates, not by eye: see [`pipeline/qa/README.md`](pipeline/qa/README.md) for the measured residuals
+and what each script fails on.
+
+The arms conform is solved per weapon and refused when it is not a conform: it has to improve the
+frames it never saw, which the knife fails (its blade rides an attach bone the sleeve does not), so
+those packs ship the arms as authored with `arms_grip_fit.skipped` in the manifest.
 
 Two things are known-limited by the source data rather than by this code: v49 exposes no frame rate,
 so clip timing is resolved from `@`-stripped name pairs, and the arms meshes in

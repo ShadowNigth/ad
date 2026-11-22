@@ -88,7 +88,11 @@ def main():
     arm = next((o for o in bpy.data.objects if o.type == "ARMATURE"), None)
     if arm is None:
         raise SystemExit("the .blend has no armature")
-    act = bpy.data.actions.get(a.anim) or bpy.data.actions.get("@" + a.anim.strip("@"))
+    # the .mdl spells delta clips "@lookat01" and build_pack names the action after it; accept
+    # either form so a name copied out of the manifest works without editing
+    stem = a.anim.strip("@")
+    act = (bpy.data.actions.get(a.anim) or bpy.data.actions.get("@" + stem)
+           or bpy.data.actions.get(stem))
     if act is None:
         raise SystemExit(f"no action {a.anim!r}; have {sorted(x.name for x in bpy.data.actions)[:12]}")
     arm.animation_data.action = act
