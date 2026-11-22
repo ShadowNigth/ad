@@ -47,9 +47,11 @@ known 90° bug, never a shipping setting). Every knob is explained by `--help`.
 
 ## Status
 
-All 47 weapon directories in the dump build end to end (`dist/<pack>/manifest.json` per pack, plus
-one aggregate `dist/manifest.json` for the run: options, frame counts, arms provenance, and what the
-grip fit solved). 41 of the pack's 182 models decode fully; the other 141 use the
+45 weapon addons from the dump are staged and attempted; 41 build end to end and 4 (`v_shot_{mag7,
+nova,sawedoff,xm1014}`, every sequence in the legacy RLE format) fail with that named as the reason
+rather than producing a silent geometry-only pack. Each pack writes `dist/<pack>/manifest.json`
+(options, frame counts, arms provenance, what the grip fit solved and why, if it refused);
+`dist/manifest.json` aggregates the run and merges partial re-runs by pack directory. 41 of the pack's 182 models decode fully; the other 141 use the
 pre-`ANIM_FLAG_FRAMEANIM` RLE sequence format and are reported as unsupported rather than failed
 (`v_*` inspect clips, every `w_*` world model, shell/ejection-port variants) —
 see [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md) for that format. Per-model claims are checked

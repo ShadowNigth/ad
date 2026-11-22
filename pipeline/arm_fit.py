@@ -383,4 +383,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import blender_exit
+    blender_exit.run_and_exit(main)

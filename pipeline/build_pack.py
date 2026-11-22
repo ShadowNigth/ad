@@ -660,7 +660,8 @@ def copy_sound_assets(weapon_dir: Path, pack: Path):
 def build_one(weapon_dir: Path, mdl: Path, arms_dirs, out_dir: Path, opts):
     name = mdl.stem
     log(f"[{name}] {mdl.relative_to(weapon_dir)}")
-    rec = {"weapon": name, "model": str(mdl.relative_to(weapon_dir.parent.parent)),
+    rec = {"weapon": name, "pack_dir": weapon_dir.name,
+           "model": str(mdl.relative_to(weapon_dir.parent.parent)),
            "mdl_abs": str(mdl.resolve()),
            "arms": [str(d) for d in arms_dirs]}
 
@@ -946,7 +947,7 @@ def main():
             log(f"  [FAIL] {d.name}: {type(e).__name__}: {e}")
             if opts.verbose:
                 traceback.print_exc()
-            manifest["built"].append({"weapon": cand[0].stem, "ok": False,
+            manifest["built"].append({"weapon": cand[0].stem, "pack_dir": d.name, "ok": False,
                                       "error": f"{type(e).__name__}: {e}"})
             continue
         rec["seconds"] = round(time.time() - t0, 1)
@@ -956,6 +957,24 @@ def main():
             f"{len(rec.get('sounds', []))} sound files, {rec['seconds']}s"
             + (f"  ! {'; '.join(rec['problems'][:2])}" if rec["problems"] else ""))
         manifest["built"].append(rec)
+    # A partial re-run (`--only shot`) must not erase the batch's record: the aggregate merges by
+    # `pack_dir`, with this run's entries winning.  Without it, "rebuild the four that failed"
+    # silently rewrote a 45-pack manifest down to 4, which is worse than no manifest at all.
+    agg = out / "manifest.json"
+    if agg.is_file():
+        try:
+            prev = json.loads(agg.read_text()).get("built", [])
+        except Exception:                                    # noqa: BLE001 - a torn file is not fatal
+            prev = []
+        # Key on the pack directory, falling back to the model stem: a manifest written before
+        # `pack_dir` existed has only the stem, and dropping those records would quietly shrink a
+        # 45-pack manifest to the four being rebuilt.
+        key = lambda r: r.get("pack_dir") or r.get("weapon")
+        mine = {key(r) for r in manifest["built"]} - {None}
+        carried = [r for r in prev if key(r) and key(r) not in mine]
+        if carried:
+            manifest["built"] = carried + manifest["built"]
+            manifest["carried_from_previous_run"] = len(carried)
     manifest["seconds"] = round(time.time() - t_start, 1)
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1, default=str))
     log(f"manifest -> {out / 'manifest.json'}")
@@ -968,4 +987,5 @@ def main():
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import blender_exit
+    blender_exit.run_and_exit(main)          # a SystemExit here must not reach Blender's atexit

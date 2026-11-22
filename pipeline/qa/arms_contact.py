@@ -143,4 +143,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.path.insert(0, str(HERE.parent))
+    import blender_exit
+    blender_exit.run_and_exit(main)

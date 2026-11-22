@@ -563,11 +563,13 @@ def _load_model_animations(mdl_path, ani_path=None, mdl=None, strict=True):
     for ad in mdl.anim_descs:
         flags = int(ad.flags)
         if not flags & ANIM_FLAG_FRAMEANIM:
-            # Pre-frameanim format: per-bone `mstudioanimvalue_t` runs ({byte valid, byte total}
-            # then `total` shorts, value = short * scale + base, walked by subtracting `total`
-            # from the frame index) inside mstudioanim_t's 6 channel offsets.  Crowbar's
-            # ExtractAnimValue is the reference walk.  Saying so here beats the nonsense the
-            # block reader would otherwise report, since those bytes are not a frame stride.
+            # Pre-frameanim format: per-bone `mstudioanimvalue_t` runs, RLE, with euler channels
+            # instead of quaternions.  Not implemented -- see docs/legacy-rle-anim.md for the
+            # layout, the run walk and the checks a reader has to pass.  Saying so here beats the
+            # nonsense the block reader would otherwise report, since those bytes are not a frame
+            # stride; `build_pack` turns this into a per-weapon "cannot be animated" failure.
+            # 141 of this dump's 182 models are affected, all of them `w_*`/shell variants and the
+            # 9 `v_*` inspect/shotgun models.
             out_all[ad.name] = {"error": "legacy RLE anim format (no ANIM_FLAG_FRAMEANIM); "
                                          "needs mstudioanimvalue_t decoding",
                                 "flags": flags, "frames": 0, "fps": float(ad.fps),
