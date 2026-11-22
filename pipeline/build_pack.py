@@ -938,6 +938,7 @@ def main():
             log(f"  {d.name}: no v_*.mdl, skipped")
             continue
         od = out / d.name
+        od_existed = od.is_dir()          # a failed re-run must not destroy a previous good build
         od.mkdir(parents=True, exist_ok=True)
         clear_scene()
         t0 = time.time()
@@ -947,6 +948,11 @@ def main():
             log(f"  [FAIL] {d.name}: {type(e).__name__}: {e}")
             if opts.verbose:
                 traceback.print_exc()
+            # A half-written pack is not a deliverable -- the shotguns got as far as their textures
+            # before the decode failed, and `ls dist` then reads as 45 packs, four of them quietly
+            # unusable.  Remove only what this run created.
+            if not od_existed:
+                shutil.rmtree(od, ignore_errors=True)
             manifest["built"].append({"weapon": cand[0].stem, "pack_dir": d.name, "ok": False,
                                       "error": f"{type(e).__name__}: {e}"})
             continue
