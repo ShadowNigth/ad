@@ -481,6 +481,28 @@ def _restore_sourceio_anim_parse(saved):
         obj.read_animations = fn
 
 
+def sourceio_anim_parse_disabled():
+    """Context manager: skip SourceIO's animation parse for the duration.
+
+    Public because the *importer* needs it too: `bpy.ops.sourceio.mdl` runs the same
+    `MdlV49.from_buffer`, which asserts on every v49 frame-anim block and prints a traceback per
+    model even with `import_animations=False` (it parses animations before deciding what to create).
+    Silence there is not cosmetic -- a wall of tracebacks in a build log is how a real per-model
+    failure gets ignored.
+    """
+    import contextlib
+
+    @contextlib.contextmanager
+    def _mgr():
+        saved = _stub_sourceio_anim_parse()
+        try:
+            yield
+        finally:
+            _restore_sourceio_anim_parse(saved)
+
+    return _mgr()
+
+
 def _load_model_animations(mdl_path, ani_path=None, mdl=None, strict=True):
     try:
         import SourceIO                                    # noqa: F401

@@ -639,10 +639,13 @@ def build_one(weapon_dir: Path, mdl: Path, arms_dirs, out_dir: Path, opts):
     clear_scene()
     # `files`/`directory` are not decorative: SourceIO iterates its file-collection operator
     # property, so passing only `filepath` silently imports nothing at all.
-    bpy.ops.sourceio.mdl(filepath=str(mdl), directory=str(mdl.parent),
-                         files=[{"name": mdl.name}], import_animations=False,
-                         import_textures=not opts.no_textures, import_physics=False,
-                         compact_animations=False, scale=opts.scale)
+    with Z.sourceio_anim_parse_disabled():
+        # SourceIO parses animation payloads even with import_animations=False, and asserts on every
+        # v49 frame-anim block -- a traceback per model, which buries real failures in the log.
+        bpy.ops.sourceio.mdl(filepath=str(mdl), directory=str(mdl.parent),
+                             files=[{"name": mdl.name}], import_animations=False,
+                             import_textures=not opts.no_textures, import_physics=False,
+                             compact_animations=False, scale=opts.scale)
     arm = next((o for o in bpy.data.objects if o.type == "ARMATURE"), None)
     if arm is None:
         raise RuntimeError("importer produced no armature (objects: %s)"
