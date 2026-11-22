@@ -1,0 +1,6 @@
+# staged content roots (hard-link mirrors of the unpacked addon) and builder output
+build/
+dist/
+__pycache__/
+*.pyc
+*.blend1
