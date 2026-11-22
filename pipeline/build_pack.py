@@ -183,6 +183,16 @@ def _set_interpolation(act, smoothing):
                 kp.handle_left_type = kp.handle_right_type = "AUTO"
 
 
+def _usable_anim(v):
+    """A decoded animation, as opposed to a placeholder.  `source_zanim` reports a sequence it
+    cannot read as `{"error": ..., "frames": 0}` -- `frames` an *int*, present in the dict -- so
+    `"frames" in v` is not a test of usability and quietly built a shotgun pack with zero actions
+    before it crashed on `.shape` in the manifest.  One predicate, used by the bake, the record and
+    the "nothing decoded" check, so they cannot disagree about what counts as an animation."""
+    fr = v.get("frames")            # (n_frames, n_bones) structured -- only the *type* is the test
+    return isinstance(fr, np.ndarray) and fr.shape[0] > 0
+
+
 def bake_actions(arm, anims, meta, scale, smoothing="BEZIER"):
     """Create one Blender action per decoded animation, keyed on the armature.
 
@@ -678,10 +688,12 @@ def build_one(weapon_dir: Path, mdl: Path, arms_dirs, out_dir: Path, opts):
                                        twist_position_bones=not opts.no_twist_fix)
     meta = all_anim.pop("_meta")
     anims = all_anim
-    good = {k: v for k, v in anims.items() if "frames" in v}
+    good = {k: v for k, v in anims.items() if _usable_anim(v)}
     log(f"  decoded {len(good)}/{len(anims)} animations")
     if not good:
-        raise RuntimeError("no animation decoded: "
+        raise RuntimeError(f"no animation decoded: all {len(anims)} sequences are unreadable "
+                           "(`legacy RLE` means the pre-ANIM_FLAG_FRAMEANIM format, see "
+                           "docs/legacy-rle-anim.md): "
                            + "; ".join(f"{k}={v.get('error')}" for k, v in list(anims.items())[:3]))
     baked = bake_actions(arm, good, meta, opts.scale, smoothing=opts.smoothing)
     log(f"  baked {len(baked)} actions onto {arm.name}")
@@ -792,7 +804,7 @@ def build_one(weapon_dir: Path, mdl: Path, arms_dirs, out_dir: Path, opts):
     rec["animations"] = {
         k: ({"frames": int(v["frames"].shape[0]), "fps": v["fps"], "looping": v["looping"],
              "delta": v["delta"], "frame_count": v.get("frame_count")}
-            if "frames" in v else {"error": v["error"]})
+            if _usable_anim(v) else {"error": v.get("error", "no decoded frames")})
         for k, v in anims.items()
     }
     rec["animation_count"] = len(rec["animations"])
