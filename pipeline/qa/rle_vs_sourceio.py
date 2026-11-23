@@ -13,13 +13,25 @@ only a second implementation notices:
     curve.
 
 So: for every legacy animation of every model, read the same bytes with SourceIO's
-`StudioAnimDesc.read_animations` and diff the two arrays per bone.  Two deliberate divergences are
-excluded rather than hidden:
+`StudioAnimDesc.read_animations` and diff the two arrays per bone.  Four deliberate divergences are
+excluded rather than hidden, each counted on the same screenful as the PASS so the gate's blind spots
+are part of its output:
 
   * `held_frames` -- the words the file stores as the 0x8000 "no key for this frame" sentinel.  This
     reader holds the previous value; SourceIO multiplies the sentinel by the bone's scale, which is how
     a shell attachment ends up 9962 inches from the gun in its output.  The frames are counted and
     printed, and the divergence is a design decision, not an accident.
+  * `n_noq` -- non-delta rows where SourceIO's valueptrs-only branch read no channel at all and left its
+    float32 zero buffer in place, i.e. the quaternion (0, 0, 0, 0).  Not a rotation; this reader seeds
+    identity, which is.
+  * `n_seed` -- rows in a delta clip for a bone the clip does not animate, where this reader keeps the
+    clip's identity/zero seed (build_pack composes every array onto the rest pose) and SourceIO returns
+    that bone's rest quaternion/position (right for a layer writing absolute local rotations).  A
+    composition choice on both sides, not a fact about the encoding; matching them needs the reference
+    buffer's own float32 precision, hence the 1e-6 tolerance rather than 1e-9.
+  * delta positions, which agree only once the setup-pose add is applied -- counted and printed as a
+    percentage (`[delta]`), because "how many differ by exactly the base" is the number that tells you
+    whether the record-level `0x10` rule is right.
   * `twist` -- bones with a positional channel are stored in the anim frame and this reader undoes the
     `Rz(+90)`, because the goal is a pose that agrees with the rest pose; SourceIO leaves the conversion
     to its Blender layer.  The comparison therefore runs with `twist_position_bones=False`, so it checks
@@ -28,6 +40,16 @@ excluded rather than hidden:
 
 A description SourceIO refuses outright (its own `assert frame_length == 0` on FRAMEANIM blocks) is not
 a failure: those are the ZANIM clips, which have their own gates.  They are counted and reported.
+
+What the four carve-outs leave is printed under `[delta]` / `[scope]` rather than swallowed: 26 rows on
+delta clips, 1 of them on a model this repo builds.  Those are records whose rotation is a *constant*
+with no `0x08` channel, where SourceIO's `_read_anim_rot_value` returns early and never reads the packed
+value at all -- `[base_quat] * frame_count`, or `[(0,0,0,1)] * frame_count` when that record itself sets
+`0x10` -- while this reader decodes the constant either way and adds the base only if the record allows
+it.  So the surviving rows differ by exactly one side's rest pose, in whichever direction the two delta
+bits fall.  `rle_proof.py`'s base control settles the
+non-delta half of that: `v_shot_mag7 @base_pose` is made of constant records, and base+constant lands on
+`mstudiobone_t` to 0.044 deg where the constant alone is 139 deg off.
 
     python3 pipeline/qa/rle_vs_sourceio.py --content build/content [--limit N] [--verbose]
 """
@@ -78,6 +100,7 @@ def main() -> int:
     delta_notes: list[str] = []
     worst_pos = (0.0, "")
     worst_rot = (0.0, "")
+    worst_delta = (0.0, "")   # worst difference among delta rows, which the [ref] line excludes
     broken: list[str] = []
     for path in files:
         try:
@@ -145,7 +168,7 @@ def main() -> int:
                         # everything else has to match, which is what makes 0x10 handling, the run walk
                         # and the scales all still checkable inside delta clips.
                         seeded = (np.abs(mine).max(axis=1) < 1e-9) & \
-                            (np.abs(ref_p - base_pos[col]).max(axis=1) < 1e-6)
+                            (np.abs(ref_p - base_pos[col]).max(axis=1) < 1e-4)  # float32 reference buffer
                         n_seed += int(seeded.sum())
                         if seeded.all():
                             n_skip += 1
@@ -155,7 +178,7 @@ def main() -> int:
                     if is_delta:
                         n_delta_pos += 1
                         n_delta_explained += int(d <= POS_TOL_IN)
-                    if d > worst_pos[0] and not is_delta:
+                    if d > worst_pos[0] and not is_delta:  # strict claim: non-delta rows only
                         worst_pos = (d, f"{path.name} {name} {key}")
                     if d > POS_TOL_IN:
                         n_skip += 1
@@ -193,8 +216,11 @@ def main() -> int:
                         # Neither is a fact about the encoding, so those rows are skipped and counted -- and
                         # a genuine rotation error in a delta clip still fails the gate.
                         bq = np.asarray(mdl.bones[col].quat, dtype=np.float64)
+                        # The tolerance is the reference buffer's own precision, not ours: SourceIO's
+                        # frame array is float32 (ANIM_DTYPE), so its rest-pose seed differs from the
+                        # float64 `mstudiobone_t` quaternion by ~6e-8. 1e-9 here silently fails to match.
                         ident = np.abs(a - np.array([0.0, 0.0, 0.0, 1.0])).max(axis=1) < 1e-9
-                        likebase = np.abs(np.minimum(np.abs(b - bq), np.abs(b + bq))).max(axis=1) < 1e-9
+                        likebase = np.abs(np.minimum(np.abs(b - bq), np.abs(b + bq))).max(axis=1) < 1e-6
                         keep2 = ~(ident & likebase)
                         n_seed += int((~keep2).sum())
                         if not keep2.any():
@@ -202,8 +228,13 @@ def main() -> int:
                             continue
                         a, b = a[keep2], b[keep2]
                     d = float(np.minimum(np.abs(a - b), np.abs(a + b)).max())
-                    if d > worst_rot[0]:
+                    # The [ref] line is the gate's strict claim, so it is scored only on rows both
+                    # implementations are actually committed to: a delta row's difference is reported on
+                    # the [delta] line instead, where the carve-outs are named next to the number.
+                    if d > worst_rot[0] and not is_delta:
                         worst_rot = (d, f"{path.name} {name} {key}")
+                    if is_delta and d > worst_delta[0]:
+                        worst_delta = (d, f"{path.name} {name} {key}")
                     if d > ROT_TOL:
                         n_skip += 1
                         (delta_notes if is_delta else broken).append(
@@ -238,8 +269,10 @@ def main() -> int:
     for n in [x for x in delta_notes if re.search(r"\bv_[a-z]+_", x)][:4]:
         print(f"       on a viewmodel (in scope for the bake): {n[:120]}")
     if delta_notes:
-        print(f"[delta]  {len(delta_notes)} delta-clip position(s) differ beyond tolerance; worst: "
-              f"{delta_notes[0].split(': ')[1]} -- reported, not failed (see the comment in this file)")
+        print(f"[delta]  {len(delta_notes)} delta-clip row(s) differ beyond what the carve-outs "
+              f"explain; worst {worst_delta[0]:.5f} at {worst_delta[1]} -- reported, not failed, "
+              "because on a delta clip the composition is this repo's choice (see [seed] and "
+              "[docstring])")
     if broken:
         print(f"[FAIL]   {len(broken)} disagreement(s); first: {broken[0][:150]}")
         for b in broken[1:5]:
