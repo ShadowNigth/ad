@@ -433,6 +433,356 @@ def _block_bytes(mdl_bytes, ani_bytes, block_table, anim_block, absolute_offset)
     return ani_bytes[entry.data_offset + absolute_offset:end]
 
 
+# ----------------------------------------------------------- legacy (pre-frameanim) animations --
+#
+# `mstudio_rle_anim_t` records, one per animated bone, chained by a byte offset.  What measurement has
+# settled about this layout, and what it has not, are both recorded here because the difference matters
+# to anyone changing this code:
+#
+# proven (a chain that walks every animation of every model in the dump, in increasing bone order):
+#   byte bone          absolute bone index; chains are strictly increasing and end on nextoffset 0
+#   byte flags         RLE_* below
+#   int16 nextoffset   bytes to the next record; 0 ends the chain, and the last record's extent is the
+#                      end of the block -- inferring either size from the other breaks the walk
+#   +4                 `mstudioanim_valueptr_t` is `short offset[3]`: SIX bytes, one per axis, so a
+#                      flat axis is absent rather than zero, and each run array sits at that offset
+#                      measured from the start of the valueptr itself
+#   run array          {u16 header, int16[valid] values} with header = (total << 8) | valid
+#   record sizes       0x20 -> 12 B total, 0x21 -> 18, 0x01 -> 10, zero variance across the dump:
+#                      the constant position is a 6-byte Vector48, the constant rotation gets 8
+#   base offset        `entry + animblock_offset` for a desc with no section table, `entry +
+#                      anim_offset + (animblock_offset - sections[0].anim_offset)` for an inline
+#                      section (the mag7's `base_pose` starts at entry+1004 on this rule)
+#
+# NOT proven -- the constant channels.  The words at the start of a 0x20 record are not a quaternion in
+# any encoding this repository has been able to name; `pipeline/qa/exploration/rle_census.py` prints
+# the measurement over all 80021 of them in the dump, for every choice of "which 3 of the first 4
+# words" and all six Source dequantisations of a 16-bit component: the median of |x^2+y^2+z^2 - 1|
+# never drops below 0.36, where a Quaternion48 lands on 1.0 within quantisation (its `w` is rebuilt
+# from the other three, so a right answer cannot miss).  Reading them anyway is what produced `@`-clip
+# positions of 5284 in and |q|-1 = 0.21, so the decode below is checked numerically (`_rle_verify`)
+# and refused until a layout is proven.
+#
+# Three things the census leaves behind for whoever picks this up: `Quaternion64` (3 x u32, the only
+# 8-byte quaternion) is no better -- median x^2+y^2+z^2 = 1.48 over 90164 records; the *fourth* word
+# sits in the quaternion value band 81% of the time while the first three manage 40-45%, so the
+# payload may not start with the rotation at all; and interpreting the first six bytes as a Vector48
+# euler delta reproduces `base_pose` to 0.012 deg for *any* byte shift, which is not a pass but the
+# signature of a scale so small the channel reads as zero.
+#
+# A bone with no record holds its `mstudiobone_t` values for the whole timeline, which is why most bones
+# of a single-frame `base_pose` match the rest pose trivially -- a median residual there is evidence
+# about the *absence* of records, not about the layout.
+RLE_RAWPOS = 0x01      # constant Vector48
+RLE_RAWROT = 0x02      # constant Quaternion48
+RLE_ANIMPOS = 0x04     # three RLE position channels
+RLE_ANIMROT = 0x08     # three RLE euler channels
+RLE_DELTA = 0x10       # relative to the main sequence's pose, not to the bind
+RLE_RAWROT2 = 0x20     # constant Quaternion48S
+
+# A constant rotation occupies 8 bytes and a constant position 6, per the records' own `nextoffset`
+# (0x20 -> 4 + 8, 0x21 -> 4 + 8 + 6).  The *widths* are therefore known; the encoding of those eight
+# bytes is not (see the census above), which is why RLE_TRUSTED is off.
+CONST_ROT_READ, CONST_SIZE = 6, {RLE_RAWROT2: 8, RLE_RAWROT: 8}
+
+# Flip to True only when the constant channels are proven.  The proof has to make every 0x20/0x21
+# record in the dump decode to a unit quaternion (median |x^2+y^2+z^2 - 1| at float noise, not 0.4) and
+# keep `base_pose` at the rest pose for the bones that carry records.  `_rle_verify` checks both on
+# whatever it is given, so the test is to decode the models listed at the bottom of
+# docs/legacy-rle-anim.md and see no errors:
+#     /tmp/venv/bin/python -c "import sys; sys.path.insert(0,'pipeline'); import source_zanim as Z; \
+#     print({k: v.get('error', 'ok') for k, v in Z.load_model_animations(P, strict=False).items()})"
+RLE_TRUSTED = False
+
+
+def euler_to_quat(ang):
+    """(...,3) euler -> (...,4) (x,y,z,w) quaternion, in the units `mstudiobone_t` stores them.
+
+    Radians, not degrees, and that is not a style choice: `pipeline/qa/euler_convention.py` searches
+    all 192 order/sign/unit candidates against the second copy of the rest orientation that studio.h
+    keeps (`mstudiobone_t.quat`) and, over 5353 bones whose rest euler exceeds 10 deg, this rule scores
+    0.0000 deg worst-bone while the nearest *other* rule -- `XZY` -- is 1.9408 deg off and any
+    degrees-vs-radians reading is worse again.  It reproduces the stored quaternion exactly, so the
+    animated euler channels add in the same units and no conversion is applied here.
+    """
+    ang = np.asarray(ang, dtype=np.float64)
+    cx, cy, cz = np.cos(ang[..., 0]), np.cos(ang[..., 1]), np.cos(ang[..., 2])
+    sx, sy, sz = np.sin(ang[..., 0]), np.sin(ang[..., 1]), np.sin(ang[..., 2])
+    # M = Rz . Ry . Rx: extrinsic ZYX, which is the same rotation as intrinsic XYZ (the QA script
+    # reports those two names as one group, not as competing conventions)
+    m = np.empty(ang.shape[:-1] + (3, 3), dtype=np.float64)
+    m[..., 0, 0] = cz * cy
+    m[..., 0, 1] = cz * sy * sx - sz * cx
+    m[..., 0, 2] = cz * sy * cx + sz * sx
+    m[..., 1, 0] = sz * cy
+    m[..., 1, 1] = sz * sy * sx + cz * cx
+    m[..., 1, 2] = sz * sy * cx - cz * sx
+    m[..., 2, 0] = -sy
+    m[..., 2, 1] = cy * sx
+    m[..., 2, 2] = cy * cx
+    return _mat_to_quat(m)
+
+
+def _mat_to_quat(m):
+    """(...,3,3) rotation matrices -> (...,4) (x,y,z,w), stable branch chosen per element."""
+    tr = m[..., 0, 0] + m[..., 1, 1] + m[..., 2, 2]
+    cand = np.stack([
+        np.stack([m[..., 2, 1] - m[..., 1, 2], m[..., 0, 2] - m[..., 2, 0],
+                  m[..., 1, 0] - m[..., 0, 1], 1.0 + tr], axis=-1),
+        np.stack([1.0 + m[..., 0, 0] - m[..., 1, 1] - m[..., 2, 2], m[..., 0, 1] + m[..., 1, 0],
+                  m[..., 0, 2] + m[..., 2, 0], m[..., 2, 1] - m[..., 1, 2]], axis=-1),
+        np.stack([m[..., 0, 1] + m[..., 1, 0], 1.0 - m[..., 0, 0] + m[..., 1, 1] - m[..., 2, 2],
+                  m[..., 1, 2] + m[..., 2, 1], m[..., 0, 2] - m[..., 2, 0]], axis=-1),
+        np.stack([m[..., 0, 2] + m[..., 2, 0], m[..., 1, 2] + m[..., 2, 1],
+                  1.0 - m[..., 0, 0] - m[..., 1, 1] + m[..., 2, 2], m[..., 1, 0] - m[..., 0, 1]], axis=-1),
+    ], axis=0)
+    diag = np.stack([tr, m[..., 0, 0], m[..., 1, 1], m[..., 2, 2]], axis=0)
+    best = np.argmax(diag, axis=0)                                   # (...,)
+    q = np.take_along_axis(cand, best[None, ..., None], axis=0)[0]
+    n = np.linalg.norm(q, axis=-1, keepdims=True)
+    if np.any(n <= 0):
+        raise ZanimError("degenerate rotation matrix (not orthonormal) -- bad channel decode")
+    q = q / n
+    q = np.where(q[..., 3:4] < 0, -q, q)                             # w >= 0, a canonical choice
+    return q
+
+
+def _rle_channel(blob, ptr, count, scale, note):
+    """Walk one RLE channel: {valid,total} header shorts followed by `valid` value shorts.
+
+    Returns the raw (unscaled) values for `count` frames.  The run structure is asserted rather than
+    trusted -- `total` counts frames the run covers and `valid` the values stored, so `valid > total`,
+    a zero, or a walk that runs off the end of the blob means the layout assumption broke, and that has
+    to be an error instead of a smooth-looking nonsense curve.
+    """
+    if ptr < 0 or ptr + 2 > len(blob):
+        raise ZanimError(f"{note}: channel offset {ptr} outside the block")
+    v = np.frombuffer(blob, dtype="<i2", count=(len(blob) - ptr) // 2, offset=ptr)
+    out = np.zeros(count, dtype=np.float64)
+    i, frame = 0, 0
+    while frame < count:
+        if i >= len(v):
+            raise ZanimError(f"{note}: ran out of runs at frame {frame} of {count}")
+        valid = int(v[i]) & 0xFF
+        total = (int(v[i]) >> 8) & 0xFF
+        if valid == 0 or total == 0 or valid > total:
+            raise ZanimError(f"{note}: bad run header valid={valid} total={total} at frame {frame}")
+        if i + 1 + valid > len(v):
+            raise ZanimError(f"{note}: run of {valid} values exceeds the block")
+        vals = v[i + 1:i + 1 + valid].astype(np.float64)
+        take = min(total, count - frame)
+        if take > valid:
+            out[frame:frame + take] = np.concatenate([vals, np.repeat(vals[-1:], take - valid)])
+        else:
+            out[frame:frame + take] = vals[:take]
+        frame += take
+        i += 1 + valid
+    return out * scale
+
+
+def _desc_sections(ad, mdl_bytes):
+    """`[(count, anim_block, offset_within_block_or_abs)]` covering `ad.frame_count` frames.
+
+    One rule for both animation formats: the section table is the same `mstudioanimsections_t` array,
+    `section_frame_count` frames each with the last two sharing the remainder, and an inline section
+    (`anim_block == 0`) stores its offset relative to the *first* section -- so it has to be rebased
+    onto the desc entry.  `@shoot2` decoded 41 records structurally and then reported `bone 53` because
+    the legacy path read `sec.anim_offset` raw; the rebasing is not optional.
+    """
+    sections = ad.get_sections(_Buf(mdl_bytes))
+    count_all = int(ad.frame_count)
+    if not sections:
+        return [(count_all, int(ad.animblock_id),
+                 int(ad._entry_offset) + int(ad.animblock_offset))]
+    per = int(ad.section_frame_count) or count_all
+    out = []
+    for i, sec in enumerate(sections):
+        count = per if i < len(sections) - 2 else count_all - (len(sections) - 2) * per
+        if sec.anim_block == 0:
+            off = int(ad._entry_offset) + int(sec.anim_offset) + (int(ad.animblock_offset)
+                                                                  - int(sections[0].anim_offset))
+        else:
+            off = int(sec.anim_offset)
+        out.append((max(0, int(count)), int(sec.anim_block), off))
+    return out
+
+
+def _decode_rle_desc(ad, mdl_bytes, ani_bytes, block_table, bones, ids, n, strict):
+    """Decode one legacy `mstudio_rle_anim_t` animation into `ANIM_DTYPE` frames."""
+    count_all = int(ad.frame_count)
+    if count_all <= 0:
+        raise ZanimError("declared frame count is zero")
+    out = np.zeros((count_all, n), dtype=ANIM_DTYPE)
+    # A delta sequence's channels are relative to the main sequence's pose, so the bone base is not
+    # added to them and untouched bones stay at "no change"; a plain sequence stores absolute values
+    # built on the base.  `mstudioanimdesc_t` has no parent pointer, so the engine's blend
+    # (parent pose + delta) cannot be reproduced here -- what this returns is the delta itself, which
+    # is what a viewer layers on top, and it is flagged in the record so nothing mistakes it for a
+    # finished pose.
+    is_delta = bool(ad.name.startswith("@") or int(ad.flags) & (ANIM_FLAG_DELTA | RLE_DELTA))
+    base_pos = np.array([b.position for b in bones], dtype=np.float64)
+    base_rot = np.array([b.quat for b in bones], dtype=np.float64)
+    base_eul = np.array([b.rotation for b in bones], dtype=np.float64)      # degrees, see above
+    pos_scale = np.array([b.position_scale for b in bones], dtype=np.float64)
+    rot_scale = np.array([b.rotation_scale for b in bones], dtype=np.float64)
+    if is_delta:
+        out["rot"][:] = (0, 0, 0, 1)
+        eul_base, pos_base = np.zeros((n, 3)), np.zeros((n, 3))
+    else:
+        out["rot"][:] = base_rot
+        out["pos"][:] = base_pos
+        eul_base, pos_base = base_eul, base_pos
+
+    written, notes = 0, []
+    writers = {}                       # bone column -> (channel, "const"/"rle", flags)
+    plan = _desc_sections(ad, mdl_bytes)
+    for si, (count, block, off) in enumerate(plan):
+        count = min(int(count), count_all - written)
+        if count <= 0:
+            continue
+        notes.append(f"{'single' if len(plan) == 1 else 's%d' % si}:{count}f@blk{block}")
+        blob = _block_bytes(mdl_bytes, ani_bytes, block_table, block, off)
+        _rle_into(blob, out[written:written + count], count, ids, n, eul_base, pos_base,
+                  rot_scale, pos_scale, writers)
+        # Check per section, before the next one overwrites it: `base_pose` and `ammo_poses` are
+        # single-section and the bad reads showed up there, and a whole-array check would let a later
+        # section mask an earlier one.
+        _rle_verify(out[written:written + count], n, base_pos, writers,
+                    f"{ad.name}, section {si} of {len(plan)}"
+                    + (", single-frame base pose" if count_all == 1 else ""))
+        written += count
+    if written != count_all:
+        raise ZanimError(f"decoded {written} of {count_all} frames ({', '.join(notes)})")
+    if not RLE_TRUSTED:
+        # The chain walked and the numbers passed `_rle_verify`, so this decode is *plausible* -- and
+        # plausibility is exactly what the last three attempts at this layout had.  Refuse it rather
+        # than bake poses that cannot be checked; the verification above still ran, so a genuinely
+        # misaligned read reports its bone and channel instead of being hidden behind this message.
+        raise ZanimError("the record chain walked and the numbers passed the checks, but the constant-"
+                         "channel encoding of this format is unconfirmed (RLE_TRUSTED is False, see "
+                         "docs/legacy-rle-anim.md) -- refusing to emit poses that could be silently "
+                         "wrong")
+    return out, notes
+
+
+def _rle_into(blob, frames, count, ids, n, eul_base, pos_base, rot_scale, pos_scale, writers=None):
+    """Apply one record chain to `frames` (a (count, n) `ANIM_DTYPE` slice).
+
+    `writers` (optional) records, per bone column, which kind of record last wrote each channel, so a
+    failed verification can name the culprit instead of just the symptom.
+
+    A record only writes what it carries: a position-only record must not overwrite the rotation with
+    `euler(base + 0)`, because for a bone whose rotation is stored as a constant quaternion that would
+    throw the record away.  Hence the `any_rot` / `any_pos` gates.
+    """
+    off, prev_bone, seen = 0, -1, 0
+    while off + 4 <= len(blob):
+        bone, flags = int(blob[off]), int(blob[off + 1])
+        nxt = int(np.frombuffer(blob[off + 2:off + 4], dtype="<i2")[0])
+        end = len(blob) if nxt == 0 else off + nxt     # the last record runs to the block's end
+        if bone > n:
+            raise ZanimError(f"bone index {bone} >= {n} bones at record offset {off}")
+        if bone <= prev_bone:
+            raise ZanimError(f"record chain is not in increasing bone order "
+                             f"({prev_bone} then {bone} at offset {off})")
+        if end > len(blob):
+            raise ZanimError(f"record for bone {bone} runs past the block ({end} > {len(blob)})")
+        prev_bone = bone
+        k = ids.get(bone, bone)
+        if k >= n:
+            raise ZanimError(f"bone {bone} has no column in the frame table")
+        body = blob[off + 4:end]
+        i, q, const_pos = 0, None, None
+        # `mstudioanim_valueptr_t` is `short offset[3]` -- six bytes, not twelve; the run arrays live
+        # at those offsets measured from the start of the valueptr itself.
+        rot_ptr = pos_ptr = None
+        rot_offs = pos_offs = (0, 0, 0)
+        if flags & (RLE_RAWROT2 | RLE_RAWROT):
+            if len(body) < 6:
+                raise ZanimError(f"bone {bone}: constant rotation truncated")
+            raw = np.frombuffer(body, dtype="<u2", count=3, offset=0)
+            q = (quat48s if flags & RLE_RAWROT2 else quat48)(raw[None, :])[0]
+            i += CONST_SIZE[RLE_RAWROT2 if flags & RLE_RAWROT2 else RLE_RAWROT]
+        if flags & RLE_RAWPOS:
+            if len(body) < i + 6:
+                raise ZanimError(f"bone {bone}: constant position truncated")
+            const_pos = np.frombuffer(body, dtype="<f2", count=3, offset=i).astype(np.float64)
+            i += 6
+        if flags & RLE_ANIMROT:
+            rot_ptr = i
+            i += 6
+        if flags & RLE_ANIMPOS:
+            pos_ptr = i
+            i += 6
+        if len(body) < i:
+            raise ZanimError(f"bone {bone}: flags {hex(flags)} promise more bytes than the record has")
+        if rot_ptr is not None:
+            rot_offs = np.frombuffer(body, dtype="<i2", count=3, offset=rot_ptr).astype(np.int64)
+        if pos_ptr is not None:
+            pos_offs = np.frombuffer(body, dtype="<i2", count=3, offset=pos_ptr).astype(np.int64)
+        any_rot = q is not None or (rot_ptr is not None and bool(rot_offs.any()))
+        any_pos = const_pos is not None or (pos_ptr is not None and bool(pos_offs.any()))
+        if any_rot and writers is not None:
+            writers[k] = ("rot", "const" if q is not None else "rle", flags)
+        if any_rot:
+            eul = np.zeros((count, 3))
+            for axis in range(3):
+                if rot_ptr is not None and rot_offs[axis]:
+                    eul[:, axis] = _rle_channel(
+                        body, rot_ptr + int(rot_offs[axis]), count, rot_scale[k, axis],
+                        f"bone {bone} rot axis {axis}")
+            frames["rot"][:, k] = q if q is not None else euler_to_quat(eul_base[k] + eul)
+        if any_pos and writers is not None:
+            writers[k] = ("pos", "const" if const_pos is not None else "rle", flags)
+        if any_pos:
+            pos = np.zeros((count, 3))
+            for axis in range(3):
+                if pos_ptr is not None and pos_offs[axis]:
+                    pos[:, axis] = _rle_channel(
+                        body, pos_ptr + int(pos_offs[axis]), count, pos_scale[k, axis],
+                        f"bone {bone} pos axis {axis}")
+            frames["pos"][:, k] = const_pos if const_pos is not None else pos_base[k] + pos
+        seen += 1
+        if nxt == 0:
+            break
+        off += nxt
+    if seen == 0:
+        raise ZanimError("no records in the chain")
+
+# What a correct decode cannot violate, whatever the file: a quaternion is unit to within rounding (a
+# Quaternion48 rebuilds `w` from `x,y,z`, so the error is float noise, not 0.2), and a first-person
+# weapon's bone never travels further from the origin than a few times the model's own extent.  Both
+# were measured while developing the reader and both fire on any misaligned read: reading the constant
+# quaternion six bytes short gives |q|-1 = 0.21, and reading the constant position two bytes early gave
+# shell offsets of 5284 in.  A wrong layout is therefore impossible to ship silently.
+RLE_UNIT_TOL, RLE_REACH_FACTOR, RLE_REACH_MIN = 1e-6, 4.0, 64.0
+
+
+def _rle_verify(out, n, base_pos, writers, where):
+    """Refuse a legacy decode that is structurally clean but numerically impossible."""
+    q = out["rot"]
+    err = np.abs(np.linalg.norm(q, axis=-1) - 1.0)
+    limit = max(RLE_REACH_MIN, RLE_REACH_FACTOR * float(np.abs(base_pos).max() if len(base_pos) else 0.0))
+    reach = np.abs(out["pos"])
+    worst_rot = int(np.argmax(err))
+    worst_pos = int(np.argmax(reach))
+    if err.flat[worst_rot] > RLE_UNIT_TOL:
+        bi, fr = worst_rot % n, worst_rot // n
+        chan, kind, flags = (writers.get(bi) or ("rot", "?", 0))
+        raise ZanimError(
+            f"bone {bi} frame {fr}: |quaternion|-1 = {err.flat[worst_rot]:.3g} "
+            f"({kind} {chan} channel of a flags {hex(flags)} record) at {where} -- the record "
+            f"layout is not confirmed for this file, see docs/legacy-rle-anim.md")
+    if reach.flat[worst_pos] > limit:
+        bi, fr, ax = worst_pos % (n * 3), (worst_pos // (n * 3)), worst_pos % 3
+        chan, kind, flags = (writers.get(bi) or ("pos", "?", 0))
+        raise ZanimError(
+            f"bone {bi} frame {fr} axis {ax}: position {reach.flat[worst_pos]:.2f} in exceeds "
+            f"{limit:.2f} in for this model ({kind} {chan} channel of a flags {hex(flags)} record) "
+            f"at {where} -- the record layout is not confirmed for this file, "
+            f"see docs/legacy-rle-anim.md")
+
+
 def load_model_animations(mdl_path, ani_path=None, mdl=None, strict=True,
                           twist_position_bones=None):
     """Decode every animation of a studio model.
@@ -563,17 +913,27 @@ def _load_model_animations(mdl_path, ani_path=None, mdl=None, strict=True):
     for ad in mdl.anim_descs:
         flags = int(ad.flags)
         if not flags & ANIM_FLAG_FRAMEANIM:
-            # Pre-frameanim format: per-bone `mstudioanimvalue_t` runs, RLE, with euler channels
-            # instead of quaternions.  Not implemented -- see docs/legacy-rle-anim.md for the
-            # layout, the run walk and the checks a reader has to pass.  Saying so here beats the
-            # nonsense the block reader would otherwise report, since those bytes are not a frame
-            # stride; `build_pack` turns this into a per-weapon "cannot be animated" failure.
+            # Pre-frameanim format: per-bone records, RLE channels, euler instead of quaternion
+            # channels for animated rotations (docs/legacy-rle-anim.md holds the measured layout,
+            # the runs that were tried and what each of them got wrong).  The walk below is checked
+            # by `_rle_verify` rather than trusted, so a file whose records do not decode to unit
+            # quaternions and reachable bone positions reports an error here instead of baking poses
+            # read from the wrong bytes; `build_pack` turns that into a per-weapon failure.
             # 141 of this dump's 182 models are affected, all of them `w_*`/shell variants and the
             # 9 `v_*` inspect/shotgun models.
-            out_all[ad.name] = {"error": "legacy RLE anim format (no ANIM_FLAG_FRAMEANIM); "
-                                         "needs mstudioanimvalue_t decoding",
-                                "flags": flags, "frames": 0, "fps": float(ad.fps),
-                                "frame_count": int(ad.frame_count)}
+            try:
+                frames, notes = _decode_rle_desc(ad, mdl_bytes, ani_bytes, block_table, bones,
+                                                  ids, n, strict)
+            except (ZanimError, struct.error, ValueError, IndexError) as e:
+                out_all[ad.name] = {"error": f"legacy RLE anim format, decode failed: {e}",
+                                     "flags": flags, "frames": 0, "fps": float(ad.fps),
+                                     "frame_count": int(ad.frame_count)}
+                continue
+            rdelta = bool(ad.name.startswith("@") or flags & ANIM_FLAG_DELTA)
+            out_all[ad.name] = {"frames": frames, "fps": float(ad.fps),
+                                "frame_count": int(ad.frame_count), "delta": rdelta,
+                                "looping": bool(flags & ANIM_FLAG_LOOPING),
+                                "flags": flags, "notes": notes + ["rle"], "legacy_rle": True}
             continue
         delta = bool(ad.name.startswith("@") or flags & ANIM_FLAG_DELTA)
         try:

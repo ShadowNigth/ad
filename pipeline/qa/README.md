@@ -1,6 +1,8 @@
 # QA gates
 
-Three scripts, three independent claims about a built pack. Each is a *gate*: it exits non-zero when
+Three scripts, three independent claims about a built pack, plus `euler_convention.py`, which checks a
+claim about the *format* against the staged dump instead of against a pack (see its docstring: it is
+the proof behind `euler_to_quat`, and it runs in a plain numpy venv). Each is a *gate*: it exits non-zero when
 the thing it checks is wrong, so a build that "finished without errors" is not the same as a build
 that passed. Run them from the repo root inside headless Blender -- see
 [`../headless_blender_stubs.py`](../headless_blender_stubs.py) for the stub libs and the `LD_LIBRARY_PATH`
@@ -24,6 +26,7 @@ report about the rest pose.
 | --- | --- | --- |
 | `pose_residual.py` | the baked action reproduces the `.mdl` bone chain in Blender's own evaluator | `pb.matrix` is off by > 0.5 deg / 0.05 in, or a bone without a position channel changed length |
 | `arms_bind.py` | the re-bound arms mesh is not torn | the longest posed edge of a part grows past its rest edge (default mode `rigid`) |
+| `euler_convention.py` | `source_zanim.euler_to_quat` is the euler order the files actually use | no convention is exactly right on every bone with a rest euler over `--min-angle` (10 deg), or the runner-up is within `--min-separation` of it. Pure numpy over the whole `build/content` dump, no pack needed |
 | `arms_contact.py` | the arms are actually on the weapon | the arms never come within `--min-in` of the weapon at any sampled frame. Pass `--min-in 3` to make it a gate: the default `0` only prints, because "the closest vertex is touching" is also what a welded glove reports, and the interesting number is the *distribution* |
 
 `python -m pipeline.arm_fit --blend ... [--write]` is not a gate but the fix the contact gate exists
@@ -100,6 +103,31 @@ anything), so `ak47_idle f1` dropped out and `lookat01 f69` came in, moving the 
 `[12.734 -10.0 -1.25]` (unseen 12.32 -> 3.83 in) to `[11.602 -11.211 -0.039]` (unseen
 11.72 -> 2.49 in). Generalising the frame choice was the point; the unseen number *improving* is the
 check that it was worth it.
+
+## The whole batch, swept (2026-11-22, same branch)
+
+All 41 built packs, each gate run over every pack (`/tmp/sweep.py`, log `/tmp/sweep.log`):
+
+| gate | result |
+| --- | --- |
+| `pose_residual` | **0 failures / 41 packs**; worst `0.061 deg / 0.0000 in` (`v_snip_ssg08`), most packs at `0.020 deg` |
+| `arm_fit` | 38 packs solved a grip offset (12–28 in before → 1.1–9.6 in after); 3 knife packs refused and reverted |
+| `arms_contact --min-in 3` | **39 PASS, 2 misses**: `v_mach_negev` at 6.88 in and `v_eq_incendiarygrenade` at 4.16 in |
+
+The two contact misses are reported, not fixed: the negev's foregrip hand and the grenade's palm are
+both far from any mesh the SMD arms reach, and `arm_fit` will not invent a shift that only improves a
+scored frame at the cost of the rest.  `pose_residual`'s worst is `v_snip_ssg08`'s 0.061 deg — a
+bi-pod bone, and four orders of magnitude inside the tolerance.
+
+## `euler_convention.py`
+
+`source_zanim.euler_to_quat` is only used by the legacy RLE path, and it is the one convention in this
+repository that cannot be checked against a built pack — there is no shipped animation that exercises
+it.  So it is checked against the files: 192 candidate orders/signs/units, scored on the second copy of
+every bone's rest orientation (`mstudiobone_t.quat`), restricted to the 5353 bones whose rest euler
+exceeds 10 deg, with conventions that are the same rotation under two names collapsed.  Winner
+`ZYXe+++rad` at 0.0000 deg worst bone; runner-up `XZYi+++rad` at 1.9408 deg.  The gate fails if the
+winner is ever not exact, which is what would tell us a decoder change broke it.
 
 The one weapon that does not fit is the knife. The kukri's scored frames improve
 `25.57 -> 11.79 in`, which alone looks like partial success, but the frames it never saw get *worse*

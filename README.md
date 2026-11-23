@@ -26,7 +26,7 @@ out during import, because it asserts on v49 frame-anim blocks.
 | `pipeline/validate_assets.py` | decodes every model and reports per-clip sanity (`build/decode_report.json`) |
 | `pipeline/render_qa.py`, `pipeline/qa/` | rendering QA harness and the numeric gates — see [`pipeline/qa/README.md`](pipeline/qa/README.md) |
 | `docs/reference-sources.md` | the third-party files the format was reverse engineered against, with hashes |
-| `docs/legacy-rle-anim.md` | the pre-`ANIM_FLAG_FRAMEANIM` sequence format: layout, run walk and verification plan — the recipe for the one part of the decoder not written |
+| `docs/legacy-rle-anim.md` | the pre-`ANIM_FLAG_FRAMEANIM` sequence format: the layout the files prove, the encodings that were measured and ruled out, and why the reader refuses to emit its result (`RLE_TRUSTED`) |
 
 ## Running it
 
@@ -54,7 +54,10 @@ rather than producing a silent geometry-only pack. Each pack writes `dist/<pack>
 `dist/manifest.json` aggregates the run and merges partial re-runs by pack directory. 41 of the pack's 182 models decode fully; the other 141 use the
 pre-`ANIM_FLAG_FRAMEANIM` RLE sequence format and are reported as unsupported rather than failed
 (`v_*` inspect clips, every `w_*` world model, shell/ejection-port variants) —
-see [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md) for that format. Per-model claims are checked
+see [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md) for that format — its record chains are
+walked and numerically checked by `source_zanim.py`, but the constant-channel encoding is unproven, so
+`RLE_TRUSTED = False` refuses the result instead of baking poses read from the wrong bytes. Per-model
+claims are checked
 by gates, not by eye: see [`pipeline/qa/README.md`](pipeline/qa/README.md) for the measured residuals
 and what each script fails on.
 
