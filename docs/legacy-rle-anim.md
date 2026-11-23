@@ -1,139 +1,135 @@
-# The legacy RLE animation format (walked, verified, and refused)
+# The legacy RLE animation format (walked, verified, decoded)
 
-141 of this dump's 182 models use the pre-frame-anim animation format and report
-`legacy RLE anim format` from [`../pipeline/source_zanim.py`](../pipeline/source_zanim.py): every
-`w_*` world model, every `shell_*` / `_dropped` / `_mag` variant, and 9 `v_*` models
-(`v_shot_{mag7,nova,sawedoff,xm1014}`, `v_rif_{aug,sg556}_scopelensmask`,
-`v_knife_{default_ct,default_t,kukri}_inspect`). None of them carries a clip the viewmodel packs bake,
-which is why this stays a deliberate gap rather than a bug — but the reader is now *implemented*, and
-what follows is what it found. Read the "refused" section before changing anything here.
+141 of this dump's 182 models use the pre-frame-anim animation format: every `w_*` world model, every
+`shell_*` / `_dropped` / `_mag` variant, and 9 `v_*` models (`v_shot_{mag7,nova,sawedoff,xm1014}`,
+`v_rif_{aug,sg556}_scopelensmask`, `v_knife_{default_ct,default_t,kukri}_inspect`). They are decoded
+now, by [`../pipeline/source_zanim.py`](../pipeline/source_zanim.py), and the last blocker was a
+constant that is **not a set of 16-bit words**: flag `0x20` stores a `Quat64` — 21+21+21 bits of
+component plus `w`'s sign bit, packed across two `uint32`, so no field is word-aligned.
 
-## What is settled about the layout
+## The layout, as measured
 
-`mstudioanimdesc_t` is the same header the ZANIM path reads; SourceIO exposes it as `animblock_id`
-(the `.ani` block, 0 for inline), `animblock_offset`, `frame_count`, `section_frame_count` and
-`get_sections()`, which yields `mstudioanimsections_t { anim_offset, anim_block }`. Measured, on this
-dump:
+`mstudioanimdesc_t` is the header the ZANIM path reads too; SourceIO exposes it as `animblock_id`,
+`animblock_offset`, `frame_count`, `section_frame_count`, `get_sections()`. On this dump:
 
 | fact | evidence |
 | --- | --- |
-| record header is `u8 bone, u8 flags, i16 nextoffset`, payload at `+4` | chains walk every animation of every model |
-| chains are in strictly increasing bone order, `nextoffset == 0` ends them | any other reading breaks the walk immediately |
-| the **last** record's extent is the end of the block, not `off + 4` | `ammo_poses` (flags `0x1c`) and `@shoot2` (41 records) only walk with this rule |
-| `mstudioanim_valueptr_t` is `short offset[3]` — **6 bytes**, not 12 | with 12 the run arrays land mid-record and `valid > total` fires everywhere |
-| a run is `{u16 header, int16[valid]}` with `header = (total << 8) \| valid` | `valid <= total`, `total != 0`, and in-bounds hold on every channel that the layout reaches |
-| a `0x20` record is 12 bytes and a `0x21` is 18, with **no variance**; a bare `0x01` is 10 | 80021 and 15073 records, every one the same size (`nextoffset` census over the dump) |
-| so: a `Vector48` constant position costs exactly 6 bytes, and the constant rotation 8 = 6 + a 2-byte tail | `0x01` -> 4+6, `0x20` -> 4+8, `0x21` -> 4+8+6, `0x30`/`0x31` (which add `0x10 DELTA`) cost the same 12/18 — the delta bit carries no payload. `pipeline/qa/exploration/rle_census.py` section 1 |
-| animated chains cost `4 + 6` (`0x08` ANIMROT, sizes 16…many) and `4 + 6 + 6` (`0x0c`) | one `mstudioanim_valueptr_t` per flag, then runs |
+| record = `u8 bone, u8 flags, i16 nextoffset`, payload at `+4` | chains walk every animation of every model (135,396 records) |
+| `0xFF` in the bone byte ends the chain; a chain that *starts* with it is an animation with no records | 99 `w_*_dropped` / `w_*_mag` blocks open with it; the engine leaves every bone on its `mstudiobone_t` values, which the reader reproduces and notes |
+| bone order strictly increases, `nextoffset == 0` ends the chain | any other reading breaks the walk immediately |
+| the **last** record's extent is the end of the block, not `off + 4` | `ammo_poses` (`0x1c`) and `@shoot2` (41 records) only walk with this rule |
+| `0x20` = Quat64, **8 bytes**; `0x02` = Quaternion48, **6 bytes**; `0x01` = float16×3 position, **6 bytes**; so `0x20` → 4+8, `0x01` → 4+6, `0x21` → 4+8+6 | the record-size census (`pipeline/qa/exploration/rle_census.py` section 1), plus 82,425 (anim, bone) pairs agreeing to 1e-3 in with SourceIO's own reader |
+| `mstudioanim_valueptr_t` is `short offset[3]` — **6 bytes**; each axis offset is relative to the *start of its own valueptr*, and `0` means "this axis does not move" | with 12 the run arrays land mid-record and `valid > total` fires everywhere; the 15-frame nova record's three channels sit exactly 32 bytes apart (2 header + 2·15) |
+| a run is `{u8 valid, u8 total, int16[valid]}`; the run covers `total` frames and the frames past `valid` repeat the last stored value; `valid = 0, total > 0` is a hold; `valid = 0, total = 0` ends the stream | SourceIO's `_read_rle_compressed_data`; and `valid > total` or a run header past the payload is a layout failure, which the reader raises |
+| a value of exactly `0x8000` means *"this frame carries no key for this bone"*, not a number | the one word in an otherwise smooth ramp, in **every** axis of the same frame: `v_shot_nova`'s shell bone at frame 10 of `@insert` reads `[..., 62, -34, -32768, 21, ...]`. Held at the previous frame, and counted (`held_frames`), never silently |
+| per-record `0x10 ANIM_DELTA`: that record's channels are complete — do not add the bone base | `v_shot_nova`'s shell bone was 10.1 in off (`mstudiobone_t.position` at X/Z) in `@lookat01`, and the section seam read as a 179-in jump because the previous section had the base added and this one did not |
+| rotation channels are **euler deltas in radians**, added to `mstudiobone_t`'s stored euler, which is *also* radians; position channels are int16 × `position_scale`, added to `mstudiobone_t.position` | 82,425 (anim, bone) pairs exactly equal to SourceIO's reader; and see the units note below |
+| a constant record for a bone with a positional channel is in the **anim frame**: it needs the same `Rz(+90)` undo the ZANIM path applies, to the quaternion *and* the position | without it, `v_shot_mag7`'s `base_pose` forearms sit 90.000 deg and 14.77 in from the rest pose; with it, 0.044 deg and 0.006 in |
 | inline section base = `entry + anim_offset + (animblock_offset - sections[0].anim_offset)`; a desc with no section table starts at `entry + animblock_offset` | the mag7's `base_pose` records decode from `entry + 1004`; reading `sec.anim_offset` raw produced `bone index 53 >= 52 bones` |
 
-Bone indices are absolute (`mstudiobone_t::boneid`), and a bone with no record holds its
-`mstudiobone_t` values for the whole timeline — a flat channel is *absent*, which is why the valueptr
-offsets are read per axis with 0 meaning "does not move".
+## How it was proven, and why those two checks
 
-## Why the decode is refused
-
-`_rle_verify` (`source_zanim.py`) checks two things a correct decode cannot violate, and the legacy
-path refuses (`RLE_TRUSTED = False`) until both hold *and* someone can name the encoding:
-
-* a Quaternion48 rebuilds `w` from `x,y,z`, so `|q| - 1` must be float noise;
-* a first-person weapon's bone never sits further from the origin than a few times the model's extent.
-
-The single-frame `base_pose` / `ammo_poses` sequences of the mag7 pass both and are still refused. The
-`@`-clips fail the first one, per file, with the bone and channel named:
+`RLE_TRUSTED = True` is a claim about the *numbers*, not about the chain walking — four wrong layouts
+walked cleanly. Two gates back it, and both run over the whole dump:
 
 ```
-bone 35 frame 0: |quaternion|-1 = 0.212 (const rot channel of a flags 0x20 record) at @lookat01_loop, section 0
+[models] 207 searched, 1586 legacy animations decoded, 0 refused
+[unit]   worst |q|-1 over those animations: median 5.96e-08 max 1.19e-07  (tolerance 1e-04)
+[base]   1 base sequences: worst rest-pose residual median 0.0441 deg / 0.0061 in
+[verdict] PASS: the legacy layout is confirmed by both numbers
 ```
 
-That number is the whole problem: the layout walks, and the eight bytes the format reserves for a
-constant rotation are not a quaternion.
+* [`../pipeline/qa/rle_proof.py`](../pipeline/qa/rle_proof.py) — every decoded quaternion is unit to
+  float32 noise (median 5.96e-08, worst 1.19e-07; every word-wise candidate sat at **0.16 or worse**),
+  and a single-frame `base*` sequence reproduces `mstudiobone_t` on the bones its records actually
+  touch (0.044 deg / 0.006 in, the same band the ZANIM path scores on its own clips).
+* [`../pipeline/qa/rle_vs_sourceio.py`](../pipeline/qa/rle_vs_sourceio.py) — reads the same bytes with
+  SourceIO's own `StudioAnimDesc.read_animations` and diffs them per bone: **82,425 (animation, bone)
+  pairs agree to 0.000000 in / 0.000000 rad**. Two divergences are excluded on purpose and counted, not
+  hidden: the `0x8000` frames (this reader holds; SourceIO multiplies the sentinel by the scale, which
+  is how a shell attachment ends up 9962 in from the gun in *its* output), and delta clips, where the
+  two implementations differ by which pose a channel is composed onto.
 
-## Ruled out, with the measurement
+The second gate is the one that found the last two bugs. Neither of the first gate's criteria can see
+them: a wrong unit on an euler channel still produces perfect unit quaternions, a base added where it
+should not be produces a smooth, plausible curve, and a base pose is made of constant records so it
+never walks a channel. Anything that disagrees by the bone's own `mstudiobone_t` offset was the tell —
+which is also why the comparison runs with `twist_position_bones=False`: it checks the *decode*, while
+`arms_contact.py` and the residual gates check the convention layered on top.
 
-Everything below was tried against the dump, so it does not have to be re-tried:
+## Ruled out, with the measurement — all of it word-wise
 
-1. **A 12-byte `mstudioanim_valueptr_t`.** Fails: `valid > total` on nearly every run.
-2. **An 8-byte constant quaternion read as `Quaternion48S`, at payload offset 0** — i.e. the ZANIM
-   path's own reader. It fixes the `0x1c`/`0x04` positions (they had reached 5284 in, where a delta
-   clip stays within tens of inches) but leaves `|q| - 1` between 0.068 and 0.212 depending on the
-   bone, which is what reading *anything* out of a non-quaternion looks like.
+Nothing below has to be re-tried. Each item reads the constant as 16- or 32-bit *words*, which is the
+one thing the field is not; the components straddle the word boundary, so they cannot land:
+
+1. **A 12-byte `mstudioanim_valueptr_t`.** `valid > total` on nearly every run.
+2. **Quaternion48S at payload offset 0** (the ZANIM reader). Fixes the `0x1c`/`0x04` positions (which had
+   reached 5284 in) but leaves `|q| - 1` between 0.068 and 0.212.
 3. **constants-first vs valueptrs-first ordering.** The chain walk cannot tell them apart — both score
-   clean at `const_size` 6 and 8 across 192 structure variants — so this is only decidable by the
-   numbers, and they say neither ordering produces unit quaternions.
-4. **`Quaternion48`/`Quaternion48S` in any of six dequantisations** — `(v-16384)/23168`,
-   `(v-32768)/32768`, the two 15-bit-masked forms, `i16/16384`, `i16/32768` — for every choice of
-   which 3 of the record's first 4 words are the components. Census section 2, all 95249 records that
-   carry a constant rotation: the best row (words (1,2,3) as `i16/32768`) has a median
-   `|x²+y²+z² - 1|` of **0.3750**, and the share on or inside the sphere never beats what the same
-   numbers picked at random would give. A correct row is ~1e-4 / ~100%, because `w` is *rebuilt* from
-   the other three and cannot miss unless the three are not components.
-   Census section 3 asks the same question of the only bytes with a known answer — the 5 constant
-   records that sit in `base`/`ref`-named single-frame absolute sequences, which frame 0 of a base pose
-   is supposed to reproduce: read as `Quaternion48S` at payload offset 0 they are **139.5 deg off
-   `mstudiobone_t.quat` at the median** (0.0% under a degree), and the 81249 pooled single-frame
-   records are 129.5 deg off. A pass needs section 2's median at ~1e-4 *and* this one at ~0; only the
-   second is hard to reach by luck.
-5. **`Quaternion64` (3 × `u32`) — the only 8-byte quaternion there is**, which the sizes make the
-   natural candidate. Census section 2's last rows: median `x²+y²+z²` = 1.711 with 2.8% near the
-   sphere (a wider 31-bit mask and the four other index rules get no closer), and reading the eight
-   bytes as **float16 halves** gives a median component magnitude of 24976 — these are integers. So
-   the payload is 6 + 2, not 12/4 — and the 2-byte tail is not padding either, since its distribution
-   matches the data words' (median 19562, 79.2% inside `[16384, 49152]`).
-6. **a `Vector48` euler constant** (`raw * rotation_scale` in some axis order — the shape the `0x1c`
-   record's twelve leading zero bytes suggest, and the only reading the sizes leave room for). Fitting
-   `bone.rot[axis]` against `raw[axis'] * rotation_scale` over the 429 base-pose records that carry one
-   gives slope 0 and correlation ±0.1 at every byte shift. Beware the inverse trap: dividing by a
-   further 16384 makes the delta so small that it reproduces `base_pose` to 0.012° *for every shift and
-   every axis selection* — a channel scaled to nothing passes any test, which is exactly why a
-   candidate has to fail a control. (Those records also carry `0x10`, so their constant is a *delta* and
-   the base-pose fit cannot confirm item 6 in either direction; the check that can is smoothness of
-   `@`-clip bone motion, which no candidate has reached yet because the quaternions never come out
-   unit.)
+   clean at `const_size` 6 and 8 over 192 structure variants — so only the numbers decide.
+4. **`Quaternion48`/`Quaternion48S` in all six dequantisations** (`(v-16384)/23168`, `(v-32768)/32768`,
+   both 15-bit-masked forms, `i16/16384`, `i16/32768`) for every choice of which 3 of the first 4 words
+   are the components, over all 95,249 records that carry a constant rotation: best row (words (1,2,3),
+   `i16/32768`) median `|x²+y²+z²-1|` = **0.3750**. A correct reading is ~1e-4 and ~100%, because `w` is
+   *rebuilt* from the other three and cannot miss. Section 3 asks the same question of the bytes with a
+   known answer and gets **139.5 deg** off `mstudiobone_t.quat` at the median.
+5. **`Quaternion64` as 3 × `u32`** — the Source 1 namesake, and the wrong guess: median `x²+y²+z²` =
+   1.711, 2.8% near the sphere; as float16 halves the components are ~24976 (integers). Its 8-byte width
+   is *total* bits (21·3 + 1), not 3 components of 32.
+6. **A `Vector48` euler constant.** Fitting `bone.rot[axis]` against `raw[axis'] * rotation_scale` over
+   the 429 base-pose records gives slope 0 and correlation ±0.1 at every byte shift. Beware the inverse
+   trap that made an earlier attempt think it had passed: divide by a further 16384 and the delta is so
+   small it reproduces `base_pose` to 0.012° *for every shift and every axis selection*. A candidate has
+   to fail a control, not only reproduce the answer.
+7. **`0x40 CONST_ROT2` / `0x80 CONST_POS2` per-frame `m_const` tables.** Zero records in 135,396 carry
+   either bit, so the format needs no `m_const` reader; the flags are still refused by name if a file
+   ever uses them.
 
-What remains untried, and is the obvious next step: the payload may not start with the rotation at all
-— the census's per-word statistics show the *fourth* word in the quaternion band 79.2% of the time and
-the first three only 38–43%, so a `short` count or index table ahead of the channels, with the
-constants interleaved per frame, would explain both the 8-byte width and the noise. Any layout worth
-trying has to be scored by criteria 4 and 5 jointly (unit sphere *and* `base_pose` ≈ `mstudiobone_t`),
-not by whether the chain walks: four different layouts walk cleanly and all four are wrong.
-`pipeline/qa/exploration/rle_census.py` prints all of it, and is the thing to re-run after a change.
+The census in `pipeline/qa/exploration/rle_census.py` prints items 4 and 5 and is the thing to re-run if
+any of this is ever in doubt again.
 
-## The trap this format nearly sprang
+## Two lessons this path left behind
 
-While this reader was being added, its `CONST_SIZE` table silently shadowed the frameanim path's
-`CONST_SIZE` at module scope, and the ZANIM reader (which looks sizes up with `.get(flag, 0)`) started
-skipping constant fields. Frame counts, bone counts and `a_base` all still looked right; `pipeline/qa/sweep_gates.py`
-caught it on the first pack, at 90.000 deg on the ak47 root bone. Anyone extending this path: the
-legacy tables are `RLE_`-prefixed on purpose, and the check is the 41-pack sweep, not the model you are
-editing against.
+* **A heuristic gate can refuse correct data.** The reader used to *refuse* any position further than
+  4× the model's rest extent, on the theory that no viewmodel bone belongs that far out. That is true of
+  hands and false of **attachments that despawn and respawn**: `v_shot_nova`'s `v_weapon_nova_shell`
+  rides a smooth arc 187 in from the gun in `@lookat01`, and SourceIO's own reader produces the same
+  numbers. The reach and step checks are now *notes* in the manifest; the refusals are the invariants
+  that are actually format-independent (unit quaternion, and a run header that does not fit).
+* **Two flag tables share bit values.** `AnimBoneFlags` (legacy: `0x10 ANIM_DELTA`, `0x20 ANIM_RAW_ROT2`)
+  and `AniBoneFlags` (frameanim: `0x10 FULL_ANIM_POS`, `0x20 CONST_POS2`) collide at three of eight
+  values. Assuming one table is what made the census above score `0x20` records against a Quaternion48S
+  rule that never applied to them. The legacy constants are `RLE_`-prefixed on purpose: an earlier
+  version of this reader declared `CONST_SIZE` at module scope, shadowed the frameanim table of the same
+  name, and the ZANIM path (which looks sizes up with `.get(flag, 0)`) began skipping its constant
+  fields — frame counts, bone counts and `a_base` all stayed plausible, and the 41-pack
+  `pipeline/qa/sweep_gates.py` sweep is what caught it at 90.000 deg on the ak47 root bone.
 
-## What is *not* in doubt
+## What is not in doubt
 
-* **Euler composition.** The animated rotation channels are eulers, and `mstudiobone_t` stores each
-  bone's rest orientation twice (`RadianEuler rot` and `Quaternion quat`), so the rule is measurable.
+* **Euler composition.** `mstudiobone_t` stores each bone's rest orientation twice (`RadianEuler rot`
+  and `Quaternion quat`), so the rule is measurable:
   [`../pipeline/qa/euler_convention.py`](../pipeline/qa/euler_convention.py) searches all 192
-  order/sign/unit candidates, collapses the ones that are the same rotation written two ways, and
-  requires the winner to be exact on every bone with a non-trivial rest pose: on the current dump that
-  is 207 models, 5353 bones, winner `ZYXe+++rad` (= intrinsic `XYZ`) at **0.0000 deg worst bone**,
-  runner-up `XZY` 1.9408 deg. So `euler_to_quat` takes the stored radians, and the animated channels
-  add to `bone.rot` with no conversion.
-* **Delta semantics.** A `@`-prefixed sequence, or one with `ANIM_FLAG_DELTA`/`RLE_DELTA`, seeds
-  `rot = (0,0,0,1)` and `pos = 0` and does not add the bone base. `mstudioanimdesc_t` has no parent
-  pointer, so the engine's parent-pose blend is not reproducible here; the record is flagged
-  `"delta": True` for that reason.
-* **Which models need this.** `pipeline/validate_assets.py`'s `decoder coverage` line reports
-  `41/182 models fully decoded, 141 need the legacy RLE reader`, and the model list is the same one
-  this file names.
+  order/sign/unit candidates over 207 models / 5353 non-trivial rest bones and requires the winner to be
+  exact on every one of them — `ZYXe+++rad` (= intrinsic `XYZ`) at **0.0000 deg worst**, runner-up
+  `XZY` 1.9408 deg. `euler_to_quat` therefore takes the stored radians and the animated channels add to
+  `bone.rot` with no conversion.
+* **Delta semantics.** A `@`-prefixed sequence, or one with `ANIM_FLAG_DELTA`, seeds `rot = (0,0,0,1)`
+  and `pos = 0` and does not add the bone base — per *record* for `0x10`, per *description* for the
+  sequence flag. `mstudioanimdesc_t` has no parent pointer, so the engine's parent-pose blend is not
+  reproducible here; the record is flagged `"delta": True` for that reason, and `rle_vs_sourceio.py`
+  reports rather than fails on those clips.
+* **Which models needed this.** `pipeline/validate_assets.py`'s `decoder coverage` line is the count,
+  and `build/decode_report.json` carries the per-model reasons.
 
 ## Reproducing the numbers
 
 ```bash
-# sizes, the unit-sphere census and the base-pose residuals, over the whole dump (numpy only)
-/tmp/venv/bin/python pipeline/qa/exploration/rle_census.py
-# the euler convention search over the whole dump
-/tmp/venv/bin/python pipeline/qa/euler_convention.py
-# which anims of one model walk, which refuse, and with what message
+/tmp/venv/bin/python pipeline/qa/rle_proof.py             # the two pass conditions, whole dump
+/tmp/venv/bin/python pipeline/qa/rle_vs_sourceio.py       # frame-for-frame against SourceIO's reader
+/tmp/venv/bin/python pipeline/qa/exploration/rle_census.py # sizes, the unit-sphere census, base residuals
+/tmp/venv/bin/python pipeline/qa/euler_convention.py      # the euler search
+# which anims of one model decode, which refuse, and with what message
 /tmp/venv/bin/python -c "
 import sys; sys.path.insert(0,'pipeline'); import source_zanim as Z
 P='build/content/CS2GO.Pack.Director.s.Cut.-.Heavy.Weapons/m_cs2_mag7/models/weapons/v_shot_mag7.mdl'
@@ -142,10 +138,5 @@ for k,v in Z.load_model_animations(P, strict=False).items():
 "
 ```
 
-`rle_census.py` prints the fourth word of each record sitting in the quaternion value band 81% of the
-time while the first three sit there 40-45% -- the strongest hint left, and the reason item 5 is worth
-another try with the *payload* shifted by two bytes.
-
-To flip `RLE_TRUSTED` on, the first command has to print `ok` for every animation of every model named
-at the top of this file — and the layout it then uses needs a paragraph here explaining which
-criterion each alternative failed, the way items 1–6 above do.
+`RLE_TRUSTED` is the documented off-switch: set it to `False` and every legacy description refuses with a
+message that names the flag and the document, instead of emitting poses nobody has checked.

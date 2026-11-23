@@ -26,7 +26,7 @@ out during import, because it asserts on v49 frame-anim blocks.
 | `pipeline/validate_assets.py` | decodes every model and reports per-clip sanity (`build/decode_report.json`) |
 | `pipeline/render_qa.py`, `pipeline/qa/` | rendering QA harness and the numeric gates — see [`pipeline/qa/README.md`](pipeline/qa/README.md) |
 | `docs/reference-sources.md` | the third-party files the format was reverse engineered against, with hashes |
-| `docs/legacy-rle-anim.md` | the pre-`ANIM_FLAG_FRAMEANIM` sequence format: the layout the files prove, the encodings that were measured and ruled out, and why the reader refuses to emit its result (`RLE_TRUSTED`) |
+| `docs/legacy-rle-anim.md` | the pre-`ANIM_FLAG_FRAMEANIM` sequence format: the layout the files prove (including the bit-packed `Quat64` constant that every word-wise reading missed), what was measured and ruled out, and the two gates that back `RLE_TRUSTED` |
 
 ## Running it
 
@@ -69,6 +69,26 @@ where a single rigid offset measurably does not reach (`v_mach_negev`, `v_eq_inc
 The arms conform is solved per weapon and refused when it is not a conform: it has to improve the
 frames it never saw, which the knife fails (its blade rides an attach bone the sleeve does not), so
 those packs ship the arms as authored with `arms_grip_fit.skipped` in the manifest.
+
+## Output shape, and what is out of scope
+
+Two choices the pipeline had left open, settled here rather than per-pack:
+
+* **One `.blend` and one `.glb` per weapon, with every clip as an action.** That is the deliverable,
+  because the gates read it as a unit — `pose_residual` compares a baked action against the decoded
+  frames, and `arms_contact` needs the weapon and the arms in one scene to measure them together. A pack
+  is a weapon, so a file per weapon. `--per-anim` additionally writes one skeleton-only `.glb` per clip
+  for handing a single animation to someone else; it is off by default because the base `.glb` already
+  carries every animation, so the per-clip files duplicate data and, being skeleton-only, cannot be
+  checked by the contact gate. Nothing in `dist/` should be read as "the animations are missing" because
+  there is one file — `manifest.json` lists the clips and their frame counts.
+* **`w_*` world models are not built.** Their animations now decode (they were the bulk of the
+  legacy-RLE refusals), and `pipeline/validate_assets.py` reports them, but a pack is a viewmodel: a
+  world model has no arms to fit, no attach-point grip to score, and its own set of `shell_*`,
+  `_dropped` and `_mag` variants whose clips are rest poses or single-bone drops. Building them would
+  produce files none of the gates can judge, so the pipeline refuses them by selection and the manifest
+  of each pack names the model files it skipped and why. Exporting them is a matter of running the same
+  decode with `--no-arms` over those files; it is deliberately not part of `dist/`.
 
 Two things are known-limited by the source data rather than by this code: v49 exposes no frame rate,
 so clip timing is resolved from `@`-stripped name pairs, and the arms meshes in

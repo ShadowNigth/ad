@@ -133,15 +133,42 @@ both far from any mesh the SMD arms reach, and `arm_fit` will not invent a shift
 scored frame at the cost of the rest.  `pose_residual`'s worst is `v_snip_ssg08`'s 0.061 deg — a
 bi-pod bone, and four orders of magnitude inside the tolerance.
 
-## `euler_convention.py`
+## The legacy RLE decoder's two gates
 
-`source_zanim.euler_to_quat` is only used by the legacy RLE path, and it is the one convention in this
-repository that cannot be checked against a built pack — there is no shipped animation that exercises
-it.  So it is checked against the files: 192 candidate orders/signs/units, scored on the second copy of
+[`rle_proof.py`](rle_proof.py) and [`rle_vs_sourceio.py`](rle_vs_sourceio.py) are what `RLE_TRUSTED =
+True` means. Both run over the whole dump in plain Python (no Blender), and both are exit-coded, so they
+belong in front of any `dist/` rebuild:
+
+```sh
+/tmp/venv/bin/python pipeline/qa/rle_proof.py          # [verdict] PASS: 1586 anims, 0 refused
+/tmp/venv/bin/python pipeline/qa/rle_vs_sourceio.py    # 82425 (anim, bone) pairs agree exactly
+```
+
+* `rle_proof.py` asks the two questions a correct decode cannot fail on its own terms: is every quaternion
+  unit (`|q|-1` median 5.96e-08, worst 1.19e-07), and does a single-frame `base*` sequence reproduce
+  `mstudiobone_t` on the bones its records touch (0.044 deg / 0.006 in)? It restricts the second number to
+  the *touched* bones on purpose — an untouched bone keeps the rest pose by construction, so a median over
+  all bones would be a lie about coverage.
+* `rle_vs_sourceio.py` reads the same bytes with SourceIO's own `StudioAnimDesc.read_animations` and diffs
+  them per bone. This is the gate that found the last two bugs, and it found them because the other checks
+  could not: a euler channel in the wrong unit still yields a unit quaternion, and a bone base added where
+  it should not be produces a smooth plausible curve. Two divergences are excluded and *counted* rather
+  than hidden — the frames a file stores as the `0x8000` "no key" sentinel (1841 of them; holding the
+  previous value is a decision, and SourceIO's 9962-inch shells are the alternative), and delta clips,
+  where the two readers differ by which pose a channel composes onto (11046 of 18957 differ by exactly
+  the base add; the rest are reported, not failed, and `pose_residual`/`arms_contact` are what judge
+  them).
+
+`euler_convention.py` covers what neither of those can: `source_zanim.euler_to_quat` is used by the
+legacy RLE path, whose channels are eulers, and a built pack cannot arbitrate an axis convention by
+itself. So it is checked against the files: 192 candidate orders/signs/units, scored on the second copy of
 every bone's rest orientation (`mstudiobone_t.quat`), restricted to the 5353 bones whose rest euler
 exceeds 10 deg, with conventions that are the same rotation under two names collapsed.  Winner
 `ZYXe+++rad` at 0.0000 deg worst bone; runner-up `XZYi+++rad` at 1.9408 deg.  The gate fails if the
-winner is ever not exact, which is what would tell us a decoder change broke it.
+winner is ever not exact, which is what would tell us a decoder change broke it.  It is also the reason
+the legacy path must *not* convert `mstudiobone_t`'s euler to radians on the way in: the field is already
+radians, and `rle_vs_sourceio.py` is what proves it (a degrees conversion there leaves the quaternions
+unit and the poses wrong).
 
 ## The sweep is the only thing that caught a shipped-code regression
 
