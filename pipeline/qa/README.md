@@ -122,7 +122,11 @@ All 41 built packs, each gate run over every pack:
 | --- | --- |
 | `pose_residual` | **0 failures / 41 packs**; worst `0.061 deg / 0.0000 in` (`v_snip_ssg08`), median `0.032 deg` |
 | `arm_fit` | 38 packs solved a grip offset (12–28 in before → 1.1–9.6 in after); 3 knife packs refused and reverted |
-| `arms_contact --min-in 3` | **39 PASS, 2 misses**: `v_mach_negev` at 6.88 in and `v_eq_incendiarygrenade` at 4.16 in |
+| `arms_contact --min-in 3` | **39 PASS, 2 misses**: `v_mach_negev` at 6.88 in and `v_eq_incendiarygrenade` at 4.16 in. A "miss" here means the arms never came *within* 3 in of the weapon — the gloves float — and `sweep_gates.py` reports it in the contact column with the gate's own word, while its last column stays `OK` unless you ask for `--contact-fails` |
+
+Re-running the sweep is the check on any decoder change: the numbers above came out of
+`sweep_gates.py` on 2026-11-22, byte-identical to the earlier hand-run sweep, and it is what caught a
+regression that every other signal in the pipeline missed (see "The sweep is the only thing…" below).
 
 The two contact misses are reported, not fixed: the negev's foregrip hand and the grenade's palm are
 both far from any mesh the SMD arms reach, and `arm_fit` will not invent a shift that only improves a

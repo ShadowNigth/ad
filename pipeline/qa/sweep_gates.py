@@ -73,17 +73,27 @@ def run(script: str, args: list, env: dict, timeout: int) -> subprocess.Complete
     return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=timeout)
 
 
-def numbers(text: str, needle: str, pattern: str) -> str:
-    """Pull the measured value out of the one line of gate output that carries it.
+def numbers(text: str, needle: str, pattern: str, verdict: bool = False) -> str:
+    """Pull the measured value -- and the gate's own verdict -- out of the line that carries them.
 
     Matching on a number rather than on the whole sentence is deliberate: the gates' prose has changed
     several times, and a sweep that prints `?` because a sentence was reworded is worse than one that
     keeps reporting the figure.
+
+    The contact verdict has to be read from the *line*, not inferred from the sweep's own PASS column:
+    `arms_contact` fails at `--min-in 3` (the gloves never got that close) while the row's last column
+    stays PASS, because that column reports whether the sweep treats this gate as binding.  Printing
+    the number next to the gate's word is what keeps those two from being confused.
     """
     for line in text.splitlines():
         if needle in line:
             m = re.search(pattern, line)
-            return m.group(1) if m else line.split("] ", 1)[-1].strip()[:44]
+            val = m.group(1) if m else line.split("] ", 1)[-1].strip()[:44]
+            if verdict:
+                v = re.search(r"->\s*(PASS|FAIL)", line)
+                if v:
+                    val += " " + v.group(1)
+            return val
     return "?"
 
 
@@ -141,19 +151,27 @@ def main() -> int:
         residual = numbers(r1.stdout, "worst as-baked", r"([\d.]+ deg / [\d.]+ in)")
         r2 = run("arms_contact.py", ["--blend", str(blend), "--min-in", str(args.min_in)],
                  env, args.timeout)
-        contact = numbers(r2.stdout, "closest arms-to-weapon", r"([\d.]+ in)")
+        contact = numbers(r2.stdout, "closest arms-to-weapon", r"([\d.]+ in)", verdict=True)
         ok = r1.returncode == 0 and (r2.returncode == 0 or not args.contact_fails)
-        rows.append((weapon, f"{name} f{frame}", residual, fit_txt, contact,
-                     "PASS" if ok else "FAIL"))
+        # `OK`/`FAIL` is the *sweep's* verdict -- whether the gates it treats as binding passed.  The
+        # gate's own PASS/FAIL rides in the contact column, and the two legitimately differ: an
+        # arms_contact miss is a report unless --contact-fails was asked for.
+        rows.append((weapon, f"{name} f{frame}", residual, fit_txt, contact, "OK" if ok else "FAIL"))
         if not ok:
             tail = (r1.stdout + r1.stderr if r1.returncode else r2.stdout + r2.stderr)
             fails.append((weapon, tail[-400:]))
 
-    print(f"\n{'pack':28s} {'clip checked':22s} {'worst as-baked':28s} {'grip fit':24s} contact")
+    print(f"\n{'pack':28s} {'clip checked':22s} {'worst as-baked':28s} {'grip fit':24s} "
+          f"contact (arms_contact's own verdict)      sweep")
     for r in sorted(rows):
         print(f"{r[0]:28s} {r[1]:22s} {r[2][:28]:28s} {r[3][:24]:24s} {r[4]} {r[5]}")
+    misses = [r for r in rows if r[4].endswith("FAIL")]
     print(f"\n[sweep] {len(rows)} pack(s) under {args.out}: {len(fails)} failing "
           f"({sum(1 for r in rows if r[5] == '-')} with nothing to check)")
+    if misses:
+        print(f"[sweep] arms_contact reported {len(misses)} contact miss(es): "
+              + ", ".join(f"{r[0]} {r[4].replace(' FAIL', '')}" for r in misses)
+              + ("   <- failing the sweep" if args.contact_fails else "   <- reported only; --contact-fails gates them"))
     for who, detail in fails:
         print(f"  {who}: {detail}")
     if fails:
