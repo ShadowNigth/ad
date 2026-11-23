@@ -27,6 +27,27 @@ component plus `w`'s sign bit, packed across two `uint32`, so no field is word-a
 | a constant record for a bone with a positional channel is in the **anim frame**: it needs the same `Rz(+90)` undo the ZANIM path applies, to the quaternion *and* the position | without it, `v_shot_mag7`'s `base_pose` forearms sit 90.000 deg and 14.77 in from the rest pose; with it, 0.044 deg and 0.006 in |
 | inline section base = `entry + anim_offset + (animblock_offset - sections[0].anim_offset)`; a desc with no section table starts at `entry + animblock_offset` | the mag7's `base_pose` records decode from `entry + 1004`; reading `sec.anim_offset` raw produced `bone index 53 >= 52 bones` |
 
+## What the engine's own header says
+
+The reference `studio.h` in this repository's notes is the **Source 1** header, so it is not authority on
+v49's widths — but on the two things it does state, it agrees with the decode above:
+
+```c
+#define STUDIO_ANIM_RAWPOS    0x01 // Vector48
+#define STUDIO_ANIM_RAWROT2   0x20 // Quaternion64
+struct mstudioanimvalue_t { union { struct { byte valid, total; } num; }; short value; };
+```
+
+`0x20 // Quaternion64` is the bit-packed reading, and it is the only name in the file that explains an
+8-byte constant whose components are not words — which is what the census could not square.  Where the
+header and the files disagree, the files win: `0x01 // Vector48` is *not* what v49 stores (SourceIO reads
+three float16s there, and that reading is what reproduces `mstudiobone_t.position` on the base-pose
+control).  And `mstudioanimvalue_t` is the same struct this reader walks, once its `union` is read the way
+the engine's own `pAnimvalue()`/`Next()` arithmetic reads it: the header bytes belong to the *first* entry
+of a run and the rest of the run is bare `short value`s, which is why a 15-frame channel is 2 + 2·15 = 32
+bytes and not 15 × 4.  Reading a header comment as a guarantee about a different engine version is how
+3 × `u32` got tried in the first place.
+
 ## How it was proven, and why those two checks
 
 `RLE_TRUSTED = True` is a claim about the *numbers*, not about the chain walking — four wrong layouts
@@ -87,6 +108,13 @@ one thing the field is not; the components straddle the word boundary, so they c
 
 The census in `pipeline/qa/exploration/rle_census.py` prints items 4 and 5 and is the thing to re-run if
 any of this is ever in doubt again.
+
+There is no field to read this from. `mstudiobone_t` in Source 1 carries `qAlignment`, which would state
+the authoring-frame rotation per bone and make the whole question empirical; v49's bone record does not
+populate it — measured across 925 bones of 25 models, every `q_alignment` SourceIO returns is
+`(0, 0, 0, 0)`, i.e. the default its reader writes when the field is absent. So the rule has to be
+*derived* (from the rest pose and the contact gates), and it has to be re-derived if a future dump starts
+populating that field, at which point the constant `Rz(+90)` becomes the bug.
 
 ## Two lessons this path left behind
 
