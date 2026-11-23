@@ -105,7 +105,7 @@ anything), so `ak47_idle f1` dropped out and `lookat01 f69` came in, moving the 
 11.72 -> 2.49 in). Generalising the frame choice was the point; the unseen number *improving* is the
 check that it was worth it.
 
-## The whole batch, swept (2026-11-22, same branch)
+## The whole batch, swept (2026-11-23, same branch, after the legacy RLE decode landed)
 
 [`sweep_gates.py`](sweep_gates.py) runs the two Blender gates over every pack in `dist/` — no weapon
 names, one row per pack, non-zero exit if any `pose_residual` fails (add `--contact-fails` to fold the
@@ -113,20 +113,23 @@ contact misses in). Re-run it after anything in `source_zanim.py` changes:
 
 ```sh
 blender -b -P pipeline/qa/sweep_gates.py --                      # or with the stub libs:
-LD_LIBRARY_PATH=/tmp/stubs python3 pipeline/qa/sweep_gates.py    # ~95 s for 41 packs on 2 cores
+LD_LIBRARY_PATH=/tmp/stubs python3 pipeline/qa/sweep_gates.py    # ~150 s for 45 packs on 2 cores
 ```
 
-All 41 built packs, each gate run over every pack:
+All 45 built packs — the whole dump's weapon set, including the four shotgun packs that used to fail
+because their models only had legacy-RLE animations, and the nine `v_*` models whose inspect/scope-mask
+clips are legacy too. Each gate runs over every pack:
 
 | gate | result |
 | --- | --- |
-| `pose_residual` | **0 failures / 41 packs**; worst `0.061 deg / 0.0000 in` (`v_snip_ssg08`), median `0.032 deg` |
-| `arm_fit` | 38 packs solved a grip offset (12–28 in before → 1.1–9.6 in after); 3 knife packs refused and reverted |
-| `arms_contact --min-in 3` | **39 PASS, 2 misses**: `v_mach_negev` at 6.88 in and `v_eq_incendiarygrenade` at 4.16 in. A "miss" here means the arms never came *within* 3 in of the weapon — the gloves float — and `sweep_gates.py` reports it in the contact column with the gate's own word, while its last column stays `OK` unless you ask for `--contact-fails` |
+| `pose_residual` | **0 failures / 45 packs**; worst `0.061 deg / 0.0000 in` (`v_snip_ssg08`), median `0.030 deg`, best `0.000 deg` (`v_shot_sawedoff`, a legacy-RLE pack) |
+| `arm_fit` | 38 packs solved a grip offset (6.6–28.1 in before → 1.1–9.6 in after); 7 refused and reverted — the 3 knives plus the 4 shotguns, whose authored arms are already within 0.04–1.76 in of the weapon in the contact column, so a rigid shift could only worsen it ("applying it worsens the gap it was fitted to") |
+| `arms_contact --min-in 3` | **43 PASS, 2 misses**: `v_mach_negev` at 6.88 in and `v_eq_incendiarygrenade` at 4.16 in — the same two as before the legacy decode, i.e. adding 4 packs and every legacy clip moved neither of them. A "miss" here means the arms never came *within* 3 in of the weapon — the gloves float — and `sweep_gates.py` reports it in the contact column with the gate's own word, while its last column stays `OK` unless you ask for `--contact-fails` |
 
-Re-running the sweep is the check on any decoder change: the numbers above came out of
-`sweep_gates.py` on 2026-11-22, byte-identical to the earlier hand-run sweep, and it is what caught a
-regression that every other signal in the pipeline missed (see "The sweep is the only thing…" below).
+Re-running the sweep is the check on any decoder change. It is what caught the regression described at the
+bottom of this file, and it is what says the new legacy decode did not disturb the ZANIM path: the 41
+packs that existed before still print the same numbers they did on 2026-11-22 (`0.020–0.061 deg`), while
+the four that could not be built at all now print `0.005–0.020 deg`.
 
 The two contact misses are reported, not fixed: the negev's foregrip hand and the grenade's palm are
 both far from any mesh the SMD arms reach, and `arm_fit` will not invent a shift that only improves a
@@ -141,7 +144,7 @@ belong in front of any `dist/` rebuild:
 
 ```sh
 /tmp/venv/bin/python pipeline/qa/rle_proof.py          # [verdict] PASS: 1586 anims, 0 refused
-/tmp/venv/bin/python pipeline/qa/rle_vs_sourceio.py    # 82425 (anim, bone) pairs agree exactly
+/tmp/venv/bin/python pipeline/qa/rle_vs_sourceio.py    # 90999 (anim, bone) pairs agree exactly
 ```
 
 * `rle_proof.py` asks the two questions a correct decode cannot fail on its own terms: is every quaternion
@@ -151,13 +154,17 @@ belong in front of any `dist/` rebuild:
   all bones would be a lie about coverage.
 * `rle_vs_sourceio.py` reads the same bytes with SourceIO's own `StudioAnimDesc.read_animations` and diffs
   them per bone. This is the gate that found the last two bugs, and it found them because the other checks
-  could not: a euler channel in the wrong unit still yields a unit quaternion, and a bone base added where
-  it should not be produces a smooth plausible curve. Two divergences are excluded and *counted* rather
-  than hidden — the frames a file stores as the `0x8000` "no key" sentinel (1841 of them; holding the
-  previous value is a decision, and SourceIO's 9962-inch shells are the alternative), and delta clips,
-  where the two readers differ by which pose a channel composes onto (11046 of 18957 differ by exactly
-  the base add; the rest are reported, not failed, and `pose_residual`/`arms_contact` are what judge
-  them).
+  could not: a euler channel in the wrong unit still yields a unit quaternion, and a bone base added (or
+  dropped) where it should not be produces a smooth plausible curve. Four things are excluded and *counted
+  on the same screenful as the `PASS*`, because each is a hole in the gate's visibility, not a failure to
+  explain: the `0x8000` sentinel frames (1841 — holding the previous value is a decision, and SourceIO's
+  9962-inch shells are the alternative); non-delta rows where SourceIO's valueptrs-only branch read no
+  channel and left an all-zero quaternion (17,006); delta rows where this reader seeds "no contribution"
+  for a bone the clip does not animate while SourceIO seeds that bone's rest pose (782,677 — a composition
+  choice on both sides, `docs/legacy-rle-anim.md` "Delta, in two rules"); and delta positions, which
+  agree once the setup-pose add is applied (9,315, 100 % exact). What the gate still refuses to call a
+  wash: 27 delta rows that neither rule explains are printed, split by whether they sit on a `v_*`
+  model the addon ships or a `w_*` one it does not, and `pose_residual`/`arms_contact` judge those.
 
 `euler_convention.py` covers what neither of those can: `source_zanim.euler_to_quat` is used by the
 legacy RLE path, whose channels are eulers, and a built pack cannot arbitrate an axis convention by

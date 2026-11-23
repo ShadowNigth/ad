@@ -474,11 +474,13 @@ RLE_RAWROT = 0x02      # constant Quaternion48
 RLE_ANIMPOS = 0x04     # three RLE position channels
 RLE_ANIMROT = 0x08     # three RLE euler channels
 RLE_DELTA = 0x10       # relative to the main sequence's pose, not to the bind
-RLE_RAWROT2 = 0x20     # constant Quaternion48S
+RLE_RAWROT2 = 0x20     # constant Quat64: the bit-packed 64-bit quaternion, see `quat64`
 
 # A constant rotation occupies 8 bytes and a constant position 6, per the records' own `nextoffset`
-# (0x20 -> 4 + 8, 0x21 -> 4 + 8 + 6).  The *widths* are therefore known; the encoding of those eight
-# bytes is not (see the census above), which is why RLE_TRUSTED is off.
+# (0x20 -> 4 + 8, 0x01 -> 4 + 6, 0x21 -> 4 + 8 + 6).  Those widths are what the record-size census
+# measured; the *encoding* of the eight bytes was the last thing missing, and it is `quat64` below -- a
+# 64-bit bit-packed quaternion, which is why no selection of 16-bit words could ever satisfy the
+# unit-sphere test the census ran (its numbers are in docs/legacy-rle-anim.md).
 #
 # `RLE_` prefixes are load-bearing, not tidiness: the frameanim path has its own `CONST_SIZE`, keyed by
 # the *same flag bit values* (`RAW_POS` is 0x01 here and there).  This table was briefly named
@@ -499,6 +501,13 @@ RLE_CONST_SIZE = {RLE_RAWROT2: 8,     # Quat64: 21+21+21 bits of component, plus
 # raises with the bone, frame, channel and flags of the first violation, so an unconfirmed file fails
 # out loud instead of baking a pose.
 RLE_TRUSTED = True
+
+# Which pose a delta clip's channels are relative to.  True = the record's own `0x10` bit decides, per
+# record (SourceIO's rule); False = a delta *description* zeroes the base for every record in it, which
+# is what this reader did until `pipeline/qa/rle_vs_sourceio.py` could see the difference.  The untouched
+# bones of a delta clip are seeded to identity/zero either way -- that part is not in question; see
+# `docs/legacy-rle-anim.md` "Delta semantics".
+RLE_DELTA_USES_RECORD_BIT = True
 
 
 def quat64(raw: np.ndarray) -> np.ndarray:
@@ -707,12 +716,23 @@ def _decode_rle_desc(ad, mdl_bytes, ani_bytes, block_table, bones, ids, n, stric
     base_eul = np.array([b.rotation for b in bones], dtype=np.float64)      # radians, see above
     pos_scale = np.array([b.position_scale for b in bones], dtype=np.float64)
     rot_scale = np.array([b.rotation_scale for b in bones], dtype=np.float64)
+    # Which bones this sequence *does not touch* is a separate question from what a record's numbers are
+    # relative to, and the two used be conflated here: a delta sequence seeds identity/zero (so an
+    # untouched bone contributes nothing when the clip is composited), but each record's channels are
+    # relative to the setup pose or not according to that record's own `0x10` bit -- which `_rle_into`
+    # applies per record.  Zeroing the base for the whole description instead meant that in a `@` clip,
+    # every record *without* the bit lost its `mstudiobone_t` offset: 610 (bone, clip) positions and
+    # 18,347 rotations that no comparison could previously be run on, off by up to 42.8 in (`pelvis`)
+    # while reading as perfectly smooth curves.  See pipeline/qa/rle_vs_sourceio.py, whose whole point is
+    # that a plausible curve is not evidence.
     if is_delta:
         out["rot"][:] = (0, 0, 0, 1)
-        eul_base, pos_base = np.zeros((n, 3)), np.zeros((n, 3))
     else:
         out["rot"][:] = base_rot
         out["pos"][:] = base_pos
+    if is_delta and not RLE_DELTA_USES_RECORD_BIT:
+        eul_base, pos_base = np.zeros((n, 3)), np.zeros((n, 3))
+    else:
         eul_base, pos_base = base_eul, base_pos
 
     written, notes = 0, []

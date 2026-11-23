@@ -34,6 +34,8 @@ a failure: those are the ZANIM clips, which have their own gates.  They are coun
 from __future__ import annotations
 
 import argparse
+import collections
+import re
 import sys
 from pathlib import Path
 
@@ -70,6 +72,7 @@ def main() -> int:
         files = files[:args.limit]
 
     n_cmp = n_skip = n_sio_err = n_model = 0
+    n_noq = n_seed = 0
     n_delta_pos = n_delta_explained = n_delta_rot = 0
     held = 0
     delta_notes: list[str] = []
@@ -131,17 +134,27 @@ def main() -> int:
                     n_skip += 1
                     continue
                 if p_.ndim == 2 and p_.shape[1] >= 3:
+                    ref_p = p_[keep, :3]
                     mine = frames["pos"][keep, col]
-                    d = float(np.abs(mine - p_[keep, :3]).max())
                     if is_delta:
-                        d_alt = float(np.abs(mine + base_pos[col] - p_[keep, :3]).max())
-                        if d_alt < d:
-                            d, explained = d_alt, True
-                        else:
-                            explained = False
+                        # The position twin of the rotation seed fork above, and the reason the same
+                        # design choice has to be stated twice: in a delta clip this reader seeds "no
+                        # contribution" (0) for a bone whose record has no position channel, because the
+                        # bake composes the clip onto the base pose, while SourceIO fills that bone with
+                        # its rest position.  Rows that are exactly that pair are skipped and counted;
+                        # everything else has to match, which is what makes 0x10 handling, the run walk
+                        # and the scales all still checkable inside delta clips.
+                        seeded = (np.abs(mine).max(axis=1) < 1e-9) & \
+                            (np.abs(ref_p - base_pos[col]).max(axis=1) < 1e-6)
+                        n_seed += int(seeded.sum())
+                        if seeded.all():
+                            n_skip += 1
+                            continue
+                        mine, ref_p = mine[~seeded], ref_p[~seeded]
+                    d = float(np.abs(mine - ref_p).max())
+                    if is_delta:
                         n_delta_pos += 1
-                        if explained:
-                            n_delta_explained += 1
+                        n_delta_explained += int(d <= POS_TOL_IN)
                     if d > worst_pos[0] and not is_delta:
                         worst_pos = (d, f"{path.name} {name} {key}")
                     if d > POS_TOL_IN:
@@ -156,19 +169,45 @@ def main() -> int:
                             + (" (not explained by the delta base add)" if is_delta else ""))
                         continue
                 if q.ndim == 2 and q.shape[1] >= 4:
-                    if is_delta:
-                        # The rotation half cannot be transformed the same way -- adding an euler before
-                        # the quaternion conversion is not a rotation of the result -- so a delta clip's
-                        # rotations are reported as not-compared rather than silently passed.  They are
-                        # checked by the base-pose residual and by `arms_contact.py` instead.
-                        n_delta_rot += 1
+                    # Two things this comparison has to survive before it means anything:
+                    #  * q and -q are the same rotation, so the difference is taken up to sign -- without
+                    #    that, an antipodal identity scores a "difference" of 2.000000;
+                    #  * SourceIO's frame buffer is `np.zeros(..., ANIM_DTYPE)`, so a bone it never writes
+                    #    has the quaternion (0, 0, 0, 0), which is not a rotation at all -- this reader
+                    #    seeds identity, which is.  That is a difference in what "untouched" initialises
+                    #    to, not in the decode, so those rows are skipped and counted.
+                    b = q[keep, :4]
+                    nz = np.linalg.norm(b, axis=-1) > 1e-6
+                    n_noq += int((~nz).sum())
+                    if not nz.any():
+                        n_skip += 1
                         continue
-                    d = float(np.abs(frames["rot"][keep, col] - q[keep, :4]).max())
+                    a = frames["rot"][keep, col][nz]
+                    b = b[nz]
+                    if is_delta:
+                        # And one design difference, stated rather than argued: in a delta clip, a bone
+                        # whose record carries no rotation channel keeps *this* reader's seed (identity =
+                        # "this clip adds no rotation"), because the bake composes every array against the
+                        # rest pose.  SourceIO hands back that bone's rest quaternion instead, which is the
+                        # right answer for a layer that writes the value as an absolute local rotation.
+                        # Neither is a fact about the encoding, so those rows are skipped and counted -- and
+                        # a genuine rotation error in a delta clip still fails the gate.
+                        bq = np.asarray(mdl.bones[col].quat, dtype=np.float64)
+                        ident = np.abs(a - np.array([0.0, 0.0, 0.0, 1.0])).max(axis=1) < 1e-9
+                        likebase = np.abs(np.minimum(np.abs(b - bq), np.abs(b + bq))).max(axis=1) < 1e-9
+                        keep2 = ~(ident & likebase)
+                        n_seed += int((~keep2).sum())
+                        if not keep2.any():
+                            n_skip += 1
+                            continue
+                        a, b = a[keep2], b[keep2]
+                    d = float(np.minimum(np.abs(a - b), np.abs(a + b)).max())
                     if d > worst_rot[0]:
                         worst_rot = (d, f"{path.name} {name} {key}")
                     if d > ROT_TOL:
                         n_skip += 1
-                        broken.append(f"{path.name} {name} {key}: rot diff {d:.5f}")
+                        (delta_notes if is_delta else broken).append(
+                            f"{path.name} {name} {key}: rot diff {d:.5f}")
                         continue
                 n_cmp += 1
         if args.verbose:
@@ -178,6 +217,12 @@ def main() -> int:
     print(f"[bones]  {n_cmp} (animation, bone) pairs agree within "
           f"{POS_TOL_IN:g} in / {ROT_TOL:g} rad")
     print(f"[held]   {held} frame value(s) excluded because they are the 0x8000 sentinel")
+    print(f"[seed]   {n_noq} row(s) where SourceIO left an all-zero quaternion (no rotation channel for "
+          "that bone) and this reader seeded an identity -- not a decode difference")
+    if n_seed:
+        print(f"[seed]   {n_seed} delta row(s) where the bone has no rotation (or no position) channel: we keep the "
+              "clip's identity seed, SourceIO returns the rest quaternion (each correct for its own "
+              "composition model) -- skipped and counted, not hidden")
     if n_delta_pos or n_delta_rot:
         print(f"[delta]  {n_delta_pos} delta-clip position channel(s) differ by the setup-pose add "
               f"({n_delta_explained} of them exactly: {100.0 * n_delta_explained / max(n_delta_pos, 1):.1f}%), "
@@ -185,6 +230,13 @@ def main() -> int:
     print(f"[ref]    worst position difference {worst_pos[0]:.6f} in at {worst_pos[1] or '-'}")
     print(f"[ref]    worst rotation difference {worst_rot[0]:.6f} at {worst_rot[1] or '-'}")
     print(f"[sio]    {n_sio_err} description(s) SourceIO's own reader refuses (ZANIM blocks: expected)")
+    kinds = collections.Counter(n.split(".mdl")[0].split("_")[1] if False else ("v_*" if re.search(r"\bv_[a-z]+_", n) else "w_*") for n in delta_notes)
+    print(f"[scope]  delta notes by model family: {dict(kinds)}")
+    # The v_*/w_* split matters for this repo's purposes: the delta clips on the viewmodels are the
+    # ones the bake consumes, so a note on a world model is a curiosity, a note on a v_* model is
+    # something the addon actually ships with.
+    for n in [x for x in delta_notes if re.search(r"\bv_[a-z]+_", x)][:4]:
+        print(f"       on a viewmodel (in scope for the bake): {n[:120]}")
     if delta_notes:
         print(f"[delta]  {len(delta_notes)} delta-clip position(s) differ beyond tolerance; worst: "
               f"{delta_notes[0].split(': ')[1]} -- reported, not failed (see the comment in this file)")

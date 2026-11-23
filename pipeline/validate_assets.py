@@ -58,10 +58,11 @@ def find_pairs(archi: Path):
 
 def check_model(mdl_path: Path, ani_path: Path | None):
     import source_zanim as Z
-    # `unsupported` distinguishes "this model needs the legacy RLE reader we have not written"
-    # from "the decoder produced wrong numbers": 124 of the pack's 182 models are the former (every
-    # `w_*` world model and every shell/dropped variant), and counting them as failures buries the
-    # handful of real ones.  Only the latter should ever fail a build.
+    # `unsupported` distinguishes "this model needs a format the reader declines" from "the decoder
+    # produced wrong numbers", and it is derived from the problems rather than counted as they happen --
+    # on the current dump nothing lands in it (182/182 decode, including every `w_*` world model and
+    # shell/dropped variant, because the legacy RLE format is implemented), which is exactly the state
+    # this flag is here to notice the loss of.  Only a real decode failure should ever fail a build.
     rep = {"mdl": str(mdl_path), "ok": True, "unsupported": True, "problems": [],
            "anims": {}, "notes": []}
     try:

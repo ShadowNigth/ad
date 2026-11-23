@@ -47,24 +47,24 @@ known 90° bug, never a shipping setting). Every knob is explained by `--help`.
 
 ## Status
 
-45 weapon addons from the dump are staged and attempted; 41 build end to end and 4 (`v_shot_{mag7,
-nova,sawedoff,xm1014}`, every sequence in the legacy RLE format) fail with that named as the reason
-rather than producing a silent geometry-only pack. Each pack writes `dist/<pack>/manifest.json`
-(options, frame counts, arms provenance, what the grip fit solved and why, if it refused);
-`dist/manifest.json` aggregates the run and merges partial re-runs by pack directory. 41 of the pack's 182 models decode fully; the other 141 use the
-pre-`ANIM_FLAG_FRAMEANIM` RLE sequence format and are reported as unsupported rather than failed
-(`v_*` inspect clips, every `w_*` world model, shell/ejection-port variants) —
-see [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md) for that format — its record chains are
-walked and numerically checked by `source_zanim.py`, but the constant-channel encoding is unproven, so
-`RLE_TRUSTED = False` refuses the result instead of baking poses read from the wrong bytes. Per-model
-claims are checked
-by gates, not by eye: see [`pipeline/qa/README.md`](pipeline/qa/README.md) for the measured residuals
-and what each script fails on.
+All 45 weapon addons from the dump build end to end, and all 182 models in them decode: `182/182 models
+fully decoded, 0 need the legacy RLE reader`. That is the result of naming the last unsupported format —
+the pre-`ANIM_FLAG_FRAMEANIM` RLE sequence encoding, whose constant rotation turns out to be a 64-bit
+*bit-packed* quaternion rather than any arrangement of 16- or 32-bit words, which is why every previous
+attempt at it failed a unit-sphere test that a correct reading passes at 1e-7. The four shotgun packs that
+used to fail with that named as the reason (`v_shot_{mag7,nova,sawedoff,xm1014}`) now build, and the 141
+models that used to be reported as unsupported (`v_*` inspect clips, every `w_*` world model,
+shell/ejection-port variants) decode. Each pack writes `dist/<pack>/manifest.json` (options, frame counts,
+arms provenance, what the grip fit solved and why, if it refused); `dist/manifest.json` aggregates the run
+and merges partial re-runs by pack directory. The format, what was measured and ruled out, and the two
+whole-dump gates that back it are in [`docs/legacy-rle-anim.md`](docs/legacy-rle-anim.md).
 
-Sweeping the gates over every built pack (41 of them, each on its own longest clip) gives
-`pose_residual` 0 failures at a worst residual of 0.061 deg / 0.0000 in, and `arms_contact` two packs
-where a single rigid offset measurably does not reach (`v_mach_negev`, `v_eq_incendiarygrenade`) -- see
-[`pipeline/qa/README.md`](pipeline/qa/README.md).
+Sweeping the gates over every built pack (45 of them, each on its own longest clip) gives `pose_residual`
+0 failures at a worst residual of 0.061 deg / 0.0000 in and a median of 0.030 deg — with the four
+legacy-only packs among the *best* in the batch at 0.005–0.020 deg — and `arms_contact` two packs where a
+single rigid offset measurably does not reach (`v_mach_negev`, `v_eq_incendiarygrenade`), unchanged from
+before the legacy decode existed. Per-model claims are checked by gates, not by eye: see
+[`pipeline/qa/README.md`](pipeline/qa/README.md) for the measured residuals and what each script fails on.
 
 The arms conform is solved per weapon and refused when it is not a conform: it has to improve the
 frames it never saw, which the knife fails (its blade rides an attach bone the sleeve does not), so
