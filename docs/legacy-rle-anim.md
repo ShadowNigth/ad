@@ -63,15 +63,23 @@ Everything below was tried against the dump, so it does not have to be re-tried:
    numbers, and they say neither ordering produces unit quaternions.
 4. **`Quaternion48`/`Quaternion48S` in any of six dequantisations** — `(v-16384)/23168`,
    `(v-32768)/32768`, the two 15-bit-masked forms, `i16/16384`, `i16/32768` — for every choice of
-   which 3 of the record's first 4 words are the components. Census section 2, all 80021 `0x20`
-   records: the best row (words (0,2,3) as `i16/32768`) still has a median
-   `|x²+y²+z² - 1|` of 0.3585. A correct one is ~1e-4, because `w` is *rebuilt* from the other three
-   and cannot miss unless the three are not components.
+   which 3 of the record's first 4 words are the components. Census section 2, all 95249 records that
+   carry a constant rotation: the best row (words (1,2,3) as `i16/32768`) has a median
+   `|x²+y²+z² - 1|` of **0.3750**, and the share on or inside the sphere never beats what the same
+   numbers picked at random would give. A correct row is ~1e-4 / ~100%, because `w` is *rebuilt* from
+   the other three and cannot miss unless the three are not components.
+   Census section 3 asks the same question of the only bytes with a known answer — the 5 constant
+   records that sit in `base`/`ref`-named single-frame absolute sequences, which frame 0 of a base pose
+   is supposed to reproduce: read as `Quaternion48S` at payload offset 0 they are **139.5 deg off
+   `mstudiobone_t.quat` at the median** (0.0% under a degree), and the 81249 pooled single-frame
+   records are 129.5 deg off. A pass needs section 2's median at ~1e-4 *and* this one at ~0; only the
+   second is hard to reach by luck.
 5. **`Quaternion64` (3 × `u32`) — the only 8-byte quaternion there is**, which the sizes make the
-   natural candidate. Over 90164 records, four index rules (largest-component index stored plain, +1,
-   +2 mod 4, or always `w`) × two masks: median `x²+y²+z²` = 1.48, 4.4% near the sphere, 85 deg off
-   the rest pose. So the payload is 6 + 2, not 12/4 — and the 2-byte tail is not padding, since its
-   distribution matches the data words' (median 20969, 81% inside `[16384, 49152]`).
+   natural candidate. Census section 2's last rows: median `x²+y²+z²` = 1.711 with 2.8% near the
+   sphere (a wider 31-bit mask and the four other index rules get no closer), and reading the eight
+   bytes as **float16 halves** gives a median component magnitude of 24976 — these are integers. So
+   the payload is 6 + 2, not 12/4 — and the 2-byte tail is not padding either, since its distribution
+   matches the data words' (median 19562, 79.2% inside `[16384, 49152]`).
 6. **a `Vector48` euler constant** (`raw * rotation_scale` in some axis order — the shape the `0x1c`
    record's twelve leading zero bytes suggest, and the only reading the sizes leave room for). Fitting
    `bone.rot[axis]` against `raw[axis'] * rotation_scale` over the 429 base-pose records that carry one
@@ -84,8 +92,8 @@ Everything below was tried against the dump, so it does not have to be re-tried:
    unit.)
 
 What remains untried, and is the obvious next step: the payload may not start with the rotation at all
-— the census's per-word statistics show the *fourth* word in the quaternion band 81% of the time and
-the first three only 40–45%, so a `short` count or index table ahead of the channels, with the
+— the census's per-word statistics show the *fourth* word in the quaternion band 79.2% of the time and
+the first three only 38–43%, so a `short` count or index table ahead of the channels, with the
 constants interleaved per frame, would explain both the 8-byte width and the noise. Any layout worth
 trying has to be scored by criteria 4 and 5 jointly (unit sphere *and* `base_pose` ≈ `mstudiobone_t`),
 not by whether the chain walks: four different layouts walk cleanly and all four are wrong.

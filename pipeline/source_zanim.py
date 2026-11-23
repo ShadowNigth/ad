@@ -456,19 +456,21 @@ def _block_bytes(mdl_bytes, ani_bytes, block_table, anim_block, absolute_offset)
 #
 # NOT proven -- the constant channels.  The words at the start of a 0x20 record are not a quaternion in
 # any encoding this repository has been able to name; `pipeline/qa/exploration/rle_census.py` prints
-# the measurement over all 80021 of them in the dump, for every choice of "which 3 of the first 4
+# the measurement over all 95249 of them in the dump, for every choice of "which 3 of the first 4
 # words" and all six Source dequantisations of a 16-bit component: the median of |x^2+y^2+z^2 - 1|
-# never drops below 0.36, where a Quaternion48 lands on 1.0 within quantisation (its `w` is rebuilt
-# from the other three, so a right answer cannot miss).  Reading them anyway is what produced `@`-clip
+# never drops below 0.375, where a Quaternion48 lands on 1.0 within quantisation (its `w` is rebuilt
+# from the other three, so a right answer cannot miss).  The same section asks the one sequence that
+# has a known answer and gets 129.5 deg at the median against `mstudiobone_t.quat`.  Reading them anyway is what produced `@`-clip
 # positions of 5284 in and |q|-1 = 0.21, so the decode below is checked numerically (`_rle_verify`)
 # and refused until a layout is proven.
 #
 # Three things the census leaves behind for whoever picks this up: `Quaternion64` (3 x u32, the only
-# 8-byte quaternion) is no better -- median x^2+y^2+z^2 = 1.48 over 90164 records; the *fourth* word
-# sits in the quaternion value band 81% of the time while the first three manage 40-45%, so the
-# payload may not start with the rotation at all; and interpreting the first six bytes as a Vector48
-# euler delta reproduces `base_pose` to 0.012 deg for *any* byte shift, which is not a pass but the
-# signature of a scale so small the channel reads as zero.
+# 8-byte quaternion) is no better -- median x^2+y^2+z^2 = 1.711, 2.8% near the sphere, and as float16
+# halves the components come out at ~25000 each; the *fourth* word sits in the quaternion value band
+# 79.2% of the time while the first three manage 38-43%, so the payload may not start with the
+# rotation at all; and interpreting the first six bytes as a Vector48 euler delta reproduces
+# `base_pose` to 0.012 deg for *any* byte shift, which is not a pass but the signature of a scale so
+# small the channel reads as zero -- the control a candidate has to fail.
 #
 # A bone with no record holds its `mstudiobone_t` values for the whole timeline, which is why most bones
 # of a single-frame `base_pose` match the rest pose trivially -- a median residual there is evidence
