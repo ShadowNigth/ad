@@ -485,7 +485,14 @@ RLE_RAWROT2 = 0x20     # constant Quaternion48S
 # A constant rotation occupies 8 bytes and a constant position 6, per the records' own `nextoffset`
 # (0x20 -> 4 + 8, 0x21 -> 4 + 8 + 6).  The *widths* are therefore known; the encoding of those eight
 # bytes is not (see the census above), which is why RLE_TRUSTED is off.
-CONST_ROT_READ, CONST_SIZE = 6, {RLE_RAWROT2: 8, RLE_RAWROT: 8}
+#
+# `RLE_` prefixes are load-bearing, not tidiness: the frameanim path has its own `CONST_SIZE`, keyed by
+# the *same flag bit values* (`RAW_POS` is 0x01 here and there).  This table was briefly named
+# `CONST_SIZE`, which silently rebinding it mid-module: `decode_block` reads sizes with `.get(flag, 0)`,
+# so every constant record in the ZANIM path started advancing by 0 and `@ak47_fire1`'s root bone came
+# out at 90.000 deg against the baked pose while `a_base` and the frame counts stayed plausible.  Two
+# format tables must be two names.
+RLE_CONST_SIZE = {RLE_RAWROT2: 8, RLE_RAWROT: 8}     # stride of the field; 6 of its bytes are read
 
 # Flip to True only when the constant channels are proven.  The proof has to make every 0x20/0x21
 # record in the dump decode to a unit quaternion (median |x^2+y^2+z^2 - 1| at float noise, not 0.4) and
@@ -702,9 +709,11 @@ def _rle_into(blob, frames, count, ids, n, eul_base, pos_base, rot_scale, pos_sc
         if flags & (RLE_RAWROT2 | RLE_RAWROT):
             if len(body) < 6:
                 raise ZanimError(f"bone {bone}: constant rotation truncated")
+            # three u16, though the field is eight bytes wide: the last two are what the census
+            # calls the tail, and skipping them is what puts the position constant at +8.
             raw = np.frombuffer(body, dtype="<u2", count=3, offset=0)
             q = (quat48s if flags & RLE_RAWROT2 else quat48)(raw[None, :])[0]
-            i += CONST_SIZE[RLE_RAWROT2 if flags & RLE_RAWROT2 else RLE_RAWROT]
+            i += RLE_CONST_SIZE[RLE_RAWROT2 if flags & RLE_RAWROT2 else RLE_RAWROT]
         if flags & RLE_RAWPOS:
             if len(body) < i + 6:
                 raise ZanimError(f"bone {bone}: constant position truncated")

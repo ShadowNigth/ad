@@ -99,6 +99,15 @@ trying has to be scored by criteria 4 and 5 jointly (unit sphere *and* `base_pos
 not by whether the chain walks: four different layouts walk cleanly and all four are wrong.
 `pipeline/qa/exploration/rle_census.py` prints all of it, and is the thing to re-run after a change.
 
+## The trap this format nearly sprang
+
+While this reader was being added, its `CONST_SIZE` table silently shadowed the frameanim path's
+`CONST_SIZE` at module scope, and the ZANIM reader (which looks sizes up with `.get(flag, 0)`) started
+skipping constant fields. Frame counts, bone counts and `a_base` all still looked right; `pipeline/qa/sweep_gates.py`
+caught it on the first pack, at 90.000 deg on the ak47 root bone. Anyone extending this path: the
+legacy tables are `RLE_`-prefixed on purpose, and the check is the 41-pack sweep, not the model you are
+editing against.
+
 ## What is *not* in doubt
 
 * **Euler composition.** The animated rotation channels are eulers, and `mstudiobone_t` stores each

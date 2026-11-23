@@ -27,6 +27,7 @@ report about the rest pose.
 | `pose_residual.py` | the baked action reproduces the `.mdl` bone chain in Blender's own evaluator | `pb.matrix` is off by > 0.5 deg / 0.05 in, or a bone without a position channel changed length |
 | `arms_bind.py` | the re-bound arms mesh is not torn | the longest posed edge of a part grows past its rest edge (default mode `rigid`) |
 | `euler_convention.py` | `source_zanim.euler_to_quat` is the euler order the files actually use | no convention is exactly right on every bone with a rest euler over `--min-angle` (10 deg), or the runner-up is within `--min-separation` of it. Pure numpy over the whole `build/content` dump, no pack needed |
+| `sweep_gates.py` | every pack in `dist/`, both Blender gates, without naming a weapon | any pack's `pose_residual` fails (add `--contact-fails` for the contact gate too). A driver rather than a gate: it is how the table below stays reproducible |
 | `arms_contact.py` | the arms are actually on the weapon | the arms never come within `--min-in` of the weapon at any sampled frame. Pass `--min-in 3` to make it a gate: the default `0` only prints, because "the closest vertex is touching" is also what a welded glove reports, and the interesting number is the *distribution* |
 
 `python -m pipeline.arm_fit --blend ... [--write]` is not a gate but the fix the contact gate exists
@@ -106,11 +107,20 @@ check that it was worth it.
 
 ## The whole batch, swept (2026-11-22, same branch)
 
-All 41 built packs, each gate run over every pack (`/tmp/sweep.py`, log `/tmp/sweep.log`):
+[`sweep_gates.py`](sweep_gates.py) runs the two Blender gates over every pack in `dist/` — no weapon
+names, one row per pack, non-zero exit if any `pose_residual` fails (add `--contact-fails` to fold the
+contact misses in). Re-run it after anything in `source_zanim.py` changes:
+
+```sh
+blender -b -P pipeline/qa/sweep_gates.py --                      # or with the stub libs:
+LD_LIBRARY_PATH=/tmp/stubs python3 pipeline/qa/sweep_gates.py    # ~95 s for 41 packs on 2 cores
+```
+
+All 41 built packs, each gate run over every pack:
 
 | gate | result |
 | --- | --- |
-| `pose_residual` | **0 failures / 41 packs**; worst `0.061 deg / 0.0000 in` (`v_snip_ssg08`), most packs at `0.020 deg` |
+| `pose_residual` | **0 failures / 41 packs**; worst `0.061 deg / 0.0000 in` (`v_snip_ssg08`), median `0.032 deg` |
 | `arm_fit` | 38 packs solved a grip offset (12–28 in before → 1.1–9.6 in after); 3 knife packs refused and reverted |
 | `arms_contact --min-in 3` | **39 PASS, 2 misses**: `v_mach_negev` at 6.88 in and `v_eq_incendiarygrenade` at 4.16 in |
 
@@ -128,6 +138,24 @@ every bone's rest orientation (`mstudiobone_t.quat`), restricted to the 5353 bon
 exceeds 10 deg, with conventions that are the same rotation under two names collapsed.  Winner
 `ZYXe+++rad` at 0.0000 deg worst bone; runner-up `XZYi+++rad` at 1.9408 deg.  The gate fails if the
 winner is ever not exact, which is what would tell us a decoder change broke it.
+
+## The sweep is the only thing that caught a shipped-code regression
+
+Adding the legacy reader introduced a second table named `CONST_SIZE` at module scope, next to the
+frameanim path's `CONST_SIZE`. Python let the second one win, and because the frameanim reader looks
+sizes up with `.get(flag, 0)`, every constant record in the *working* path started advancing by 0
+bytes. Nothing local looked wrong: frame counts, bone counts, `a_base` and the `decode coverage` line
+all stayed as they were. The first sweep after the change printed
+
+```
+[residual] worst as-baked 90.000 deg / 14.1860 in   (the naive rule would give 179.97 deg)
+[residual] FAIL (tolerance 0.5 deg / 0.05 in)
+```
+
+on `m_cs2_ak47` — the exact 90 deg the axis-alignment fix exists to remove, on the root bone, in a path
+that had nothing to do with the format being added. So: two format tables are two names
+(`RLE_CONST_SIZE` now), and a decoder change is not "verified" until the sweep runs over every pack. One
+table per format, and the guard is the batch, not the file that was edited.
 
 The one weapon that does not fit is the knife. The kukri's scored frames improve
 `25.57 -> 11.79 in`, which alone looks like partial success, but the frames it never saw get *worse*

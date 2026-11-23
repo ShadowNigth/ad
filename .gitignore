@@ -4,3 +4,6 @@ dist/
 __pycache__/
 *.pyc
 *.blend1
+
+# scratch arrays that exploration probes drop in the repo root
+*.npz
